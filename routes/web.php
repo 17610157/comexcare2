@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReporteVendedoresController;
 use App\HttP\Controllers\ReporteVendedoresMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
-use App\Http\Controllers\Controller;        
 Route::get('/', function () {
     return view('welcome');
 });
@@ -39,8 +38,9 @@ Route::prefix('reportes')->group(function () {
     // Exportar CSV
     Route::post('vendedores-matricial/export-csv', [ReporteVendedoresMatricialController::class, 'exportCsv'])
         ->name('reportes.vendedores.matricial.export.csv');
+     
     Route::get('metas-ventas', [ReporteMetasVentasController::class, 'index'])->name('reportes.metas-ventas');
-    Route::post('metas-ventas/export/excel', [ReporteMetasVentasController::class, 'exportExcel'])->name('reportes.metas-ventas.export.excel');
+    Route::post('metas-ventas/export', [ReporteMetasVentasController::class, 'export'])->name('reportes.metas-ventas.export');
     Route::post('metas-ventas/export/pdf', [ReporteMetasVentasController::class, 'exportPdf'])->name('reportes.metas-ventas.export.pdf');
     Route::post('metas-ventas/export/csv', [ReporteMetasVentasController::class, 'exportCsv'])->name('reportes.metas-ventas.export.csv');
 });

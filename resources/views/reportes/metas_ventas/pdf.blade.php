@@ -2,109 +2,83 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Reporte de Metas vs Ventas</title>
+    <title>Reporte de Metas de Ventas</title>
     <style>
-        @page { margin: 15px; }
-        
         body { 
             font-family: Arial, sans-serif; 
-            font-size: 10px; 
-            margin: 0;
-            padding: 0;
+            font-size: 11px; 
+            margin: 10px;
         }
-        
         .header { 
             text-align: center; 
             margin-bottom: 15px;
             border-bottom: 2px solid #333;
             padding-bottom: 10px;
         }
-        
         .header h1 { 
             margin: 0; 
             font-size: 16px; 
             color: #333;
         }
-        
         .info { 
             margin-bottom: 15px;
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 5px;
-            font-size: 9px;
         }
-        
         .info p { 
             margin: 3px 0; 
         }
-        
         table { 
             width: 100%; 
             border-collapse: collapse; 
             margin-top: 10px;
-            font-size: 8px;
+            font-size: 10px;
         }
-        
         th { 
             background-color: #343a40; 
             color: white; 
-            padding: 5px 3px;
+            padding: 6px 4px;
             border: 1px solid #ddd;
             text-align: center;
-            font-weight: bold;
         }
-        
         td { 
             border: 1px solid #ddd; 
-            padding: 4px 3px;
+            padding: 5px 4px;
             text-align: left;
         }
-        
         .text-right { 
             text-align: right; 
         }
-        
         .text-center { 
             text-align: center; 
         }
-        
         .footer { 
             margin-top: 20px; 
-            font-size: 8px;
+            font-size: 9px;
             color: #666;
             border-top: 1px solid #ddd;
-            padding-top: 8px;
-            text-align: center;
+            padding-top: 10px;
         }
-        
         .total-row { 
             font-weight: bold; 
             background-color: #f8f9fa;
         }
-        
-        .text-success { color: #28a745; }
-        .text-danger { color: #dc3545; }
-        
-        .summary-box {
-            display: inline-block;
-            padding: 5px 10px;
-            margin: 0 5px 10px 0;
-            background-color: #e9ecef;
-            border-radius: 3px;
-            font-size: 9px;
-        }
+        .bg-info { background-color: #d1ecf1 !important; }
+        .bg-warning { background-color: #fff3cd !important; }
+        .bg-success { background-color: #d4edda !important; }
+        .bg-secondary { background-color: #e2e3e5 !important; }
+        .text-success { color: #28a745 !important; }
+        .text-warning { color: #ffc107 !important; }
+        .text-danger { color: #dc3545 !important; }
     </style>
 </head>
 <body>
-    <!-- Cabecera -->
     <div class="header">
-        <h1>REPORTE DE METAS VS VENTAS</h1>
-        <div style="font-size: 11px; margin-top: 5px;">
-            <strong>Fecha de generación:</strong> {{ $fecha_reporte }}
-        </div>
+        <h1>REPORTE DE METAS DE VENTAS</h1>
+        <p style="font-size: 12px; margin-top: 5px;">Fecha de generación: {{ $fecha_reporte }}</p>
     </div>
     
-    <!-- Información del reporte -->
     <div class="info">
         <p><strong>Periodo:</strong> {{ $fecha_inicio }} al {{ $fecha_fin }}</p>
         @if($plaza)
@@ -116,79 +90,87 @@
         @if($zona)
             <p><strong>Zona:</strong> {{ $zona }}</p>
         @endif
-        
-        <!-- Resumen rápido -->
-        <div style="margin-top: 8px;">
-            <span class="summary-box">
-                <strong>Registros:</strong> {{ count($resultados) }}
-            </span>
-            <span class="summary-box">
-                <strong>Meta Total:</strong> ${{ number_format($total_meta, 2) }}
-            </span>
-            <span class="summary-box">
-                <strong>Total Vendido:</strong> ${{ number_format($total_vendido, 2) }}
-            </span>
-            <span class="summary-box {{ $porcentaje_promedio >= 100 ? 'text-success' : 'text-danger' }}">
-                <strong>% Cumplimiento:</strong> {{ number_format($porcentaje_promedio, 2) }}%
-            </span>
-        </div>
+        <p><strong>Total de registros:</strong> {{ $estadisticas['total_registros'] }}</p>
     </div>
     
-    <!-- Tabla de resultados -->
     <table>
         <thead>
             <tr>
+                <th width="30">#</th>
                 <th>Plaza</th>
                 <th>Tienda</th>
-                <th>Zona</th>
                 <th>Sucursal</th>
                 <th>Fecha</th>
+                <th>Zona</th>
                 <th class="text-right">Meta Total</th>
                 <th class="text-right">Días Total</th>
                 <th class="text-right">Valor Día</th>
                 <th class="text-right">Meta Día</th>
-                <th class="text-right">Total Vendido</th>
+                <th class="text-right">Venta Día</th>
+                <th class="text-right">Venta Acum.</th>
                 <th class="text-right">% Cumplimiento</th>
+                <th class="text-right">% Acumulado</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($resultados as $item)
+            @foreach($resultados as $index => $item)
             <tr>
-                <td>{{ $item->plaza }}</td>
-                <td>{{ $item->tienda }}</td>
-                <td>{{ $item->zona }}</td>
+                <td class="text-center">{{ $index + 1 }}</td>
+                <td>{{ $item->id_plaza }}</td>
+                <td>{{ $item->clave_tienda }}</td>
                 <td>{{ $item->sucursal }}</td>
-                <td>{{ $item->fecha }}</td>
-                <td class="text-right">${{ number_format($item->meta_total ?? 0, 2) }}</td>
-                <td class="text-right">{{ number_format($item->dias_total ?? 0, 0) }}</td>
-                <td class="text-right">${{ number_format($item->valor_dia ?? 0, 2) }}</td>
-                <td class="text-right">${{ number_format($item->meta_dia ?? 0, 2) }}</td>
-                <td class="text-right">${{ number_format($item->total_vendido ?? 0, 2) }}</td>
-                <td class="text-right {{ ($item->porcentaje_cumplimiento ?? 0) >= 100 ? 'text-success' : 'text-danger' }}">
-                    {{ number_format($item->porcentaje_cumplimiento ?? 0, 2) }}%
+                <td>{{ \Carbon\Carbon::parse($item->fecha)->format('d/m/Y') }}</td>
+                <td>{{ $item->zona }}</td>
+                <td class="text-right">{{ number_format($item->meta_total, 2) }}</td>
+                <td class="text-right">{{ $item->dias_total }}</td>
+                <td class="text-right">{{ number_format($item->valor_dia, 2) }}</td>
+                <td class="text-right">{{ number_format($item->meta_dia, 2) }}</td>
+                <td class="text-right">{{ number_format($item->venta_del_dia, 2) }}</td>
+                <td class="text-right">{{ number_format($item->venta_acumulada, 2) }}</td>
+                <td class="text-right">
+                    @php
+                        $porcentaje = floatval($item->porcentaje);
+                        $color = $porcentaje >= 100 ? 'text-success' : ($porcentaje >= 80 ? 'text-warning' : 'text-danger');
+                    @endphp
+                    <span class="{{ $color }}">{{ number_format($porcentaje, 2) }}%</span>
+                </td>
+                <td class="text-right">
+                    @php
+                        $porcentaje_acumulado = floatval($item->porcentaje_acumulado);
+                        $color_acum = $porcentaje_acumulado >= 100 ? 'text-success' : ($porcentaje_acumulado >= 80 ? 'text-warning' : 'text-danger');
+                    @endphp
+                    <span class="{{ $color_acum }}">{{ number_format($porcentaje_acumulado, 2) }}%</span>
                 </td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="5" class="text-right"><strong>TOTALES:</strong></td>
-                <td class="text-right"><strong>${{ number_format(collect($resultados)->sum('meta_total') ?? 0, 2) }}</strong></td>
-                <td class="text-right"><strong>{{ number_format(collect($resultados)->sum('dias_total') ?? 0, 0) }}</strong></td>
-                <td class="text-right"><strong>${{ number_format(collect($resultados)->avg('valor_dia') ?? 0, 2) }}</strong></td>
-                <td class="text-right"><strong>${{ number_format($total_meta, 2) }}</strong></td>
-                <td class="text-right"><strong>${{ number_format($total_vendido, 2) }}</strong></td>
-                <td class="text-right {{ $porcentaje_promedio >= 100 ? 'text-success' : 'text-danger' }}">
-                    <strong>{{ number_format($porcentaje_promedio, 2) }}%</strong>
+                <td colspan="9" class="text-right"><strong>TOTALES:</strong></td>
+                <td class="text-right"><strong>{{ number_format($estadisticas['total_meta_dia'], 2) }}</strong></td>
+                <td class="text-right"><strong>{{ number_format($estadisticas['total_venta_dia'], 2) }}</strong></td>
+                <td class="text-right"><strong>{{ number_format($estadisticas['total_venta_acumulada'], 2) }}</strong></td>
+                <td class="text-right">
+                    @php
+                        $porcentaje_total = $estadisticas['porcentaje_promedio'];
+                        $color_total = $porcentaje_total >= 100 ? 'text-success' : ($porcentaje_total >= 80 ? 'text-warning' : 'text-danger');
+                    @endphp
+                    <span class="{{ $color_total }}"><strong>{{ number_format($porcentaje_total, 2) }}%</strong></span>
+                </td>
+                <td class="text-right">
+                    @php
+                        $porcentaje_acumulado_total = $estadisticas['porcentaje_acumulado_promedio'];
+                        $color_acum_total = $porcentaje_acumulado_total >= 100 ? 'text-success' : ($porcentaje_acumulado_total >= 80 ? 'text-warning' : 'text-danger');
+                    @endphp
+                    <span class="{{ $color_acum_total }}"><strong>{{ number_format($porcentaje_acumulado_total, 2) }}%</strong></span>
                 </td>
             </tr>
         </tfoot>
     </table>
     
-    <!-- Pie de página -->
     <div class="footer">
         <p>Documento generado automáticamente por el sistema</p>
-        <p>Página 1 de 1 | Total de registros: {{ count($resultados) }}</p>
+        <p>Página 1 de 1</p>
     </div>
 </body>
 </html>

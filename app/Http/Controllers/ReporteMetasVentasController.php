@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Meta;
 use Illuminate\Http\Request;
+use App\Models\ReporteMetasVentas;
 use App\Exports\MetasVentasExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -11,126 +11,199 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class ReporteMetasVentasController extends Controller
 {
     /**
-     * Mostrar el reporte de metas vs ventas
+     * Mostrar la vista principal del reporte - VERSIÓN OPTIMIZADA
      */
     public function index(Request $request)
     {
-        // Filtros por defecto
-        $fecha_inicio = $request->get('fecha_inicio', date('Y-m-01'));
-        $fecha_fin = $request->get('fecha_fin', date('Y-m-d'));
-        $plaza = $request->get('plaza', '');
-        $tienda = $request->get('tienda', '');
-        $zona = $request->get('zona', '');
-        
-        $filtros = [
-            'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => $fecha_fin,
-            'plaza' => $plaza,
-            'tienda' => $tienda,
-            'zona' => $zona,
-        ];
-        
-        // Obtener resultados
-        $resultados = Meta::obtenerReporteMetasVentas($filtros);
-        
-        // Calcular totales
-        $total_meta = 0;
-        $total_vendido = 0;
-        
-        foreach ($resultados as $item) {
-            $total_meta += $item->meta_dia ?? 0;
-            $total_vendido += $item->total_vendido ?? 0;
+        // Fechas por defecto (mes actual)
+        $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
+        $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
+        $plaza = $request->input('plaza', '');
+        $tienda = $request->input('tienda', '');
+        $zona = $request->input('zona', '');
+
+        $resultados = [];
+        $estadisticas = [];
+        $error_msg = '';
+        $tiempo_carga = 0;
+
+        // Solo procesar si hay fechas
+        if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
+            $inicio_tiempo = microtime(true);
+
+            try {
+                $filtros = [
+                    'fecha_inicio' => $fecha_inicio,
+                    'fecha_fin' => $fecha_fin,
+                    'plaza' => $plaza,
+                    'tienda' => $tienda,
+                    'zona' => $zona
+                ];
+
+                // USAR VERSIÓN OPTIMIZADA
+                $resultados = ReporteMetasVentas::obtenerReporte($filtros);
+                // O si prefieres la versión SQL pura optimizada:
+                // $resultados = ReporteMetasVentas::obtenerReporteOptimizadoSQL($filtros);
+                
+                $estadisticas = ReporteMetasVentas::obtenerEstadisticas($resultados);
+                $tiempo_carga = round((microtime(true) - $inicio_tiempo) * 1000, 2);
+                
+                // Log de rendimiento
+                \Log::info("Reporte Metas Ventas - Tiempo carga: {$tiempo_carga}ms, Registros: " . count($resultados));
+                
+            } catch (\Exception $e) {
+                $error_msg = "Error en la consulta: " . $e->getMessage();
+                \Log::error("Error Reporte Metas: " . $e->getMessage());
+            }
         }
-        
-        // Calcular porcentaje promedio
-        $porcentaje_promedio = ($total_meta > 0) ? ($total_vendido / $total_meta) * 100 : 0;
-        
-        return view('reportes.metas_ventas.index', [
-            'resultados' => $resultados,
-            'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => $fecha_fin,
-            'plaza' => $plaza,
-            'tienda' => $tienda,
-            'zona' => $zona,
-            'total_meta' => $total_meta,
-            'total_vendido' => $total_vendido,
-            'porcentaje_promedio' => $porcentaje_promedio,
-        ]);
+
+        return view('reportes.metas_ventas.index', compact(
+            'fecha_inicio', 
+            'fecha_fin', 
+            'plaza', 
+            'tienda', 
+            'zona',
+            'resultados', 
+            'estadisticas', 
+            'error_msg', 
+            'tiempo_carga'
+        ));
     }
-    
+
     /**
      * Exportar a Excel
      */
-    public function exportExcel(Request $request)
+    public function export(Request $request)
     {
         $filtros = [
-            'fecha_inicio' => $request->get('fecha_inicio'),
-            'fecha_fin' => $request->get('fecha_fin'),
-            'plaza' => $request->get('plaza'),
-            'tienda' => $request->get('tienda'),
-            'zona' => $request->get('zona'),
+            'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
+            'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
+            'plaza' => $request->input('plaza', ''),
+            'tienda' => $request->input('tienda', ''),
+            'zona' => $request->input('zona', '')
         ];
-        
-        return Excel::download(new MetasVentasExport($filtros), 'reporte_metas_ventas_' . date('Ymd_His') . '.xlsx');
+
+        return Excel::download(new MetasVentasExport($filtros), 
+            'Reporte_Metas_Ventas_' . date('Ymd_His') . '.xlsx'
+        );
     }
-    
-    /**
-     * Exportar a PDF
-     */
-    public function exportPdf(Request $request)
-    {
-        $filtros = [
-            'fecha_inicio' => $request->get('fecha_inicio'),
-            'fecha_fin' => $request->get('fecha_fin'),
-            'plaza' => $request->get('plaza'),
-            'tienda' => $request->get('tienda'),
-            'zona' => $request->get('zona'),
-        ];
-        
-        $resultados = Meta::obtenerReporteMetasVentas($filtros);
-        
-        // Calcular totales para el PDF
-        $total_meta = 0;
-        $total_vendido = 0;
-        
-        foreach ($resultados as $item) {
-            $total_meta += $item->meta_dia ?? 0;
-            $total_vendido += $item->total_vendido ?? 0;
-        }
-        
-        $porcentaje_promedio = ($total_meta > 0) ? ($total_vendido / $total_meta) * 100 : 0;
-        
-        $pdf = PDF::loadView('reportes.metas_ventas.pdf', [
-            'resultados' => $resultados,
-            'fecha_inicio' => $filtros['fecha_inicio'],
-            'fecha_fin' => $filtros['fecha_fin'],
-            'plaza' => $filtros['plaza'],
-            'tienda' => $filtros['tienda'],
-            'zona' => $filtros['zona'],
-            'total_meta' => $total_meta,
-            'total_vendido' => $total_vendido,
-            'porcentaje_promedio' => $porcentaje_promedio,
-            'fecha_reporte' => date('d/m/Y H:i:s'),
-        ]);
-        
-        $pdf->setPaper('A4', 'landscape');
-        
-        return $pdf->download('reporte_metas_ventas_' . date('Ymd_His') . '.pdf');
-    }
-    
+
     /**
      * Exportar a CSV
      */
     public function exportCsv(Request $request)
     {
         $filtros = [
-            'fecha_inicio' => $request->get('fecha_inicio'),
-            'fecha_fin' => $request->get('fecha_fin'),
-            'plaza' => $request->get('plaza'),
-            'tienda' => $request->get('tienda'),
-            'zona' => $request->get('zona'),
+            'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
+            'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
+            'plaza' => $request->input('plaza', ''),
+            'tienda' => $request->input('tienda', ''),
+            'zona' => $request->input('zona', '')
         ];
+
+        return Excel::download(new MetasVentasExport($filtros), 
+            'Reporte_Metas_Ventas_' . date('Ymd_His') . '.csv', 
+            \Maatwebsite\Excel\Excel::CSV,
+            [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="Reporte_Metas_Ventas_' . date('Ymd_His') . '.csv"',
+            ]
+        );
+    }
+
+    /**
+     * Exportar a PDF
+     */
+    public function exportPdf(Request $request)
+    {
+        try {
+            // Obtener datos directamente desde la base de datos
+            $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
+            $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
+            $plaza = $request->input('plaza', '');
+            $tienda = $request->input('tienda', '');
+            $zona = $request->input('zona', '');
+
+            $filtros = [
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => $fecha_fin,
+                'plaza' => $plaza,
+                'tienda' => $tienda,
+                'zona' => $zona
+            ];
+
+            // Usar versión optimizada
+            $resultados = ReporteMetasVentas::obtenerReporte($filtros);
+            $estadisticas = ReporteMetasVentas::obtenerEstadisticas($resultados);
+
+            $data = [
+                'resultados' => $resultados,
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => $fecha_fin,
+                'plaza' => $plaza,
+                'tienda' => $tienda,
+                'zona' => $zona,
+                'estadisticas' => $estadisticas,
+                'fecha_reporte' => date('d/m/Y H:i:s')
+            ];
+            
+            $pdf = Pdf::loadView('reportes.metas_ventas.pdf', $data);
+            
+            return $pdf->download('Reporte_Metas_Ventas_' . date('Ymd_His') . '.pdf');
+            
+        } catch (\Exception $e) {
+            // Si hay error, redirigir con mensaje
+            return redirect()->route('reportes.metas-ventas', $request->all())
+                ->with('error', 'Error al generar PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API para obtener venta acumulada hasta una fecha específica (OPTIMIZADA)
+     */
+    public function getVentaAcumulada(Request $request)
+    {
+        $fecha = $request->input('fecha', date('Y-m-d'));
+        $plaza = $request->input('plaza', '');
+        $tienda = $request->input('tienda', '');
         
-        return Excel::download(new MetasVentasExport($filtros), 'reporte_metas_ventas_' . date('Ymd_His') . '.csv', \Maatwebsite\Excel\Excel::CSV);
+        // Obtener el primer día del mes
+        $primer_dia_mes = date('Y-m-01', strtotime($fecha));
+        
+        $sql = "
+            SELECT 
+                cplaza,
+                tienda,
+                SUM(
+                    (COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
+                    (COALESCE(vtacred, 0) - COALESCE(descred, 0))
+                ) AS venta_acumulada_mes
+            FROM xcorte
+            WHERE fecha BETWEEN ? AND ?
+        ";
+        
+        $params = [$primer_dia_mes, $fecha];
+        
+        if (!empty($plaza)) {
+            $sql .= " AND cplaza = ?";
+            $params[] = $plaza;
+        }
+        
+        if (!empty($tienda)) {
+            $sql .= " AND tienda = ?";
+            $params[] = $tienda;
+        }
+        
+        $sql .= " GROUP BY cplaza, tienda";
+        
+        $resultados = DB::select($sql, $params);
+        
+        return response()->json([
+            'success' => true,
+            'fecha' => $fecha,
+            'primer_dia_mes' => $primer_dia_mes,
+            'data' => $resultados,
+            'total_acumulado' => array_sum(array_column($resultados, 'venta_acumulada_mes'))
+        ]);
     }
 }

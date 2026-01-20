@@ -1,12 +1,12 @@
 @extends('adminlte::page')
 
-@section('title', 'Reporte de Metas vs Ventas')
+@section('title', 'Reporte de Metas de Ventas')
 
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
-        <h1><i class="fas fa-chart-line text-primary"></i> Reporte de Metas vs Ventas</h1>
+        <h1><i class="fas fa-chart-line text-primary"></i> Reporte de Metas de Ventas</h1>
         <div>
-            <form method="POST" action="{{ route('reportes.metas-ventas.export.excel') }}" style="display: inline;" id="export-excel-form">
+            <form method="POST" action="{{ route('reportes.metas-ventas.export') }}" style="display: inline;" id="export-excel-form">
                 @csrf
                 <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
                 <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
@@ -100,6 +100,14 @@
         </div>
     </div>
 
+    @if(!empty($error_msg))
+        <div class="alert alert-danger alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+            <h5><i class="icon fas fa-ban"></i> Error!</h5>
+            {{ $error_msg }}
+        </div>
+    @endif
+
     @if(session('error'))
         <div class="alert alert-danger alert-dismissible">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
@@ -114,7 +122,7 @@
             <div class="col-lg-3 col-6">
                 <div class="small-box bg-info">
                     <div class="inner">
-                        <h3>{{ number_format(count($resultados)) }}</h3>
+                        <h3>{{ number_format($estadisticas['total_registros']) }}</h3>
                         <p>Registros</p>
                     </div>
                     <div class="icon">
@@ -123,10 +131,10 @@
                 </div>
             </div>
             <div class="col-lg-3 col-6">
-                <div class="small-box bg-success">
+                <div class="small-box bg-warning">
                     <div class="inner">
-                        <h3>${{ number_format($total_meta, 2) }}</h3>
-                        <p>Meta Total</p>
+                        <h3>${{ number_format($estadisticas['total_meta_dia'], 2) }}</h3>
+                        <p>Meta Día Total</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-bullseye"></i>
@@ -134,10 +142,10 @@
                 </div>
             </div>
             <div class="col-lg-3 col-6">
-                <div class="small-box bg-warning">
+                <div class="small-box bg-success">
                     <div class="inner">
-                        <h3>${{ number_format($total_vendido, 2) }}</h3>
-                        <p>Total Vendido</p>
+                        <h3>${{ number_format($estadisticas['total_venta_dia'], 2) }}</h3>
+                        <p>Venta del Día</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-dollar-sign"></i>
@@ -147,8 +155,8 @@
             <div class="col-lg-3 col-6">
                 <div class="small-box bg-primary">
                     <div class="inner">
-                        <h3>{{ number_format($porcentaje_promedio, 2) }}%</h3>
-                        <p>% Cumplimiento</p>
+                        <h3>{{ number_format($estadisticas['porcentaje_promedio'], 2) }}%</h3>
+                        <p>% Cumplimiento Prom.</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-percentage"></i>
@@ -162,6 +170,9 @@
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-table"></i> Resultados
+                    @if($tiempo_carga > 0)
+                        <span class="badge badge-secondary ml-2">{{ $tiempo_carga }}ms</span>
+                    @endif
                 </h3>
                 <div class="card-tools">
                     <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -174,48 +185,73 @@
                     <table class="table table-hover table-bordered table-striped" id="tabla-reportes">
                         <thead class="thead-dark">
                             <tr>
-                                <th>Plaza</th>
-                                <th>Tienda</th>
-                                <th>Zona</th>
-                                <th>Sucursal</th>
-                                <th>Fecha</th>
-                                <th class="text-right">Meta Total</th>
-                                <th class="text-right">Días Total</th>
-                                <th class="text-right">Valor Día</th>
-                                <th class="text-right">Meta Día</th>
-                                <th class="text-right">Total Vendido</th>
-                                <th class="text-right">% Cumplimiento</th>
+                                <th width="40">#</th>
+                                <th width="80">Plaza</th>
+                                <th width="80">Tienda</th>
+                                <th width="120">Sucursal</th>
+                                <th width="90">Fecha</th>
+                                <th width="80">Zona</th>
+                                <th width="90" class="text-right">Meta Total</th>
+                                <th width="80" class="text-right">Días Total</th>
+                                <th width="90" class="text-right">Valor Día</th>
+                                <th width="90" class="text-right bg-info">Meta Día</th>
+                                <th width="100" class="text-right bg-warning">Venta Día</th>
+                                <th width="100" class="text-right bg-success">Venta Acum.</th>
+                                <th width="100" class="text-right">% Cumplimiento</th>
+                                <th width="100" class="text-right bg-secondary">% Acumulado</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($resultados as $item)
+                            @foreach($resultados as $index => $item)
                             <tr>
-                                <td>{{ $item->plaza }}</td>
-                                <td>{{ $item->tienda }}</td>
-                                <td>{{ $item->zona }}</td>
+                                <td class="text-center">{{ $index + 1 }}</td>
+                                <td>{{ $item->id_plaza }}</td>
+                                <td>{{ $item->clave_tienda }}</td>
                                 <td>{{ $item->sucursal }}</td>
-                                <td>{{ $item->fecha }}</td>
-                                <td class="text-right">${{ number_format($item->meta_total ?? 0, 2) }}</td>
-                                <td class="text-right">{{ number_format($item->dias_total ?? 0, 0) }}</td>
-                                <td class="text-right">${{ number_format($item->valor_dia ?? 0, 2) }}</td>
-                                <td class="text-right">${{ number_format($item->meta_dia ?? 0, 2) }}</td>
-                                <td class="text-right">${{ number_format($item->total_vendido ?? 0, 2) }}</td>
-                                <td class="text-right {{ ($item->porcentaje_cumplimiento ?? 0) >= 100 ? 'text-success' : 'text-danger' }}">
-                                    {{ number_format($item->porcentaje_cumplimiento ?? 0, 2) }}%
+                                <td>{{ \Carbon\Carbon::parse($item->fecha)->format('d/m/Y') }}</td>
+                                <td>{{ $item->zona }}</td>
+                                <td class="text-right">${{ number_format($item->meta_total, 2) }}</td>
+                                <td class="text-right">{{ $item->dias_total }}</td>
+                                <td class="text-right">${{ number_format($item->valor_dia, 2) }}</td>
+                                <td class="text-right font-weight-bold bg-info-light">${{ number_format($item->meta_dia, 2) }}</td>
+                                <td class="text-right font-weight-bold bg-warning-light">${{ number_format($item->venta_del_dia, 2) }}</td>
+                                <td class="text-right font-weight-bold bg-success-light">${{ number_format($item->venta_acumulada, 2) }}</td>
+                                <td class="text-right font-weight-bold">
+                                    @php
+                                        $porcentaje = floatval($item->porcentaje);
+                                        $color = $porcentaje >= 100 ? 'text-success' : ($porcentaje >= 80 ? 'text-warning' : 'text-danger');
+                                    @endphp
+                                    <span class="{{ $color }}">{{ number_format($porcentaje, 2) }}%</span>
+                                </td>
+                                <td class="text-right font-weight-bold bg-secondary-light">
+                                    @php
+                                        $porcentaje_acumulado = floatval($item->porcentaje_acumulado);
+                                        $color_acum = $porcentaje_acumulado >= 100 ? 'text-success' : ($porcentaje_acumulado >= 80 ? 'text-warning' : 'text-danger');
+                                    @endphp
+                                    <span class="{{ $color_acum }}">{{ number_format($porcentaje_acumulado, 2) }}%</span>
                                 </td>
                             </tr>
                             @endforeach
                         </tbody>
                         <tfoot class="bg-light">
                             <tr>
-                                <td colspan="5" class="text-right font-weight-bold">TOTALES:</td>
-                                <td class="text-right font-weight-bold">${{ number_format($resultados->sum('meta_total') ?? 0, 2) }}</td>
-                                <td class="text-right font-weight-bold">{{ number_format($resultados->sum('dias_total') ?? 0, 0) }}</td>
-                                <td class="text-right font-weight-bold">${{ number_format($resultados->avg('valor_dia') ?? 0, 2) }}</td>
-                                <td class="text-right font-weight-bold">${{ number_format($total_meta, 2) }}</td>
-                                <td class="text-right font-weight-bold">${{ number_format($total_vendido, 2) }}</td>
-                                <td class="text-right font-weight-bold {{ $porcentaje_promedio >= 100 ? 'text-success' : 'text-danger' }}">
-                                    {{ number_format($porcentaje_promedio, 2) }}%
+                                <td colspan="9" class="text-right font-weight-bold">TOTALES:</td>
+                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_meta_dia'], 2) }}</td>
+                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_venta_dia'], 2) }}</td>
+                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_venta_acumulada'], 2) }}</td>
+                                <td class="text-right font-weight-bold">
+                                    @php
+                                        $porcentaje_total = $estadisticas['porcentaje_promedio'];
+                                        $color_total = $porcentaje_total >= 100 ? 'text-success' : ($porcentaje_total >= 80 ? 'text-warning' : 'text-danger');
+                                    @endphp
+                                    <span class="{{ $color_total }}">{{ number_format($porcentaje_total, 2) }}%</span>
+                                </td>
+                                <td class="text-right font-weight-bold">
+                                    @php
+                                        $porcentaje_acumulado_total = $estadisticas['porcentaje_acumulado_promedio'];
+                                        $color_acum_total = $porcentaje_acumulado_total >= 100 ? 'text-success' : ($porcentaje_acumulado_total >= 80 ? 'text-warning' : 'text-danger');
+                                    @endphp
+                                    <span class="{{ $color_acum_total }}">{{ number_format($porcentaje_acumulado_total, 2) }}%</span>
                                 </td>
                             </tr>
                         </tfoot>
@@ -224,7 +260,7 @@
             </div>
             <div class="card-footer">
                 <small class="text-muted">
-                    Mostrando {{ count($resultados) }} registros | 
+                    Mostrando {{ $estadisticas['total_registros'] }} registros | 
                     Exportado el {{ date('d/m/Y H:i:s') }}
                 </small>
             </div>
@@ -238,33 +274,80 @@
 @stop
 
 @section('css')
+    <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap4.min.css">
     <style>
         .text-right { text-align: right !important; }
+        .bg-info-light { background-color: #d1ecf1 !important; }
+        .bg-warning-light { background-color: #fff3cd !important; }
+        .bg-success-light { background-color: #d4edda !important; }
+        .bg-secondary-light { background-color: #e2e3e5 !important; }
         .text-success { color: #28a745 !important; }
-        .text-danger { color: #dc3545 !important; }
         .text-warning { color: #ffc107 !important; }
-        .small-box .icon { font-size: 70px; }
-        .table-responsive { overflow-x: auto; }
+        .text-danger { color: #dc3545 !important; }
+        .monetary { 
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        .small-box .icon {
+            font-size: 70px;
+        }
+        .dataTables_wrapper {
+            padding: 10px;
+        }
+        #tabla-reportes_wrapper {
+            margin-top: 10px;
+        }
+        thead.bg-info th {
+            background-color: #17a2b8 !important;
+            color: white !important;
+        }
     </style>
 @stop
 
 @section('js')
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables -->
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap4.min.js"></script>
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         $(document).ready(function() {
+            // Inicializar DataTable si hay resultados
             @if(count($resultados) > 0)
-                $('#tabla-reportes').DataTable({
+                var table = $('#tabla-reportes').DataTable({
                     "pageLength": 25,
                     "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-                    "order": [[0, 'asc'], [1, 'asc'], [4, 'asc']],
+                    "order": [[0, 'asc']],
                     "language": {
-                        "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json"
-                    }
+                        "processing": "Procesando...",
+                        "lengthMenu": "Mostrar _MENU_ registros",
+                        "zeroRecords": "No se encontraron resultados",
+                        "emptyTable": "Ningún dato disponible en esta tabla",
+                        "info": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                        "infoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                        "infoFiltered": "(filtrado de un total de _MAX_ registros)",
+                        "search": "Buscar:",
+                        "paginate": {
+                            "first": "Primero",
+                            "last": "Último",
+                            "next": "Siguiente",
+                            "previous": "Anterior"
+                        },
+                        "aria": {
+                            "sortAscending": ": Activar para ordenar la columna de manera ascendente",
+                            "sortDescending": ": Activar para ordenar la columna de manera descendente"
+                        }
+                    },
+                    "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+                           '<"row"<"col-sm-12"tr>>' +
+                           '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+                    "columnDefs": [
+                        { "targets": [6, 7, 8, 9, 10, 11, 12, 13], "className": "text-right" }
+                    ]
                 });
             @endif
 
@@ -335,7 +418,27 @@
                     });
                     return false;
                 }
+                
                 return true;
+            });
+
+            // SweetAlert para recargar página
+            $('a.btn-primary[href*="current"]').on('click', function(e) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Recargar página',
+                    text: '¿Desea recargar la página?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#007bff',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, recargar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        location.reload();
+                    }
+                });
             });
         });
     </script>
