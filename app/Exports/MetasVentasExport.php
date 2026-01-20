@@ -51,7 +51,7 @@ class MetasVentasExport implements FromArray, WithHeadings, WithStyles, WithColu
             ];
         }
         
-        // Agregar fila de totales
+        // Agregar fila de totales CON CÁLCULO CORRECTO
         if (count($data) > 0) {
             $data[] = [
                 'TOTALES',
@@ -61,7 +61,7 @@ class MetasVentasExport implements FromArray, WithHeadings, WithStyles, WithColu
                 '',
                 '',
                 number_format($this->estadisticas['total_meta_total'], 2),
-                number_format($this->estadisticas['total_registros'] > 0 ? 
+                round($this->estadisticas['total_registros'] > 0 ? 
                     array_sum(array_column($this->resultados, 'dias_total')) / $this->estadisticas['total_registros'] : 0, 2),
                 number_format($this->estadisticas['total_registros'] > 0 ? 
                     array_sum(array_column($this->resultados, 'valor_dia')) / $this->estadisticas['total_registros'] : 0, 2),
@@ -69,7 +69,8 @@ class MetasVentasExport implements FromArray, WithHeadings, WithStyles, WithColu
                 number_format($this->estadisticas['total_venta_dia'], 2),
                 number_format($this->estadisticas['total_venta_acumulada'], 2),
                 number_format($this->estadisticas['porcentaje_promedio'], 2) . '%',
-                number_format($this->estadisticas['porcentaje_acumulado_promedio'], 2) . '%',
+                // ¡IMPORTANTE! Aquí calculamos el % acumulado TOTAL de la tabla
+                number_format($this->estadisticas['porcentaje_acumulado_global'], 2) . '%',
             ];
         }
         

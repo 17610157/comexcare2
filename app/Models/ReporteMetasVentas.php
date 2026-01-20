@@ -10,7 +10,7 @@ class ReporteMetasVentas extends Model
     protected $table = 'metas';
 
     /**
-     * Obtener datos del reporte con filtros - VERSIÓN OPTIMIZADA Y CORREGIDA
+     * Obtener datos del reporte con filtros - VERSIÓN CORREGIDA
      */
     public static function obtenerReporte($filtros)
     {
@@ -26,14 +26,14 @@ class ReporteMetasVentas extends Model
         // Obtener ventas del período completo (para cálculo de acumulados)
         $ventasDiarias = self::obtenerVentasDiariasPeriodo($fecha_inicio, $fecha_fin, $plaza, $tienda);
         
-        // Procesar en PHP para calcular venta acumulada CORREGIDA
-        $resultados = self::procesarVentasAcumuladas($datosMetas, $ventasDiarias, $fecha_inicio);
+        // Procesar en PHP para calcular acumulados CORRECTAMENTE
+        $resultados = self::procesarAcumulados($datosMetas, $ventasDiarias);
         
         return $resultados;
     }
 
     /**
-     * Obtener todas las ventas diarias del período (OPTIMIZADO)
+     * Obtener todas las ventas diarias del período
      */
     private static function obtenerVentasDiariasPeriodo($fecha_inicio, $fecha_fin, $plaza = '', $tienda = '')
     {
@@ -51,7 +51,7 @@ class ReporteMetasVentas extends Model
             WHERE fecha BETWEEN ? AND ?
         ";
         
-        $params = [$primer_dia_mes, $fecha_fin]; // Desde inicio del mes hasta fecha fin
+        $params = [$primer_dia_mes, $fecha_fin];
         
         if (!empty($plaza)) {
             $sql .= " AND cplaza = ?";
@@ -70,7 +70,7 @@ class ReporteMetasVentas extends Model
     }
 
     /**
-     * Obtener datos de metas (OPTIMIZADO)
+     * Obtener datos de metas (con meta_total y meta_dia)
      */
     private static function obtenerDatosMetas($fecha_inicio, $fecha_fin, $plaza = '', $tienda = '', $zona = '')
     {
@@ -109,15 +109,15 @@ class ReporteMetasVentas extends Model
             $params[] = $zona;
         }
         
-        $sql .= " ORDER BY m.fecha, bst.id_plaza, bst.clave_tienda";
+        $sql .= " ORDER BY bst.id_plaza, bst.clave_tienda, m.fecha";
         
         return DB::select($sql, $params);
     }
 
     /**
-     * Procesar ventas y calcular acumulados en PHP - VERSIÓN CORREGIDA
+     * Procesar acumulados - VERSIÓN CORREGIDA
      */
-    private static function procesarVentasAcumuladas($datosMetas, $ventasDiarias, $fecha_inicio)
+    private static function procesarAcumulados($datosMetas, $ventasDiarias)
     {
         // Crear array indexado de ventas diarias para búsqueda rápida
         $ventasIndexadas = [];
@@ -126,8 +126,8 @@ class ReporteMetasVentas extends Model
             $ventasIndexadas[$key] = floatval($venta->venta_dia);
         }
         
-        // Crear array de acumulados por sucursal
-        $acumuladosPorSucursal = [];
+        // Arrays para acumulados por sucursal
+        $acumuladoVentasPorSucursal = [];
         $resultados = [];
         
         foreach ($datosMetas as $index => $meta) {
@@ -139,18 +139,18 @@ class ReporteMetasVentas extends Model
             $venta_del_dia = $ventasIndexadas[$key] ?? 0;
             
             // Inicializar acumulado para esta sucursal si no existe
-            if (!isset($acumuladosPorSucursal[$sucursalKey])) {
-                $acumuladosPorSucursal[$sucursalKey] = 0;
+            if (!isset($acumuladoVentasPorSucursal[$sucursalKey])) {
+                $acumuladoVentasPorSucursal[$sucursalKey] = 0;
             }
             
-            // Sumar venta del día al acumulado
-            $acumuladosPorSucursal[$sucursalKey] += $venta_del_dia;
-            $venta_acumulada = $acumuladosPorSucursal[$sucursalKey];
+            // Acumular venta del día
+            $acumuladoVentasPorSucursal[$sucursalKey] += $venta_del_dia;
+            $venta_acumulada = $acumuladoVentasPorSucursal[$sucursalKey];
             
-            // Calcular porcentaje del día
+            // Calcular porcentaje del día (venta_del_dia / meta_dia)
             $porcentaje = ($meta->meta_dia > 0) ? ($venta_del_dia / $meta->meta_dia) * 100 : 0;
             
-            // Calcular porcentaje acumulado vs meta total (NUEVA COLUMNA)
+            // Calcular porcentaje acumulado (venta_acumulada / meta_total)
             $porcentaje_acumulado = ($meta->meta_total > 0) ? ($venta_acumulada / $meta->meta_total) * 100 : 0;
             
             $resultados[] = (object)[
@@ -174,7 +174,7 @@ class ReporteMetasVentas extends Model
     }
 
     /**
-     * Obtener estadísticas del reporte - VERSIÓN CORREGIDA
+     * Obtener estadísticas del reporte - VERSIÓN CORREGIDA CON CÁLCULO DE TOTALES
      */
     public static function obtenerEstadisticas($resultados)
     {
@@ -183,7 +183,7 @@ class ReporteMetasVentas extends Model
             'total_venta_dia' => 0,
             'total_venta_acumulada' => 0,
             'porcentaje_promedio' => 0,
-            'porcentaje_acumulado_promedio' => 0,
+            'porcentaje_acumulado_global' => 0, // NUEVO: % acumulado global
             'total_registros' => 0,
             'total_meta_total' => 0
         ];
@@ -192,48 +192,53 @@ class ReporteMetasVentas extends Model
             $total_meta_dia = 0;
             $total_venta_dia = 0;
             $porcentaje_total = 0;
-            $porcentaje_acumulado_total = 0;
-            $total_meta_total = 0;
             $contador = 0;
             
-            // Para venta acumulada y meta total, tomamos el valor más reciente por sucursal
-            $ventas_acumuladas_por_sucursal = [];
+            // Para acumulados y meta total, tomamos el valor más reciente por sucursal
+            $acumulados_por_sucursal = [];
             $meta_total_por_sucursal = [];
             
             foreach ($resultados as $item) {
                 $total_meta_dia += $item->meta_dia;
                 $total_venta_dia += $item->venta_del_dia;
                 $porcentaje_total += $item->porcentaje;
-                $porcentaje_acumulado_total += $item->porcentaje_acumulado;
                 $contador++;
                 
-                // Para venta acumulada y meta total, tomamos el valor más reciente por sucursal
+                // Para venta acumulada, tomamos el valor más reciente por sucursal
                 $key = $item->id_plaza . '-' . $item->clave_tienda;
-                if (!isset($ventas_acumuladas_por_sucursal[$key]) || 
-                    strtotime($item->fecha) > strtotime($ventas_acumuladas_por_sucursal[$key]['fecha'])) {
-                    $ventas_acumuladas_por_sucursal[$key] = [
+                if (!isset($acumulados_por_sucursal[$key]) || 
+                    strtotime($item->fecha) > strtotime($acumulados_por_sucursal[$key]['fecha'])) {
+                    $acumulados_por_sucursal[$key] = [
                         'fecha' => $item->fecha,
                         'venta_acumulada' => $item->venta_acumulada
                     ];
+                }
+                
+                // Para meta total, solo tomamos una vez por sucursal
+                if (!isset($meta_total_por_sucursal[$key])) {
                     $meta_total_por_sucursal[$key] = $item->meta_total;
                 }
             }
             
             // Sumar las ventas acumuladas de cada sucursal (última fecha)
             $total_venta_acumulada = 0;
-            foreach ($ventas_acumuladas_por_sucursal as $sucursal) {
+            foreach ($acumulados_por_sucursal as $sucursal) {
                 $total_venta_acumulada += $sucursal['venta_acumulada'];
             }
             
-            // Sumar meta total de cada sucursal
+            // Sumar meta total de cada sucursal (sin duplicar)
             $total_meta_total = array_sum($meta_total_por_sucursal);
+
+            // Calcular % acumulado GLOBAL: (Total Venta Acumulada / Total Meta Día) × 100
+            $porcentaje_acumulado_global = ($total_meta_dia > 0) ? 
+                ($total_venta_acumulada / $total_meta_dia) * 100 : 0;
 
             $estadisticas['total_meta_dia'] = $total_meta_dia;
             $estadisticas['total_venta_dia'] = $total_venta_dia;
             $estadisticas['total_venta_acumulada'] = $total_venta_acumulada;
             $estadisticas['total_meta_total'] = $total_meta_total;
             $estadisticas['porcentaje_promedio'] = $contador > 0 ? $porcentaje_total / $contador : 0;
-            $estadisticas['porcentaje_acumulado_promedio'] = $contador > 0 ? $porcentaje_acumulado_total / $contador : 0;
+            $estadisticas['porcentaje_acumulado_global'] = $porcentaje_acumulado_global; // Esto es lo que necesitas
             $estadisticas['total_registros'] = $contador;
         }
 

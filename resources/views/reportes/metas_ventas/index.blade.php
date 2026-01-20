@@ -155,8 +155,8 @@
             <div class="col-lg-3 col-6">
                 <div class="small-box bg-primary">
                     <div class="inner">
-                        <h3>{{ number_format($estadisticas['porcentaje_promedio'], 2) }}%</h3>
-                        <p>% Cumplimiento Prom.</p>
+                        <h3>{{ number_format($estadisticas['porcentaje_acumulado_global'], 2) }}%</h3>
+                        <p>% Acumulado Total</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-percentage"></i>
@@ -248,7 +248,9 @@
                                 </td>
                                 <td class="text-right font-weight-bold">
                                     @php
-                                        $porcentaje_acumulado_total = $estadisticas['porcentaje_acumulado_promedio'];
+                                        // ¡IMPORTANTE! Aquí calculamos el % acumulado TOTAL de la tabla
+                                        // (Total Venta Acumulada / Total Meta Día) × 100
+                                        $porcentaje_acumulado_total = $estadisticas['porcentaje_acumulado_global'];
                                         $color_acum_total = $porcentaje_acumulado_total >= 100 ? 'text-success' : ($porcentaje_acumulado_total >= 80 ? 'text-warning' : 'text-danger');
                                     @endphp
                                     <span class="{{ $color_acum_total }}">{{ number_format($porcentaje_acumulado_total, 2) }}%</span>

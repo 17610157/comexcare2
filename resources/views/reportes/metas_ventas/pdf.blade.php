@@ -159,7 +159,8 @@
                 </td>
                 <td class="text-right">
                     @php
-                        $porcentaje_acumulado_total = $estadisticas['porcentaje_acumulado_promedio'];
+                        // ¡IMPORTANTE! Aquí calculamos el % acumulado TOTAL de la tabla
+                        $porcentaje_acumulado_total = $estadisticas['porcentaje_acumulado_global'];
                         $color_acum_total = $porcentaje_acumulado_total >= 100 ? 'text-success' : ($porcentaje_acumulado_total >= 80 ? 'text-warning' : 'text-danger');
                     @endphp
                     <span class="{{ $color_acum_total }}"><strong>{{ number_format($porcentaje_acumulado_total, 2) }}%</strong></span>
