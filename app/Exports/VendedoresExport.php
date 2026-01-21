@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use Illuminate\Support\Facades\DB;
+use App\Services\ReportService;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
@@ -23,114 +23,22 @@ class VendedoresExport implements FromCollection, WithHeadings, WithTitle, Shoul
 
     public function collection()
     {
-        $f_inicio = str_replace('-', '', $this->filtros['fecha_inicio']);
-        $f_fin = str_replace('-', '', $this->filtros['fecha_fin']);
-        $plaza = $this->filtros['plaza'];
-        $tienda = $this->filtros['tienda'];
-        $vendedor = $this->filtros['vendedor'];
+        $resultados_collection = ReportService::getVendedoresReport($this->filtros);
 
-        $sql = "
-        SELECT 
-            c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
-            c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha::date) AS vendedor_dia,
-            CASE
-                WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA'
-                WHEN c.vend_clave = '14379' THEN 'MANZA'
-                ELSE c.cplaza
-            END AS plaza_ajustada,
-            c.ctienda, 
-            c.vend_clave, 
-            c.nota_fecha,
-            SUM(c.nota_impor) AS venta_total,
-            COALESCE(( 
-                SELECT SUM(v.total_brut + v.impuesto)
-                FROM venta v
-                WHERE v.f_emision = c.nota_fecha
-                  AND v.clave_vend = c.vend_clave
-                  AND v.cplaza = c.cplaza
-                  AND v.ctienda = c.ctienda
-                  AND v.tipo_doc = 'DV'
-                  AND v.estado NOT LIKE '%C%'
-                  AND EXISTS (
-                      SELECT 1 FROM partvta p 
-                      WHERE v.no_referen = p.no_referen 
-                        AND v.cplaza = p.cplaza 
-                        AND v.ctienda = p.ctienda
-                        AND p.clave_art NOT LIKE '%CAMBIODOC%'
-                        AND p.totxpart IS NOT NULL
-                  )
-            ), 0) AS devolucion
-        FROM canota c 
-        WHERE c.ban_status <> 'C' 
-          AND c.nota_fecha BETWEEN ? AND ?
-          AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
-          AND c.ctienda NOT LIKE '%DESC%' 
-          AND c.ctienda NOT LIKE '%CEDI%' ";
-
-        $params = [$f_inicio, $f_fin];
-        
-        if (!empty($plaza)) {
-            $sql .= " AND c.cplaza = ?";
-            $params[] = $plaza;
-        }
-        
-        if (!empty($tienda)) {
-            $sql .= " AND c.ctienda = ?";
-            $params[] = $tienda;
-        }
-        
-        if (!empty($vendedor)) {
-            $sql .= " AND c.vend_clave = ?";
-            $params[] = $vendedor;
-        }
-
-        $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave
-                  ORDER BY c.ctienda || '-' || c.vend_clave, 
-                           c.vend_clave || '-' || TO_CHAR(TO_DATE(c.nota_fecha::text, 'YYYYMMDD'), 'DD')";
-
-        $resultados = DB::select($sql, $params);
-        
-        $datos = [];
-        $contador = 0;
-        
-        foreach ($resultados as $row) {
-            $contador++;
-            
-            $fecha_int = $row->nota_fecha;
-            if (strlen($fecha_int) == 8) {
-                $fecha = substr($fecha_int, 0, 4) . '-' . substr($fecha_int, 4, 2) . '-' . substr($fecha_int, 6, 2);
-            } else {
-                $fecha = $fecha_int;
-            }
-            
-            $venta_total = floatval($row->venta_total);
-            $devolucion = floatval($row->devolucion);
-            $venta_neta = $venta_total - $devolucion;
-            
-            $vendedor_dia = $row->vendedor_dia;
-            if (strpos($vendedor_dia, '-') !== false && strlen($fecha_int) == 8) {
-                $partes = explode('-', $vendedor_dia);
-                if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
-                    $dia = substr($fecha_int, 6, 2);
-                    $vendedor_dia = $partes[0] . '-' . $dia;
-                }
-            }
-            
-            $datos[] = [
-                'No.' => $contador,
-                'Tienda-Vendedor' => $row->tienda_vendedor,
-                'Vendedor-Día' => $vendedor_dia,
-                'Plaza Ajustada' => $row->plaza_ajustada,
-                'Tienda' => $row->ctienda,
-                'Vendedor' => $row->vend_clave,
-                'Fecha' => $fecha,
-                'Venta Total' => $venta_total,
-                'Devolución' => $devolucion,
-                'Venta Neta' => $venta_neta
+        return $resultados_collection->map(function ($item, $index) {
+            return [
+                'No.' => $index + 1,
+                'Tienda-Vendedor' => $item['tienda_vendedor'],
+                'Vendedor-Día' => $item['vendedor_dia'],
+                'Plaza Ajustada' => $item['plaza_ajustada'],
+                'Tienda' => $item['ctienda'],
+                'Vendedor' => $item['vend_clave'],
+                'Fecha' => $item['fecha'],
+                'Venta Total' => $item['venta_total'],
+                'Devolución' => $item['devolucion'],
+                'Venta Neta' => $item['venta_neta']
             ];
-        }
-        
-        return collect($datos);
+        });
     }
 
     public function headings(): array

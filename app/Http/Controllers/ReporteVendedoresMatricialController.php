@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Canota;
+use App\Services\ReportService;
 use App\Exports\VendedoresMatricialExport;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -45,132 +46,20 @@ class ReporteVendedoresMatricialController extends Controller
             $inicio_tiempo = microtime(true);
 
             try {
-                // Consulta reorganizada - INCLUYENDO EL CAMPO a.tipo
-                $sql = "
-                SELECT 
-                    c.vend_clave,
-                    a.nombre,
-                    a.tipo,
-                    c.ctienda,
-                    c.cplaza,
-                    c.nota_fecha,
-                    SUM(c.nota_impor) AS venta_total,
-                    COALESCE(( 
-                        SELECT SUM(v.total_brut + v.impuesto)
-                        FROM venta v
-                        WHERE v.f_emision = c.nota_fecha
-                          AND v.clave_vend = c.vend_clave
-                          AND v.cplaza = c.cplaza
-                          AND v.ctienda = c.ctienda
-                          AND v.tipo_doc = 'DV'
-                          AND v.estado NOT LIKE '%C%'
-                          AND EXISTS (
-                              SELECT 1 FROM partvta p 
-                              WHERE v.no_referen = p.no_referen 
-                                AND v.cplaza = p.cplaza 
-                                AND v.ctienda = p.ctienda
-                                AND p.clave_art NOT LIKE '%CAMBIODOC%'
-                                AND p.totxpart IS NOT NULL
-                          )
-                    ), 0) AS devolucion
-                FROM canota c 
-                JOIN asesores_vvt a ON (a.plaza = c.cplaza AND a.asesor = c.vend_clave)
-                WHERE c.ban_status <> 'C' 
-                  AND c.nota_fecha BETWEEN :f_inicio AND :f_fin
-                  AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
-                  AND c.ctienda NOT LIKE '%DESC%' 
-                  AND c.ctienda NOT LIKE '%CEDI%' ";
+                $filtros = [
+                    'fecha_inicio' => $fecha_inicio,
+                    'fecha_fin' => $fecha_fin,
+                    'plaza' => $plaza,
+                    'tienda' => $tienda,
+                    'vendedor' => $vendedor
+                ];
 
-                $params = ['f_inicio' => $f_inicio, 'f_fin' => $f_fin];
-                
-                if (!empty($plaza)) {
-                    $sql .= " AND c.cplaza = :plaza";
-                    $params['plaza'] = $plaza;
-                }
-                
-                if (!empty($tienda)) {
-                    $sql .= " AND c.ctienda = :tienda";
-                    $params['tienda'] = $tienda;
-                }
-                
-                if (!empty($vendedor)) {
-                    $sql .= " AND c.vend_clave = :vendedor";
-                    $params['vendedor'] = $vendedor;
-                }
-                
-                $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave, a.nombre, a.tipo
-                          ORDER BY c.vend_clave, c.nota_fecha";
-                
-                $resultados_raw = DB::select($sql, $params);
-                
-                // Procesar datos en nueva estructura
-                $vendedores_info = [];
-                
-                // Crear array de días entre fechas
-                $start = new \DateTime($fecha_inicio);
-                $end = new \DateTime($fecha_fin);
-                $end->modify('+1 day'); // Para incluir el último día
-                $interval = new \DateInterval('P1D');
-                $dateRange = new \DatePeriod($start, $interval, $end);
-                
-                foreach ($dateRange as $date) {
-                    $dia_key = $date->format('Ymd');
-                    $dias[$dia_key] = $date->format('Y-m-d');
-                }
-                
-                foreach ($resultados_raw as $row) {
-                    $vendedor_id = $row->vend_clave;
-                    $nombre = $row->nombre;
-                    $tipo = $row->tipo;
-                    $tienda_val = $row->ctienda;
-                    $plaza_val = $row->cplaza;
-                    $fecha_key = $row->nota_fecha;
-                    
-                    // Formatear fecha para clave
-                    if (strlen($fecha_key) == 8) {
-                        $fecha_key = $fecha_key; // Mantener formato Ymd
-                    } else {
-                        $fecha_key = str_replace('-', '', $fecha_key);
-                    }
-                    
-                    // Inicializar info del vendedor si no existe
-                    if (!isset($vendedores_info[$vendedor_id])) {
-                        $vendedores_info[$vendedor_id] = [
-                            'nombre' => $nombre,
-                            'tipo' => $tipo,
-                            'tiendas' => [],
-                            'plazas' => [],
-                            'ventas' => []
-                        ];
-                    }
-                    
-                    // Agregar tienda única
-                    if (!in_array($tienda_val, $vendedores_info[$vendedor_id]['tiendas'])) {
-                        $vendedores_info[$vendedor_id]['tiendas'][] = $tienda_val;
-                    }
-                    
-                    // Agregar plaza única
-                    if (!in_array($plaza_val, $vendedores_info[$vendedor_id]['plazas'])) {
-                        $vendedores_info[$vendedor_id]['plazas'][] = $plaza_val;
-                    }
-                    
-                    // Calcular venta neta
-                    $venta_total = floatval($row->venta_total);
-                    $devolucion = floatval($row->devolucion);
-                    $venta_neta = $venta_total - $devolucion;
-                    
-                    // Acumular venta por día
-                    if (!isset($vendedores_info[$vendedor_id]['ventas'][$fecha_key])) {
-                        $vendedores_info[$vendedor_id]['ventas'][$fecha_key] = 0;
-                    }
-                    $vendedores_info[$vendedor_id]['ventas'][$fecha_key] += $venta_neta;
-                }
-                
-                // Preparar datos para tabla
-                $vendedores_data = $vendedores_info;
-                
+                $datos_matriciales = ReportService::getVendedoresMatricialReport($filtros);
+                $vendedores_data = $datos_matriciales['vendedores_info'];
+                $dias = $datos_matriciales['dias'];
+
                 $tiempo_carga = round((microtime(true) - $inicio_tiempo) * 1000, 2);
-                
+
             } catch (\Exception $e) {
                 $error_msg = "Error en la consulta: " . $e->getMessage();
             }

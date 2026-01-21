@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\Models\ReporteMetasVentas;
+use App\Services\ReportService;
 use App\Exports\MetasVentasExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -40,12 +42,10 @@ class ReporteMetasVentasController extends Controller
                     'zona' => $zona
                 ];
 
-                // USAR VERSIÓN OPTIMIZADA
-                $resultados = ReporteMetasVentas::obtenerReporte($filtros);
-                // O si prefieres la versión SQL pura optimizada:
-                // $resultados = ReporteMetasVentas::obtenerReporteOptimizadoSQL($filtros);
-                
-                $estadisticas = ReporteMetasVentas::obtenerEstadisticas($resultados);
+                // Usar ReportService para cache consistente
+                $datos = ReportService::getMetasVentasReport($filtros);
+                $resultados = $datos['resultados'];
+                $estadisticas = $datos['estadisticas'];
                 $tiempo_carga = round((microtime(true) - $inicio_tiempo) * 1000, 2);
                 
                 // Log de rendimiento
@@ -132,9 +132,10 @@ class ReporteMetasVentasController extends Controller
                 'zona' => $zona
             ];
 
-            // Usar versión optimizada
-            $resultados = ReporteMetasVentas::obtenerReporte($filtros);
-            $estadisticas = ReporteMetasVentas::obtenerEstadisticas($resultados);
+            // Usar ReportService para cache consistente
+            $datos = ReportService::getMetasVentasReport($filtros);
+            $resultados = $datos['resultados'];
+            $estadisticas = $datos['estadisticas'];
 
             $data = [
                 'resultados' => $resultados,
@@ -159,51 +160,22 @@ class ReporteMetasVentasController extends Controller
     }
 
     /**
-     * API para obtener venta acumulada hasta una fecha específica (OPTIMIZADA)
+     * API para obtener venta acumulada hasta una fecha específica (OPTIMIZADA CON CACHE)
      */
     public function getVentaAcumulada(Request $request)
     {
         $fecha = $request->input('fecha', date('Y-m-d'));
         $plaza = $request->input('plaza', '');
         $tienda = $request->input('tienda', '');
-        
-        // Obtener el primer día del mes
-        $primer_dia_mes = date('Y-m-01', strtotime($fecha));
-        
-        $sql = "
-            SELECT 
-                cplaza,
-                tienda,
-                SUM(
-                    (COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
-                    (COALESCE(vtacred, 0) - COALESCE(descred, 0))
-                ) AS venta_acumulada_mes
-            FROM xcorte
-            WHERE fecha BETWEEN ? AND ?
-        ";
-        
-        $params = [$primer_dia_mes, $fecha];
-        
-        if (!empty($plaza)) {
-            $sql .= " AND cplaza = ?";
-            $params[] = $plaza;
+
+        try {
+            $resultados = ReportService::getVentaAcumulada($fecha, $plaza, $tienda);
+            return response()->json($resultados);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener venta acumulada: ' . $e->getMessage()
+            ], 500);
         }
-        
-        if (!empty($tienda)) {
-            $sql .= " AND tienda = ?";
-            $params[] = $tienda;
-        }
-        
-        $sql .= " GROUP BY cplaza, tienda";
-        
-        $resultados = DB::select($sql, $params);
-        
-        return response()->json([
-            'success' => true,
-            'fecha' => $fecha,
-            'primer_dia_mes' => $primer_dia_mes,
-            'data' => $resultados,
-            'total_acumulado' => array_sum(array_column($resultados, 'venta_acumulada_mes'))
-        ]);
     }
 }

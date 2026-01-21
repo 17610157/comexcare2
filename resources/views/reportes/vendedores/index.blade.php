@@ -226,7 +226,7 @@
             </div>
             <div class="card-footer">
                 <small class="text-muted">
-                    Mostrando {{ count($resultados) }} registros | 
+                    Mostrando {{ count($resultados) }} registros |
                     Exportado el {{ date('d/m/Y H:i:s') }}
                 </small>
             </div>
