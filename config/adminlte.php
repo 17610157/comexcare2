@@ -330,6 +330,11 @@ return [
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-ventas',
                 ],
+                    [
+                    'text' => 'Reporte Metas Mensual',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/metas-matricial',
+                ],
             ],
         ],
     ],

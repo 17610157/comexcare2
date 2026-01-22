@@ -2,8 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReporteVendedoresController;
-use App\HttP\Controllers\ReporteVendedoresMatricialController;
+use App\Http\Controllers\ReporteVendedoresMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
+use App\Http\Controllers\ReporteMetasMatricialController;
 Route::get('/', function () {
     return view('welcome');
 });
@@ -43,4 +44,11 @@ Route::prefix('reportes')->group(function () {
     Route::post('metas-ventas/export', [ReporteMetasVentasController::class, 'export'])->name('reportes.metas-ventas.export');
     Route::post('metas-ventas/export/pdf', [ReporteMetasVentasController::class, 'exportPdf'])->name('reportes.metas-ventas.export.pdf');
     Route::post('metas-ventas/export/csv', [ReporteMetasVentasController::class, 'exportCsv'])->name('reportes.metas-ventas.export.csv');
+
+    // NUEVO REPORTE: Metas Matricial (sin permisos)
+    Route::get('metas-matricial', [ReporteMetasMatricialController::class, 'index'])
+        ->name('reportes.metas-matricial.index');
+
+    Route::post('metas-matricial/export', [ReporteMetasMatricialController::class, 'exportExcel'])
+        ->name('reportes.metas-matricial.export');
 });

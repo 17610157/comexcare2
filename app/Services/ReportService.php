@@ -645,6 +645,268 @@ class ReportService
     }
 
     /**
+     * Reporte Metas Matricial - NUEVO REPORTE
+     */
+    public static function getMetasMatricialReport(array $filtros): array
+    {
+        $cacheKey = 'metas_matricial_report_' . md5(serialize($filtros));
+
+        try {
+            return Cache::remember($cacheKey, 3600, function () use ($filtros) {
+                return self::procesarMetasMatricial($filtros);
+            });
+        } catch (\Exception $e) {
+            Log::warning('Error de cache en getMetasMatricialReport, ejecutando sin cache: ' . $e->getMessage());
+            return self::procesarMetasMatricial($filtros);
+        }
+    }
+
+    private static function procesarMetasMatricial(array $filtros): array
+    {
+        $fecha_inicio = $filtros['fecha_inicio'];
+        $fecha_fin = $filtros['fecha_fin'];
+        $plaza = $filtros['plaza'] ?? '';
+        $tienda = $filtros['tienda'] ?? '';
+        $zona = $filtros['zona'] ?? '';
+
+        // Consulta SQL optimizada
+        $sql = "
+        SELECT
+            xc.fecha,
+            xc.cplaza,
+            xc.ctienda,
+            xc.tienda,
+            bst.clave_tienda,
+            m.valor_dia,
+            m.meta_dia,
+            m.meta_total,
+            m.dias_total,
+            bst.zona,
+            ((COALESCE(xc.vtacont, 0) - COALESCE(xc.descont, 0)) +
+             (COALESCE(xc.vtacred, 0) - COALESCE(xc.descred, 0))) as total,
+            (COALESCE(xc.vtacont, 0) - COALESCE(xc.descont, 0)) as venta_contado,
+            (COALESCE(xc.vtacred, 0) - COALESCE(xc.descred, 0)) as venta_credito,
+            CASE
+                WHEN m.meta_dia > 0 THEN
+                    (((COALESCE(xc.vtacont, 0) - COALESCE(xc.descont, 0)) +
+                      (COALESCE(xc.vtacred, 0) - COALESCE(xc.descred, 0))) / m.meta_dia) * 100
+                ELSE 0
+            END AS porcentaje
+        FROM xcorte xc
+        LEFT JOIN bi_sys_tiendas bst ON (xc.tienda = bst.clave_tienda OR xc.tienda = bst.clave_alterna)
+        LEFT JOIN metas m ON COALESCE(bst.clave_tienda, xc.tienda) = m.tienda AND xc.fecha = m.fecha
+        WHERE xc.ctienda NOT IN ('ALMAC','BODEG','CXVEA','GALMA','B0001','00027')
+          AND xc.tienda NOT LIKE '%DESC%'
+          AND xc.ctienda NOT LIKE '%CEDI%'
+          AND xc.fecha BETWEEN ? AND ?
+        ";
+
+        // Obtener suma_valor_dia por tienda para el rango completo
+        $sumaValorDiaQuery = "
+        SELECT tienda, SUM(valor_dia) as suma_valor_dia
+        FROM metas
+        WHERE fecha BETWEEN ? AND ?
+        GROUP BY tienda
+        ";
+        $sumaValorDiaData = DB::select($sumaValorDiaQuery, [$fecha_inicio, $fecha_fin]);
+        $sumasValorDia = [];
+        foreach ($sumaValorDiaData as $row) {
+            $sumasValorDia[$row->tienda] = $row->suma_valor_dia;
+        }
+
+        $params = [$fecha_inicio, $fecha_fin];
+
+        // Aplicar filtros
+        if (!empty($plaza)) {
+            $sql .= " AND xc.cplaza = ?";
+            $params[] = $plaza;
+        }
+        if (!empty($tienda)) {
+            $sql .= " AND xc.tienda = ?";
+            $params[] = $tienda;
+        }
+        if (!empty($zona)) {
+            $sql .= " AND bst.zona = ?";
+            $params[] = $zona;
+        }
+
+        $sql .= " ORDER BY xc.cplaza, bst.zona, xc.tienda, xc.fecha";
+
+        $rawData = DB::select($sql, $params);
+
+        // Procesar datos jerárquicos
+        return self::construirMatrizJerarquica($rawData, $fecha_inicio, $fecha_fin, $sumasValorDia);
+    }
+
+    private static function construirMatrizJerarquica($rawData, $fecha_inicio, $fecha_fin, $sumasValorDia): array
+    {
+        $fechas = self::generarRangoFechas($fecha_inicio, $fecha_fin);
+        $matriz = [];
+        $tiendas = [];
+
+        // Procesar datos por tienda
+        foreach ($rawData as $row) {
+            $tienda = $row->tienda;
+
+            if (!in_array($tienda, $tiendas)) {
+                $tiendas[] = $tienda;
+
+                // Información básica de la tienda
+                $zona = $row->zona;
+                if (empty($zona)) {
+                    $zona = $row->cplaza; // Si no hay zona, usar plaza como zona
+                }
+                $matriz['info'][$tienda] = [
+                    'plaza' => $row->cplaza,
+                    'zona' => $zona,
+                    'tienda' => $tienda,
+                    'meta_total' => $row->meta_total,
+                    'dias_totales' => $row->dias_total,
+                    'suma_valor_dia' => $sumasValorDia[$row->clave_tienda ?? $tienda] ?? 0
+                ];
+
+                // Debug: si suma_valor_dia es 0, intentar con clave alternativa
+                if (($sumasValorDia[$tienda][$row->cplaza] ?? 0) == 0) {
+                    // Verificar si hay con plaza como string o algo
+                    // Por ahora, dejar como está
+                }
+            }
+
+            // Datos por fecha
+            $fechaKey = $row->fecha;
+            if (in_array($fechaKey, $fechas)) {
+                $matriz['datos'][$tienda][$fechaKey] = [
+                    'total' => $row->total,
+                    'venta_contado' => $row->venta_contado,
+                    'venta_credito' => $row->venta_credito,
+                    'meta_dia' => $row->meta_dia,
+                    'porcentaje' => $row->porcentaje
+                ];
+            }
+        }
+
+        // Calcular totales por tienda
+        foreach ($tiendas as $tienda) {
+            $totalVentas = 0;
+            foreach ($fechas as $fecha) {
+                $totalVentas += $matriz['datos'][$tienda][$fecha]['total'] ?? 0;
+            }
+            $meta_total = $matriz['info'][$tienda]['meta_total'];
+            $dias_totales_meta = $matriz['info'][$tienda]['dias_totales'] ?? count($fechas);
+            $suma_valor_dia = $matriz['info'][$tienda]['suma_valor_dia'];
+            $objetivo = $dias_totales_meta > 0 ? ($meta_total / $dias_totales_meta) * $suma_valor_dia : 0;
+            $matriz['totales'][$tienda] = [
+                'total' => $totalVentas,
+                'objetivo' => $objetivo,
+                'porcentaje_total' => $objetivo > 0 ? ($totalVentas / $objetivo) * 100 : 0,
+                'meta_total' => $meta_total
+            ];
+        }
+
+        // Calcular suma diaria total (suma de todas las tiendas por fecha)
+        $suma_diaria = [];
+        foreach ($fechas as $fecha) {
+            $suma = 0;
+            foreach ($tiendas as $tienda) {
+                $suma += $matriz['datos'][$tienda][$fecha]['total'] ?? 0;
+            }
+            $suma_diaria[$fecha] = $suma;
+        }
+
+        // Calcular totales por zona
+        $zonas = array_unique(array_column($matriz['info'], 'zona'));
+        $totales_zona = [];
+        foreach ($zonas as $zona) {
+            $tiendas_zona = array_filter($tiendas, fn($t) => $matriz['info'][$t]['zona'] === $zona);
+            $total = 0;
+            $objetivo = 0;
+            $meta_total = 0;
+            $suma_valor_dia = 0;
+            foreach ($tiendas_zona as $tienda) {
+                $total += $matriz['totales'][$tienda]['total'] ?? 0;
+                $objetivo += $matriz['totales'][$tienda]['objetivo'] ?? 0;
+                $meta_total += $matriz['info'][$tienda]['meta_total'] ?? 0;
+                $suma_valor_dia += $matriz['info'][$tienda]['suma_valor_dia'] ?? 0;
+            }
+            $totales_zona[$zona] = [
+                'total' => $total,
+                'objetivo' => $objetivo,
+                'porcentaje_total' => $objetivo > 0 ? ($total / $objetivo) * 100 : 0,
+                'meta_total' => $meta_total,
+                'suma_valor_dia' => $suma_valor_dia,
+                'dias_totales' => $matriz['info'][reset($tiendas_zona)]['dias_totales'] ?? count($fechas),
+                'datos_diarios' => []
+            ];
+            // Datos diarios por zona
+            foreach ($fechas as $fecha) {
+                $suma_zona_fecha = 0;
+                foreach ($tiendas_zona as $tienda) {
+                    $suma_zona_fecha += $matriz['datos'][$tienda][$fecha]['total'] ?? 0;
+                }
+                $totales_zona[$zona]['datos_diarios'][$fecha] = $suma_zona_fecha;
+            }
+        }
+
+        // Calcular totales por plaza
+        $plazas = array_unique(array_column($matriz['info'], 'plaza'));
+        $totales_plaza = [];
+        foreach ($plazas as $plaza) {
+            $zonas_plaza = array_unique(array_column(array_filter($matriz['info'], fn($info) => $info['plaza'] === $plaza), 'zona'));
+            $total = 0;
+            $objetivo = 0;
+            $meta_total = 0;
+            $suma_valor_dia = 0;
+            foreach ($zonas_plaza as $zona) {
+                $total += $totales_zona[$zona]['total'] ?? 0;
+                $objetivo += $totales_zona[$zona]['objetivo'] ?? 0;
+                $meta_total += $totales_zona[$zona]['meta_total'] ?? 0;
+                $suma_valor_dia += $totales_zona[$zona]['suma_valor_dia'] ?? 0;
+            }
+            $totales_plaza[$plaza] = [
+                'total' => $total,
+                'objetivo' => $objetivo,
+                'porcentaje_total' => $objetivo > 0 ? ($total / $objetivo) * 100 : 0,
+                'meta_total' => $meta_total,
+                'suma_valor_dia' => $suma_valor_dia,
+                'dias_totales' => $totales_zona[reset($zonas_plaza)]['dias_totales'] ?? count($fechas),
+                'datos_diarios' => []
+            ];
+            // Datos diarios por plaza
+            foreach ($fechas as $fecha) {
+                $suma_plaza_fecha = 0;
+                foreach ($zonas_plaza as $zona) {
+                    $suma_plaza_fecha += $totales_zona[$zona]['datos_diarios'][$fecha] ?? 0;
+                }
+                $totales_plaza[$plaza]['datos_diarios'][$fecha] = $suma_plaza_fecha;
+            }
+        }
+
+        return [
+            'fechas' => $fechas,
+            'tiendas' => $tiendas,
+            'matriz' => $matriz,
+            'suma_diaria' => $suma_diaria,
+            'dias_totales' => count($fechas),
+            'totales_zona' => $totales_zona,
+            'totales_plaza' => $totales_plaza
+        ];
+    }
+
+    private static function generarRangoFechas($inicio, $fin): array
+    {
+        $fechas = [];
+        $current = strtotime($inicio);
+        $end = strtotime($fin);
+
+        while ($current <= $end) {
+            $fechas[] = date('Y-m-d', $current);
+            $current = strtotime('+1 day', $current);
+        }
+
+        return $fechas;
+    }
+
+    /**
      * Obtener configuración de memoria y tiempo de ejecución
      */
     public static function optimizarConfiguracion(): void
