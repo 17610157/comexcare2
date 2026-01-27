@@ -41,11 +41,11 @@ class ReporteMetasVentas extends Model
         $primer_dia_mes = date('Y-m-01', strtotime($fecha_inicio));
         
         $sql = "
-            SELECT 
+            SELECT
                 cplaza,
-                tienda,
+                ctienda as tienda,
                 fecha,
-                SUM((COALESCE(vtacont, 0) - COALESCE(descont, 0)) + 
+                SUM((COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
                     (COALESCE(vtacred, 0) - COALESCE(descred, 0))) as venta_dia
             FROM xcorte 
             WHERE fecha BETWEEN ? AND ?
@@ -63,8 +63,8 @@ class ReporteMetasVentas extends Model
             $params[] = $tienda;
         }
         
-        $sql .= " GROUP BY cplaza, tienda, fecha
-                  ORDER BY cplaza, tienda, fecha";
+        $sql .= " GROUP BY cplaza, ctienda, fecha
+                   ORDER BY cplaza, ctienda, fecha";
         
         return DB::select($sql, $params);
     }

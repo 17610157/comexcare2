@@ -311,6 +311,27 @@ return [
             'url' => 'admin/settings',
             'icon' => 'fas fa-chart-area',
         ],
+        ['header' => 'distribution_management'],
+        [
+            'text' => 'Distributions',
+            'url' => 'admin/distributions',
+            'icon' => 'fas fa-upload',
+        ],
+        [
+            'text' => 'Computers',
+            'url' => 'admin/computers',
+            'icon' => 'fas fa-desktop',
+        ],
+        [
+            'text' => 'Groups',
+            'url' => 'admin/groups',
+            'icon' => 'fas fa-users',
+        ],
+        [
+            'text' => 'Agent Versions',
+            'url' => 'admin/agent-versions',
+            'icon' => 'fas fa-code-branch',
+        ],
         [
             'text' => 'Reportes',
             'icon' => 'fas fa-chart-bar',
@@ -330,11 +351,16 @@ return [
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-ventas',
                 ],
-                    [
+                [
                     'text' => 'Reporte Metas Mensual',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-matricial',
                 ],
+                 [
+                    'text' => 'Reporte Compras',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/compras-directo',
+                ]
             ],
         ],
     ],
@@ -420,7 +446,7 @@ return [
             ],
         ],
         'Sweetalert2' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',

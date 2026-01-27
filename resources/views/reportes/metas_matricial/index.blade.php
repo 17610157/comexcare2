@@ -6,7 +6,7 @@
 <div class="d-flex justify-content-between align-items-center">
     <h1><i class="fas fa-chart-bar text-success"></i> Metas de Ventas - Matricial</h1>
     <div>
-        <form method="POST" action="{{ route('reportes.metas-matricial.export') }}" style="display: inline;">
+        <form id="export-excel-form" method="POST" action="{{ route('reportes.metas-matricial.export') }}" style="display: inline;">
             @csrf
             <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
             <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
@@ -16,6 +16,17 @@
             <button type="button" class="btn btn-success" id="btn-export-excel">
                 <i class="fas fa-file-excel"></i> Exportar Excel
             </button>
+            <form id="export-pdf-form" method="POST" action="{{ route('reportes.metas-matricial.export.pdf') }}" style="display: inline;">
+                @csrf
+                <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
+                <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
+                <input type="hidden" name="plaza" value="{{ $plaza }}">
+                <input type="hidden" name="tienda" value="{{ $tienda }}">
+                <input type="hidden" name="zona" value="{{ $zona }}">
+                <button type="button" class="btn btn-danger" id="btn-export-pdf">
+                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                </button>
+            </form>
         </form>
         <a href="{{ url()->current() }}" class="btn btn-primary ml-2">
             <i class="fas fa-sync-alt"></i> Recargar
@@ -285,10 +296,17 @@
 @stop
 
 @section('js')
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
 <script>
 $(document).ready(function() {
     // Exportar Excel
-    $('#btn-export-excel').on('click', function() {
+    $('#btn-export-excel').on('click', function(e) {
+        e.preventDefault();
         Swal.fire({
             title: 'Exportar a Excel',
             text: '¿Desea descargar el archivo Excel?',
@@ -296,11 +314,38 @@ $(document).ready(function() {
             showCancelButton: true,
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, descargar',
+            confirmButtonText: 'Si, descargar',
             cancelButtonText: 'Cancelar'
-        }).then((result) => {
+        }).then(function(result) {
             if (result.isConfirmed) {
+                console.log('Submitting Excel form');
                 $('#export-excel-form').submit();
+            } else {
+                console.log('Excel cancelled');
+            }
+        });
+    });
+
+    // Exportar PDF
+    $('#btn-export-pdf').on('click', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Exportar a PDF',
+            text: '¿Desea descargar el archivo PDF?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Si, descargar',
+            cancelButtonText: 'Cancelar'
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                console.log('Submitting PDF form');
+                // $('#export-pdf-form').submit();
+                alert('PDF confirmado, submitiendo...');
+                $('#export-pdf-form')[0].submit();
+            } else {
+                console.log('PDF cancelled');
             }
         });
     });

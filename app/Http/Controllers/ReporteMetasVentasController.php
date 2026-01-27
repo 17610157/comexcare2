@@ -29,33 +29,31 @@ class ReporteMetasVentasController extends Controller
         $error_msg = '';
         $tiempo_carga = 0;
 
-        // Solo procesar si hay fechas
-        if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
-            $inicio_tiempo = microtime(true);
+        // Procesar siempre con fechas default
+        $inicio_tiempo = microtime(true);
 
-            try {
-                $filtros = [
-                    'fecha_inicio' => $fecha_inicio,
-                    'fecha_fin' => $fecha_fin,
-                    'plaza' => $plaza,
-                    'tienda' => $tienda,
-                    'zona' => $zona
-                ];
+        try {
+            $filtros = [
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => $fecha_fin,
+                'plaza' => $plaza,
+                'tienda' => $tienda,
+                'zona' => $zona
+            ];
 
-                // Usar ReportService para cache consistente
-                $datos = ReportService::getMetasVentasReport($filtros);
-                $resultados = $datos['resultados'];
-                $estadisticas = $datos['estadisticas'];
-                $tiempo_carga = round((microtime(true) - $inicio_tiempo) * 1000, 2);
-                
-                // Log de rendimiento
-                \Log::info("Reporte Metas Ventas - Tiempo carga: {$tiempo_carga}ms, Registros: " . count($resultados));
-                
+            // Usar ReportService para cache consistente
+            $datos = ReportService::getMetasVentasReport($filtros);
+            $resultados = $datos['resultados'];
+            $estadisticas = $datos['estadisticas'];
+            $tiempo_carga = round((microtime(true) - $inicio_tiempo) * 1000, 2);
+
+            // Log de rendimiento
+            \Log::info("Reporte Metas Ventas - Tiempo carga: {$tiempo_carga}ms, Registros: " . count($resultados));
+
             } catch (\Exception $e) {
                 $error_msg = "Error en la consulta: " . $e->getMessage();
                 \Log::error("Error Reporte Metas: " . $e->getMessage());
             }
-        }
 
         return view('reportes.metas_ventas.index', compact(
             'fecha_inicio', 

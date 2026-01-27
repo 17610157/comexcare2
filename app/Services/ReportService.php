@@ -675,8 +675,7 @@ class ReportService
             xc.fecha,
             xc.cplaza,
             xc.ctienda,
-            xc.tienda,
-            bst.clave_tienda,
+            xc.ctienda as tienda,
             m.valor_dia,
             m.meta_dia,
             m.meta_total,
@@ -693,10 +692,10 @@ class ReportService
                 ELSE 0
             END AS porcentaje
         FROM xcorte xc
-        LEFT JOIN bi_sys_tiendas bst ON (xc.tienda = bst.clave_tienda OR xc.tienda = bst.clave_alterna)
-        LEFT JOIN metas m ON COALESCE(bst.clave_tienda, xc.tienda) = m.tienda AND xc.fecha = m.fecha
+        LEFT JOIN bi_sys_tiendas bst ON xc.ctienda = bst.clave_tienda OR xc.ctienda LIKE bst.clave_tienda || '%' OR xc.ctienda = bst.clave_alterna
+        LEFT JOIN metas m ON TRIM(COALESCE(bst.clave_tienda, xc.ctienda)) = TRIM(m.tienda) AND xc.fecha = m.fecha
         WHERE xc.ctienda NOT IN ('ALMAC','BODEG','CXVEA','GALMA','B0001','00027')
-          AND xc.tienda NOT LIKE '%DESC%'
+          AND xc.ctienda NOT LIKE '%DESC%'
           AND xc.ctienda NOT LIKE '%CEDI%'
           AND xc.fecha BETWEEN ? AND ?
         ";
@@ -730,7 +729,7 @@ class ReportService
             $params[] = $zona;
         }
 
-        $sql .= " ORDER BY xc.cplaza, bst.zona, xc.tienda, xc.fecha";
+        $sql .= " ORDER BY xc.cplaza, bst.zona, xc.ctienda, xc.fecha";
 
         $rawData = DB::select($sql, $params);
 
