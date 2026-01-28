@@ -308,7 +308,8 @@ return [
         ],
         [
             'text' => 'Metas',
-            'url' => 'admin/settings',
+            // Use named route for better routing integration with AdminLTE
+            'route' => 'metas.index',
             'icon' => 'fas fa-chart-area',
         ],
         ['header' => 'distribution_management'],

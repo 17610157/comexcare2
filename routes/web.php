@@ -101,6 +101,16 @@ Route::get('/api/download/{fileId}', [App\Http\Controllers\Api\AgentController::
 Route::get('/api/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/api/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
+// Metas Mensual Import routes (protected by auth)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/metas-mensual', [App\Http\Controllers\MetasMensualController::class, 'index'])->name('metas.index');
+    Route::post('/metas-mensual/import', [App\Http\Controllers\MetasMensualController::class, 'import'])->name('metas.import');
+    // CRUD for metas_mensual
+    Route::post('/metas-mensual/store', [App\Http\Controllers\MetasMensualController::class, 'store'])->name('metas.store');
+    Route::post('/metas-mensual/update', [App\Http\Controllers\MetasMensualController::class, 'update'])->name('metas.update');
+    Route::post('/metas-mensual/delete', [App\Http\Controllers\MetasMensualController::class, 'destroy'])->name('metas.destroy');
+});
+
 // Agent API routes (no auth, no CSRF for agents)
 Route::get('/api/register', [App\Http\Controllers\Api\AgentController::class, 'register'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/api/heartbeat', [App\Http\Controllers\Api\AgentController::class, 'heartbeat'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
