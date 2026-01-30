@@ -298,7 +298,13 @@ return [
     |
     */
 
-    'menu' => [
+        'menu' => [
+            // ... otros items existentes ...
+            [
+                'text' => 'Cartera Abonos',
+                'route' => 'reportes.cartera-abonos.index',
+                'icon' => 'fas fa-receipt',
+            ],
 
         ['header' => 'account_settings'],
         [
