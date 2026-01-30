@@ -7,15 +7,12 @@ use App\Http\Controllers\ReporteVendedoresMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteComprasDirectoController;
+use App\Http\Controllers\ReporteCarteraAbonosController;
 
 
 Route::get('/', function () {
     return view('welcome');
-    // Cartera Abonos - Reporte (Mes Anterior)
-    Route::get('cartera-abonos', [\App\Http\Controllers\Reportes\CarteraAbonosController::class, 'index'])
-        ->name('reportes.cartera-abonos.index');
-    Route::get('cartera-abonos/data', [\App\Http\Controllers\Reportes\CarteraAbonosController::class, 'data'])
-        ->name('reportes.cartera-abonos.data');
+    // Cartera Abonos routes will be added inside the reportes group
 });
 
 Route::get('/home', function () {
@@ -67,6 +64,12 @@ Route::middleware('web')->prefix('reportes')->group(function () {
 
     Route::post('metas-matricial/export-pdf', [ReporteMetasMatricialController::class, 'exportPdf'])
         ->name('reportes.metas-matricial.export.pdf');
+
+    // Cartera Abonos - Reporte (Mes Anterior)
+    Route::get('cartera-abonos', [ReporteCarteraAbonosController::class, 'index'])
+        ->name('reportes.cartera-abonos.index');
+    Route::get('cartera-abonos/data', [ReporteCarteraAbonosController::class, 'data'])
+        ->name('reportes.cartera-abonos.data');
 
     // REPORTE: Compras Directo
     Route::get('compras-directo', [ReporteComprasDirectoController::class, 'index'])

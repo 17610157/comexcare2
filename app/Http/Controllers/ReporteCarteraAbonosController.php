@@ -1,12 +1,12 @@
 <?php
-namespace App\Http\Controllers\Reportes;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class CarteraAbonosController extends Controller
+class ReporteCarteraAbonosController extends Controller
 {
     // Muestra la vista del reporte
     public function index()
