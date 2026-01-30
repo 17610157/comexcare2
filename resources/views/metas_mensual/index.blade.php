@@ -110,7 +110,7 @@
   </div>
 </div>
 
-@stop
+    @stop
 
 @section('js')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -118,6 +118,7 @@
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap4.min.js"></script>
     <script>
         $(document).ready(function() {
+            var metasDiasGenerateUrl = "{{ route('metas_dias.generate') }}";
             $('#tabla-met-mensual').DataTable({
                 pageLength: 25,
                 lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Todos"]],
@@ -204,7 +205,61 @@
                 }
             })();
         });
-        // SweetAlert2 for delete confirmation (lazy-load if needed)
+        // Handler for generate dias button (Enfoque A: generar dias y luego insertar en metas)
+        $('#generate-dias-btn').on('click', function(e) {
+            e.preventDefault();
+            var periodo = '{{ $currentPeriodo ?? '' }}';
+            if (!periodo) {
+                alert('Periodo actual no definido');
+                return;
+            }
+            const token = '{{ csrf_token() }}';
+            var generateDiasUrl = "{{ route('metas_dias.generate') }}";
+            $.post(generateDiasUrl, { periodo: periodo, _token: token }, function(res){
+                // Notificar proceso
+                if (res && res.message) {
+                    if (typeof Swal !== 'undefined' && Swal.fire) {
+                        Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, title: res.message });
+                    } else {
+                        alert(res.message);
+                    }
+                }
+                // Render tablas si hay datos
+                var html = '';
+                if (res.dias && res.dias.length) {
+                    html += '<div class="card mt-3"><div class="card-header">Metas Dias -Periodo ' + periodo + '</div><div class="card-body p-0"><table class="table table-hover table-bordered table-striped" id="tabla-dias-generated"><thead class="thead-dark"><tr><th>Fecha</th><th>Periodo</th><th>Dia Sem</th><th>Dias Mes</th><th>Valor Dia</th><th>Año</th><th>Mes Friedman</th><th>Semana Friedman</th></tr></thead><tbody>';
+                    res.dias.forEach(function(r){
+                        html += '<tr><td>'+ r.fecha +'</td><td>'+ r.periodo +'</td><td>'+ r.dia_semana +'</td><td>'+ r.dias_mes +'</td><td>'+ r.valor_dia +'</td><td>'+ r.anio +'</td><td>'+ r.mes_friedman +'</td><td>'+ r.semana_friedman +'</td></tr>';
+                    });
+                    html += '</tbody></table></div></div>';
+                }
+                if (res.metas && res.metas.length) {
+                    html += '<div class="card mt-3"><div class="card-header">Metas -Periodo ' + periodo + '</div><div class="card-body p-0"><table class="table table-hover table-bordered table-striped" id="tabla-metas-generated"><thead class="thead-dark"><tr><th>Plaza</th><th>Tienda</th><th>Fecha</th><th>Meta</th><th>Dias Mes</th><th>Valor Dia</th><th>Computed</th></tr></thead><tbody>';
+                    res.metas.forEach(function(m){
+                        html += '<tr><td>'+ m.plaza +'</td><td>'+ m.tienda +'</td><td>'+ m.fecha +'</td><td>'+ m.meta +'</td><td>'+ m.dias_mes +'</td><td>'+ m.valor_dia +'</td><td>'+ (m.computed||'') +'</td></tr>';
+                    });
+                    html += '</tbody></table></div></div>';
+                }
+                if (html) {
+                    document.getElementById('generated-tables').innerHTML = html;
+                    // Optional: initialize DataTables on generated tables
+                    var dt1 = document.getElementById('tabla-dias-generated');
+                    if (dt1) $(dt1).DataTable({ paging: false, searching: false, info: false });
+                    var dt2 = document.getElementById('tabla-metas-generated');
+                    if (dt2) $(dt2).DataTable({ paging: false, searching: false, info: false });
+                }
+                // Recarga opcional para reflejar cambios si no se llenó con datos
+            }).fail(function(xhr){
+                var err = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Error generate';
+            if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({ title: 'Error', text: err });
+                } else {
+                    alert(err);
+                }
+            });
+        });
+        
+            // SweetAlert2 for delete confirmation (lazy-load if needed)
         $(document).on('submit', '.delete-form', function(e) {
             e.preventDefault();
             if (!confirm('Eliminar esta meta?')) return;
@@ -225,6 +280,15 @@
             });
         });
     </script>
+    <script>
+      // Ensure only one generate button remains (remove duplicates if any)
+      document.addEventListener('DOMContentLoaded', function(){
+        var btns = document.querySelectorAll('#generate-dias-btn');
+        if (btns.length > 1) {
+          btns[1].remove();
+        }
+      });
+    </script>
 @endsection
 
 @section('css')
@@ -239,7 +303,24 @@
     </style>
 @stop
 
+<!-- Generated data sections (metas_dias y metas) rendered here after generation -->
+<!-- generated tables removed -->
+
 @section('content')
+<div class="card-tools" style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+  <button id="publish-metas-btn" class="btn btn-success btn-sm" aria-label="Publicar Metas" data-toggle="tooltip" title="Publicar Metas">
+    <i class="fas fa-paper-plane"></i> Publicar Metas
+  </button>
+</div>
+<div class="card" style="margin-bottom:12px;">
+  <div class="card-header">
+    Controles
+    <button id="btn-toggle-summary-top" class="btn btn-xs btn-outline-primary float-right" style="margin-right:8px;" title="Mostrar/ocultar resumen"><i class="fas fa-eye"></i></button>
+  </div>
+  <div class="card-body p-2" style="font-size: 14px;">
+    Periodo activo: <strong>{{ $currentPeriodo ?? '' }}</strong>
+  </div>
+</div>
 <!-- Logout control removed per request -->
     @if (session('success'))
         <div class="alert alert-success" role="alert">{{ session('success') }}</div>
@@ -252,7 +333,7 @@
         <div class="card-body">
             <div class="row mb-3" id="metas-toolbar">
                 <div class="col-12 d-flex align-items-center justify-content-between">
-                    <form action="{{ route('metas.import') }}" method="POST" enctype="multipart/form-data" id="import-form-inline" class="d-inline-flex align-items-center" style="gap:8px;">
+            <form action="{{ route('metas.import') }}" method="POST" enctype="multipart/form-data" id="import-form-inline" class="d-inline-flex align-items-center" style="gap:8px;">
                     @csrf
                     <div class="custom-file" style="max-width:420px;">
                         <input type="file" class="custom-file-input" id="excel" name="excel" aria-label="Archivo Excel" required>
@@ -260,6 +341,9 @@
                     </div>
             <button class="btn btn-primary" type="submit" aria-label="Importar" data-toggle="tooltip" title="Importar"><i class="fas fa-upload"></i></button>
                     </form>
+                    <!-- Botón para generar metas días (Enfoque A) -->
+<button id="generate-dias-btn" class="btn btn-warning btn-sm" aria-label="Generar Metas Dias" data-toggle="tooltip" title="Generar Metas Dias"><i class="fas fa-upload"></i></button>
+            
                         <div class="btn-group" role="group" aria-label="Metas actions">
       <button class="btn btn-success" data-toggle="modal" data-target="#modalCreateMain" aria-label="Nueva Meta" title="Nueva Meta" data-toggle="tooltip"><i class="fas fa-plus"></i></button>
                         <button class="btn btn-secondary ml-2" data-toggle="modal" data-target="#modalPeriodo" aria-label="Buscar periodo" title="Buscar periodo" data-toggle="tooltip"><i class="fas fa-search"></i></button>
@@ -271,18 +355,8 @@
     </div>
 
     @if (isset($rows) && $rows->count())
-    <div class="card card-default">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <strong>Metas para periodo: {{ $currentPeriodo }}</strong>
-        </div>
-        <ul class="nav nav-pills mb-2" id="periodo-nav" role="tablist" aria-label="Periodos" style="padding:0 12px;">
-          @foreach ($periodos as $p)
-            <li class="nav-item" role="presentation" style="margin-right:6px;">
-              <a class="nav-link @if(isset($currentPeriodo) && $p->periodo == $currentPeriodo) active @endif" href="{{ route('metas.index', ['periodo' => $p->periodo]) }}">{{ $p->periodo }}</a>
-            </li>
-          @endforeach
-        </ul>
-        <div class="text-muted small mb-2" style="padding:0 12px;">Periodo consultado: {{ $currentPeriodo ?? '' }}</div>
+    <div class="card">
+        <div class="card-header" style="display:none"></div>
         <div class="card-body p-0">
             <table class="table table-hover table-bordered table-striped mb-0" id="tabla-met-mensual">
                 <thead class="thead-dark">
@@ -329,6 +403,8 @@
     @else
     <p class="text-muted">No hay metas para el periodo seleccionado.</p>
     @endif
+
+
 
     <p class="text-muted">Ejemplo de columnas en el Excel: plaza,tienda,periodo,meta. Cabecera: plaza,tienda,periodo,meta</p>
 @stop

@@ -11,6 +11,11 @@ use App\Http\Controllers\ReporteComprasDirectoController;
 
 Route::get('/', function () {
     return view('welcome');
+    // Cartera Abonos - Reporte (Mes Anterior)
+    Route::get('cartera-abonos', [\App\Http\Controllers\Reportes\CarteraAbonosController::class, 'index'])
+        ->name('reportes.cartera-abonos.index');
+    Route::get('cartera-abonos/data', [\App\Http\Controllers\Reportes\CarteraAbonosController::class, 'data'])
+        ->name('reportes.cartera-abonos.data');
 });
 
 Route::get('/home', function () {
@@ -119,3 +124,4 @@ Route::post('/api/report', [App\Http\Controllers\Api\AgentController::class, 're
 Route::get('/api/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/api/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/api/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+Route::post('/metas-dias/generate', [App\Http\Controllers\MetasMensualController::class, 'generateDias'])->name('metas_dias.generate');
