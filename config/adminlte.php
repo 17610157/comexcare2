@@ -371,7 +371,7 @@ return [
                 [
                     'text' => 'Reporte Cargos y Abonos',
                     'icon' => 'far fa-file-alt',
-                    'url' => 'reportes/cargos-abonos',
+                    'url' => 'reportes/cartera-abonos',
                 ]
             ],
         ],

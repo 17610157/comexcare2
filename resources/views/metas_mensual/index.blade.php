@@ -224,34 +224,22 @@
                         alert(res.message);
                     }
                 }
-                // Render tablas si hay datos
-                var html = '';
-                if (res.dias && res.dias.length) {
-                    html += '<div class="card mt-3"><div class="card-header">Metas Dias -Periodo ' + periodo + '</div><div class="card-body p-0"><table class="table table-hover table-bordered table-striped" id="tabla-dias-generated"><thead class="thead-dark"><tr><th>Fecha</th><th>Periodo</th><th>Dia Sem</th><th>Dias Mes</th><th>Valor Dia</th><th>Año</th><th>Mes Friedman</th><th>Semana Friedman</th></tr></thead><tbody>';
-                    res.dias.forEach(function(r){
-                        html += '<tr><td>'+ r.fecha +'</td><td>'+ r.periodo +'</td><td>'+ r.dia_semana +'</td><td>'+ r.dias_mes +'</td><td>'+ r.valor_dia +'</td><td>'+ r.anio +'</td><td>'+ r.mes_friedman +'</td><td>'+ r.semana_friedman +'</td></tr>';
-                    });
-                    html += '</tbody></table></div></div>';
+                // Render resumen directamente dentro de la tarjeta (no tablas) usando resumen obtenido
+                if (res && res.summary) {
+                    const summary = res.summary;
+                    const cont = document.getElementById('summary-content');
+                    if (cont) {
+                        let html = '';
+                        html += '<p><strong>Días trabajables:</strong> '+ (summary.days_workable ?? 0) +'</p>';
+                        html += '<p><strong>Total meta:</strong> '+ (summary.total_meta ?? 0) +'</p>';
+                        html += '<p><strong>Total días:</strong> '+ (summary.total_days ?? 0) +'</p>';
+                        html += '<p><strong>Meta diaria promedio:</strong> '+ (summary.avg_meta_per_day ?? 0).toFixed(2) +'</p>';
+                        cont.innerHTML = html;
+                    }
                 }
-                if (res.metas && res.metas.length) {
-                    html += '<div class="card mt-3"><div class="card-header">Metas -Periodo ' + periodo + '</div><div class="card-body p-0"><table class="table table-hover table-bordered table-striped" id="tabla-metas-generated"><thead class="thead-dark"><tr><th>Plaza</th><th>Tienda</th><th>Fecha</th><th>Meta</th><th>Dias Mes</th><th>Valor Dia</th><th>Computed</th></tr></thead><tbody>';
-                    res.metas.forEach(function(m){
-                        html += '<tr><td>'+ m.plaza +'</td><td>'+ m.tienda +'</td><td>'+ m.fecha +'</td><td>'+ m.meta +'</td><td>'+ m.dias_mes +'</td><td>'+ m.valor_dia +'</td><td>'+ (m.computed||'') +'</td></tr>';
-                    });
-                    html += '</tbody></table></div></div>';
-                }
-                if (html) {
-                    document.getElementById('generated-tables').innerHTML = html;
-                    // Optional: initialize DataTables on generated tables
-                    var dt1 = document.getElementById('tabla-dias-generated');
-                    if (dt1) $(dt1).DataTable({ paging: false, searching: false, info: false });
-                    var dt2 = document.getElementById('tabla-metas-generated');
-                    if (dt2) $(dt2).DataTable({ paging: false, searching: false, info: false });
-                }
-                // Recarga opcional para reflejar cambios si no se llenó con datos
             }).fail(function(xhr){
                 var err = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Error generate';
-            if (typeof Swal !== 'undefined' && Swal.fire) {
+                if (typeof Swal !== 'undefined' && Swal.fire) {
                     Swal.fire({ title: 'Error', text: err });
                 } else {
                     alert(err);
@@ -303,8 +291,6 @@
     </style>
 @stop
 
-<!-- Generated data sections (metas_dias y metas) rendered here after generation -->
-<!-- generated tables removed -->
 
 @section('content')
 <!-- Logout control removed per request -->

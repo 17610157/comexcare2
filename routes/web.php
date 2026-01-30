@@ -8,11 +8,11 @@ use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteCarteraAbonosController;
+use App\Http\Controllers\Reportes\ListasController;
 
 
 Route::get('/', function () {
     return view('welcome');
-    // Cartera Abonos routes will be added inside the reportes group
 });
 
 Route::get('/home', function () {
@@ -70,6 +70,10 @@ Route::middleware('web')->prefix('reportes')->group(function () {
         ->name('reportes.cartera-abonos.index');
     Route::get('cartera-abonos/data', [ReporteCarteraAbonosController::class, 'data'])
         ->name('reportes.cartera-abonos.data');
+
+    // Listas dinámicas para filtros (Plaza/Tienda)
+    Route::get('listas/plazas', [ListasController::class, 'plazas'])->name('reportes.listas.plazas');
+    Route::get('listas/tiendas', [ListasController::class, 'tiendas'])->name('reportes.listas.tiendas');
 
     // REPORTE: Compras Directo
     Route::get('compras-directo', [ReporteComprasDirectoController::class, 'index'])
