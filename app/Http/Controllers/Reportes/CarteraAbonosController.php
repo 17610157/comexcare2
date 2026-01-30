@@ -11,7 +11,7 @@ class CarteraAbonosController extends Controller
 {
     public function index()
     {
-        return view('reportes.cartera_abonos.index');
+        return view('reportes.cartera_abonos.cartera_abonos');
     }
 
     public function data(Request $request)
