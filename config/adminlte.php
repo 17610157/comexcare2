@@ -357,10 +357,15 @@ return [
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-matricial',
                 ],
-                 [
+                [
                     'text' => 'Reporte Compras',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/compras-directo',
+                ],
+                [
+                    'text' => 'Reporte Cargos y Abonos',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/cargos-abonos',
                 ]
             ],
         ],

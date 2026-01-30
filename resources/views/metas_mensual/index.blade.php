@@ -307,20 +307,6 @@
 <!-- generated tables removed -->
 
 @section('content')
-<div class="card-tools" style="display:flex; justify-content:flex-end; margin-bottom:8px;">
-  <button id="publish-metas-btn" class="btn btn-success btn-sm" aria-label="Publicar Metas" data-toggle="tooltip" title="Publicar Metas">
-    <i class="fas fa-paper-plane"></i> Publicar Metas
-  </button>
-</div>
-<div class="card" style="margin-bottom:12px;">
-  <div class="card-header">
-    Controles
-    <button id="btn-toggle-summary-top" class="btn btn-xs btn-outline-primary float-right" style="margin-right:8px;" title="Mostrar/ocultar resumen"><i class="fas fa-eye"></i></button>
-  </div>
-  <div class="card-body p-2" style="font-size: 14px;">
-    Periodo activo: <strong>{{ $currentPeriodo ?? '' }}</strong>
-  </div>
-</div>
 <!-- Logout control removed per request -->
     @if (session('success'))
         <div class="alert alert-success" role="alert">{{ session('success') }}</div>
@@ -340,15 +326,16 @@
                         <label class="custom-file-label" for="excel">Archivo Excel</label>
                     </div>
             <button class="btn btn-primary" type="submit" aria-label="Importar" data-toggle="tooltip" title="Importar"><i class="fas fa-upload"></i></button>
-                    </form>
-                    <!-- Botón para generar metas días (Enfoque A) -->
-<button id="generate-dias-btn" class="btn btn-warning btn-sm" aria-label="Generar Metas Dias" data-toggle="tooltip" title="Generar Metas Dias"><i class="fas fa-upload"></i></button>
-            
+                    </form>       
                         <div class="btn-group" role="group" aria-label="Metas actions">
       <button class="btn btn-success" data-toggle="modal" data-target="#modalCreateMain" aria-label="Nueva Meta" title="Nueva Meta" data-toggle="tooltip"><i class="fas fa-plus"></i></button>
                         <button class="btn btn-secondary ml-2" data-toggle="modal" data-target="#modalPeriodo" aria-label="Buscar periodo" title="Buscar periodo" data-toggle="tooltip"><i class="fas fa-search"></i></button>
                         <button class="btn btn-secondary ml-2" onclick="location.reload()" aria-label="Recargar" title="Recargar" data-toggle="tooltip"><i class="fas fa-sync"></i></button>
-                        </div>
+                        <button id="publicar-metas-top" class="btn btn-success btn-sm" aria-label="Publicar Metas" data-toggle="tooltip" title="Publicar Metas">
+                        <button id="generate-dias-btn" class="btn btn-warning btn-sm" aria-label="Generar Metas Dias" data-toggle="tooltip" title="Generar Metas Dias"><i class="fas fa-upload"></i></button>
+      <i class="fas fa-paper-plane"></i> Publicar
+    </button>
+                    </div>
                 </div>
                 </div>
         </div>
