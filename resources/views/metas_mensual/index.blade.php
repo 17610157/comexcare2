@@ -124,10 +124,7 @@
                 lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Todos"]],
                 order: [[0, 'asc']],
                 responsive: true,
-                autoWidth: false,
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json'
-                }
+                autoWidth: false
             });
 
             // Edit button populates modalEdit with row data (with robust data attributes)
@@ -224,19 +221,14 @@
                         alert(res.message);
                     }
                 }
-                // Render resumen directamente dentro de la tarjeta (no tablas) usando resumen obtenido
-                if (res && res.summary) {
-                    const summary = res.summary;
-                    const cont = document.getElementById('summary-content');
-                    if (cont) {
-                        let html = '';
-                        html += '<p><strong>Días trabajables:</strong> '+ (summary.days_workable ?? 0) +'</p>';
-                        html += '<p><strong>Total meta:</strong> '+ (summary.total_meta ?? 0) +'</p>';
-                        html += '<p><strong>Total días:</strong> '+ (summary.total_days ?? 0) +'</p>';
-                        html += '<p><strong>Meta diaria promedio:</strong> '+ (summary.avg_meta_per_day ?? 0).toFixed(2) +'</p>';
-                        cont.innerHTML = html;
-                    }
+            // Render resumen de forma segura usando DOM puro
+            if (res && res.summary) {
+                const s = res.summary;
+                const cont = document.getElementById('summary-content');
+                if (cont) {
+                    cont.textContent = `Días trabajables: ${s.days_workable ?? 0} | Total Meta: ${s.total_meta ?? 0} | Total Días: ${s.total_days ?? 0} | Meta diaria promedio: ${((s.avg_meta_per_day ?? 0)).toFixed(2)}`;
                 }
+            }
             }).fail(function(xhr){
                 var err = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Error generate';
                 if (typeof Swal !== 'undefined' && Swal.fire) {
@@ -318,7 +310,7 @@
             <button class="btn btn-secondary btn-sm ml-2" data-toggle="modal" data-target="#modalPeriodo" aria-label="Buscar periodo" title="Buscar periodo"><i class="fas fa-search"></i></button>
             <button class="btn btn-secondary btn-sm ml-2" onclick="location.reload()" aria-label="Recargar" title="Recargar"><i class="fas fa-sync"></i></button>
             <button id="generate-dias-btn" class="btn btn-warning btn-sm ml-2" aria-label="Generar Metas Dias" data-toggle="tooltip" title="Generar Metas Dias"><i class="fas fa-upload"></i></button>
-            <button id="publicar-metas-top" class="btn btn-success btn-sm ml-2" aria-label="Publicar Metas" data-toggle="tooltip" title="Publicar Metas"><i class="fas fa-paper-plane"></i> Publicar</button>
+            <!-- Publicar Metas button moved to a form for reliability -->
         </div>
                     </div>
                 </div>

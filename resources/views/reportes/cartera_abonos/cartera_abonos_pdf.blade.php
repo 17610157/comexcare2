@@ -11,6 +11,7 @@
   </head>
   <body>
     <h2>Cartera Abonos - Mes Anterior</h2>
+    <p>Periodo: {{ $start ?? '' }} a {{ $end ?? '' }}</p>
     <table>
       <thead>
         <tr>
@@ -20,21 +21,21 @@
       <tbody>
         @foreach ($data as $row)
         <tr>
-          <td>{{ $row->Plaza ?? $row['Plaza'] }}</td>
-          <td>{{ $row->Tienda ?? $row['Tienda'] }}</td>
-          <td>{{ $row->Fecha ?? $row['Fecha'] }}</td>
-          <td>{{ $row->Fecha_vta ?? $row['Fecha_vta'] }}</td>
-          <td>{{ $row->Concepto ?? $row['Concepto'] }}</td>
-          <td>{{ $row->Tipo ?? $row['Tipo'] }}</td>
-          <td>{{ $row->Factura ?? $row['Factura'] }}</td>
-          <td>{{ $row->Clave ?? $row['Clave'] }}</td>
-          <td>{{ $row->RFC ?? $row['RFC'] }}</td>
-          <td>{{ $row->Nombre ?? $row['Nombre'] }}</td>
-          <td>{{ $row->monto_fa ?? $row['monto_fa'] }}</td>
-          <td>{{ $row->monto_dv ?? $row['monto_dv'] }}</td>
-          <td>{{ $row->monto_cd ?? $row['monto_cd'] }}</td>
-          <td>{{ $row->Dias_Cred ?? $row['Dias_Cred'] }}</td>
-          <td>{{ $row->Dias_Vencidos ?? $row['Dias_Vencidos'] }}</td>
+          <td>{{ $row->plaza ?? '' }}</td>
+          <td>{{ $row->tienda ?? '' }}</td>
+          <td>{{ $row->fecha ?? '' }}</td>
+          <td>{{ $row->fecha_vta ?? '' }}</td>
+          <td>{{ $row->concepto ?? '' }}</td>
+          <td>{{ $row->tipo ?? '' }}</td>
+          <td>{{ $row->factura ?? '' }}</td>
+          <td>{{ $row->clave ?? '' }}</td>
+          <td>{{ $row->rfc ?? '' }}</td>
+          <td>{{ $row->nombre ?? '' }}</td>
+          <td>{{ $row->monto_fa ?? 0 }}</td>
+          <td>{{ $row->monto_dv ?? 0 }}</td>
+          <td>{{ $row->monto_cd ?? 0 }}</td>
+          <td>{{ $row->dias_cred ?? 0 }}</td>
+          <td>{{ $row->dias_vencidos ?? 0 }}</td>
         </tr>
         @endforeach
       </tbody>

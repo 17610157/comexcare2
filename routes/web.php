@@ -7,8 +7,7 @@ use App\Http\Controllers\ReporteVendedoresMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteComprasDirectoController;
-use App\Http\Controllers\ReporteCarteraAbonosController;
-use App\Http\Controllers\Reportes\ListasController;
+use App\Http\Controllers\Reportes\CarteraAbonosController;
 
 
 Route::get('/', function () {
@@ -66,14 +65,15 @@ Route::middleware('web')->prefix('reportes')->group(function () {
         ->name('reportes.metas-matricial.export.pdf');
 
     // Cartera Abonos - Reporte (Mes Anterior)
-    Route::get('cartera-abonos', [ReporteCarteraAbonosController::class, 'index'])
+    Route::get('cartera-abonos', [CarteraAbonosController::class, 'index'])
         ->name('reportes.cartera-abonos.index');
-    Route::get('cartera-abonos/data', [ReporteCarteraAbonosController::class, 'data'])
+    Route::get('cartera-abonos/data', [CarteraAbonosController::class, 'data'])
         ->name('reportes.cartera-abonos.data');
+    // Export PDF for Cartera Abonos with filters
+    Route::get('cartera-abonos/pdf', [CarteraAbonosController::class, 'pdf'])
+        ->name('reportes.cartera-abonos.pdf');
 
-    // Listas dinámicas para filtros (Plaza/Tienda)
-    Route::get('listas/plazas', [ListasController::class, 'plazas'])->name('reportes.listas.plazas');
-    Route::get('listas/tiendas', [ListasController::class, 'tiendas'])->name('reportes.listas.tiendas');
+    // Listas dinámicas para filtros (removidas: no se usan patrones de listas externas)
 
     // REPORTE: Compras Directo
     Route::get('compras-directo', [ReporteComprasDirectoController::class, 'index'])
