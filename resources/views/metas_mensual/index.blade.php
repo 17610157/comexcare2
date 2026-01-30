@@ -327,14 +327,13 @@
                     </div>
             <button class="btn btn-primary" type="submit" aria-label="Importar" data-toggle="tooltip" title="Importar"><i class="fas fa-upload"></i></button>
                     </form>       
-                        <div class="btn-group" role="group" aria-label="Metas actions">
-      <button class="btn btn-success" data-toggle="modal" data-target="#modalCreateMain" aria-label="Nueva Meta" title="Nueva Meta" data-toggle="tooltip"><i class="fas fa-plus"></i></button>
-                        <button class="btn btn-secondary ml-2" data-toggle="modal" data-target="#modalPeriodo" aria-label="Buscar periodo" title="Buscar periodo" data-toggle="tooltip"><i class="fas fa-search"></i></button>
-                        <button class="btn btn-secondary ml-2" onclick="location.reload()" aria-label="Recargar" title="Recargar" data-toggle="tooltip"><i class="fas fa-sync"></i></button>
-                        <button id="publicar-metas-top" class="btn btn-success btn-sm" aria-label="Publicar Metas" data-toggle="tooltip" title="Publicar Metas">
-                        <button id="generate-dias-btn" class="btn btn-warning btn-sm" aria-label="Generar Metas Dias" data-toggle="tooltip" title="Generar Metas Dias"><i class="fas fa-upload"></i></button>
-      <i class="fas fa-paper-plane"></i> Publicar
-    </button>
+        <div class="btn-group" role="group" aria-label="Metas actions">
+            <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalCreateMain" aria-label="Nueva Meta" title="Nueva Meta"><i class="fas fa-plus"></i></button>
+            <button class="btn btn-secondary btn-sm ml-2" data-toggle="modal" data-target="#modalPeriodo" aria-label="Buscar periodo" title="Buscar periodo"><i class="fas fa-search"></i></button>
+            <button class="btn btn-secondary btn-sm ml-2" onclick="location.reload()" aria-label="Recargar" title="Recargar"><i class="fas fa-sync"></i></button>
+            <button id="generate-dias-btn" class="btn btn-warning btn-sm ml-2" aria-label="Generar Metas Dias" data-toggle="tooltip" title="Generar Metas Dias"><i class="fas fa-upload"></i></button>
+            <button id="publicar-metas-top" class="btn btn-success btn-sm ml-2" aria-label="Publicar Metas" data-toggle="tooltip" title="Publicar Metas"><i class="fas fa-paper-plane"></i> Publicar</button>
+        </div>
                     </div>
                 </div>
                 </div>
