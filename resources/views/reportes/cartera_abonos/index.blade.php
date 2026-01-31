@@ -2,64 +2,89 @@
 @section('title', 'Cartera Abonos')
 
 @section('content_header')
-<h1>Cartera - Abonos (Mes Anterior)</h1>
+<h1>Cartera - Abonos</h1>
 @stop
 
 @section('content')
 <div class="container-fluid">
-  <div class="card">
+  <!-- Filtros Superiores -->
+  <div class="card bg-light mb-3">
     <div class="card-header">
-      <div class="row">
-        <div class="col-md-4">
-          <label for="plaza" class="form-label">Plaza</label>
-          <select id="plaza" class="form-control form-control-sm"></select>
-        </div>
-        <div class="col-md-4">
-          <label for="tienda" class="form-label">Tienda</label>
-          <select id="tienda" class="form-control form-control-sm"></select>
-        </div>
-        <div class="col-md-4 align-self-end d-flex align-items-end">
-          <button id="btn_refresh" class="btn btn-primary btn-sm ml-auto">Actualizar</button>
-          <button id="btn_reset_filters" class="btn btn-secondary btn-sm ml-2">Limpiar filtros</button>
-          <button id="btn_pdf" class="btn btn-info btn-sm ml-2">Exportar PDF</button>
-        </div>
-      </div>
+      <h5 class="mb-0">
+        <i class="fas fa-filter"></i> Filtros
+      </h5>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
       @php
         $startDefault = \Carbon\Carbon::parse('first day of previous month')->toDateString();
         $endDefault = \Carbon\Carbon::parse('last day of previous month')->toDateString();
       @endphp
-      <div class="row mb-2 mx-0 px-0" style="padding:0 0 6px 0;"><div class="col-md-6">
-        <label for="period_start" class="form-label small mb-1">Periodo Inicio</label>
-        <input type="date" id="period_start" class="form-control form-control-sm" value="{{ $startDefault }}">
-      </div>
-      <div class="col-md-6">
-        <label for="period_end" class="form-label small mb-1">Periodo Fin</label>
-        <input type="date" id="period_end" class="form-control form-control-sm" value="{{ $endDefault }}">
-      </div></div>
-      <div class="row mb-2 mx-0 px-0" style="padding:0 0 6px 0;" id="period_range_row_top">
-        <div class="col-md-6">
-          <label for="period_range" class="form-label small mb-1">Rango</label>
-          <select id="period_range" class="form-control form-control-sm" aria-label="Rango de periodo">
-            <option value="previous_month" selected>Mes anterior</option>
-            <option value="this_month">Este mes</option>
-            <option value="last_7_days">Últimos 7 días</option>
-            <option value="last_30_days">Últimos 30 días</option>
-            <option value="year_to_date">Año actual</option>
-          </select>
+      
+      <div class="row">
+        <div class="col-md-3">
+          <label for="period_start" class="form-label">Periodo Inicio</label>
+          <input type="date" id="period_start" class="form-control form-control-sm" value="{{ $startDefault }}">
+        </div>
+        <div class="col-md-3">
+          <label for="period_end" class="form-label">Periodo Fin</label>
+          <input type="date" id="period_end" class="form-control form-control-sm" value="{{ $endDefault }}">
+        </div>
+        <div class="col-md-3">
+          <label for="plaza" class="form-label">Código Plaza</label>
+          <input type="text" id="plaza" class="form-control form-control-sm border-secondary" placeholder="Ej: A001" maxlength="5" pattern="[A-Z0-9]{5}" style="text-transform: uppercase;" title="Código de 5 caracteres, letras mayúsculas y números. ENTER para buscar, ESC para limpiar.">
+        </div>
+        <div class="col-md-3">
+          <label for="tienda" class="form-label">Código Tienda</label>
+          <input type="text" id="tienda" class="form-control form-control-sm border-secondary" placeholder="Ej: B001" maxlength="10" pattern="[A-Z0-9]{10}" style="text-transform: uppercase;" title="Código de tienda con letras mayúsculas y números. ENTER para buscar, ESC para limpiar.">
         </div>
       </div>
-      <div class="row mb-2 mx-0 px-0" style="padding:0 0 6px 0;" id="current_period_display_row">
-        <div class="col-12"><span id="current_period_display" class="text-muted small"></span></div>
+      
+      <div class="row mt-3">
+        <div class="col-md-12 d-flex align-items-end justify-content-end">
+          <button id="btn_search" class="btn btn-success btn-sm me-2">
+            <i class="fas fa-search"></i> Buscar
+          </button>
+          <button id="btn_refresh" class="btn btn-primary btn-sm me-2">
+            <i class="fas fa-sync-alt"></i> Actualizar
+          </button>
+          <button id="btn_reset_filters" class="btn btn-secondary btn-sm me-2" title="Limpiar todos los filtros (ESC en campos)">
+            <i class="fas fa-undo"></i> Limpiar
+          </button>
+          <button id="btn_excel" class="btn btn-success btn-sm me-2">
+            <i class="fas fa-file-excel"></i> Excel
+          </button>
+          <button id="btn_csv" class="btn btn-info btn-sm me-2">
+            <i class="fas fa-file-csv"></i> CSV
+          </button>
+          <button id="btn_pdf" class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i> PDF
+          </button>
+        </div>
       </div>
-      <table id="report-table" class="table table-bordered table-hover mb-0" style="width:100%">
-        <thead>
+      
+      <div class="row mt-2">
+        <div class="col-12">
+          <span id="current_period_display" class="badge bg-info text-white"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DataTable -->
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">
+        <i class="fas fa-table"></i> Resultados
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <table id="report-table" class="table table-bordered table-hover table-striped mb-0" style="width:100%">
+        <thead class="thead-light">
           <tr>
             <th>Plaza</th>
             <th>Tienda</th>
             <th>Fecha</th>
-            <th>Fecha_vta</th>
+            <th>Fecha Vta</th>
             <th>Concepto</th>
             <th>Tipo</th>
             <th>Factura</th>
@@ -81,54 +106,148 @@
 @endsection
 
 @section('css')
-<!-- DataTables CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+.card-header {
+  border-bottom: 2px solid #dee2e6;
+}
+.table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+}
+.badge {
+  font-size: 0.875em;
+}
+</style>
 @endsection
 
 @section('js')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 <script>
 $(function() {
-  $('#report-table').DataTable({
+  // DataTable initialization
+  const dataTable = $('#report-table').DataTable({
     processing: true,
     serverSide: true,
+    responsive: true,
+    pageLength: 25,
+    language: {
+      search: "Buscar:",
+      lengthMenu: "Mostrar _MENU_ registros",
+      info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+      paginate: {
+        first: "Primero",
+        last: "Último",
+        next: "Siguiente",
+        previous: "Anterior"
+      },
+      emptyTable: "No hay datos disponibles",
+      zeroRecords: "No se encontraron resultados"
+    },
     ajax: {
       url: "{{ url('/reportes/cartera-abonos/data') }}",
       data: function (d) {
+        // Enviar valores ya convertidos a mayúsculas por el frontend
         d.plaza = $('#plaza').val();
         d.tienda = $('#tienda').val();
-        if (typeof $('#period_start').val === 'function' && $('#period_start').length && $('#period_start').val()) {
+        if ($('#period_start').length && $('#period_start').val()) {
           d.period_start = $('#period_start').val();
         }
-        if (typeof $('#period_end').val === 'function' && $('#period_end').length && $('#period_end').val()) {
+        if ($('#period_end').length && $('#period_end').val()) {
           d.period_end = $('#period_end').val();
         }
       }
     },
     columns: [
-      { data: 'plaza' },
-      { data: 'tienda' },
-      { data: 'fecha' },
-      { data: 'fecha_vta' },
-      { data: 'concepto' },
-      { data: 'tipo' },
-      { data: 'factura' },
-      { data: 'clave' },
+      { data: 'plaza', className: 'text-center' },
+      { data: 'tienda', className: 'text-center' },
+      { data: 'fecha', className: 'text-center' },
+      { data: 'fecha_vta', className: 'text-center' },
+      { data: 'concepto', className: 'text-center' },
+      { data: 'tipo', className: 'text-center' },
+      { data: 'factura', className: 'text-center' },
+      { data: 'clave', className: 'text-center' },
       { data: 'rfc' },
       { data: 'nombre' },
-      { data: 'monto_fa' },
-      { data: 'monto_dv' },
-      { data: 'monto_cd' },
-      { data: 'dias_cred' },
-      { data: 'dias_vencidos' }
+      { data: 'monto_fa', className: 'text-end', render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+      { data: 'monto_dv', className: 'text-end', render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+      { data: 'monto_cd', className: 'text-end', render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+      { data: 'dias_cred', className: 'text-center' },
+      { data: 'dias_vencidos', className: 'text-center' }
     ]
   });
 
-  $('#btn_refresh').on('click', function() {
-    $('#report-table').DataTable().ajax.reload();
+  // Event handlers
+  $('#btn_search').on('click', function() {
+    dataTable.ajax.reload();
   });
-  // Export PDF with current filters
+
+  $('#btn_refresh').on('click', function() {
+    dataTable.ajax.reload();
+  });
+
+  $('#btn_reset_filters').on('click', function() {
+    $('#period_start').val("{{ $startDefault }}");
+    $('#period_end').val("{{ $endDefault }}");
+    $('#plaza').val('').removeClass('border-primary').addClass('border-secondary');
+    $('#tienda').val('').removeClass('border-primary').addClass('border-secondary');
+    updateCurrentPeriodDisplay();
+  });
+
+  // Export Excel
+  $('#btn_excel').on('click', function() {
+    const start = $('#period_start').val();
+    const end = $('#period_end').val();
+    const plaza = $('#plaza').val();
+    const tienda = $('#tienda').val();
+    
+    let form = $('<form>', {
+      'method': 'POST',
+      'action': "{{ url('/reportes/cartera-abonos/export-excel') }}",
+      'target': '_blank'
+    });
+    
+    form.append($('<input>', { 'type': 'hidden', 'name': '_token', 'value': "{{ csrf_token() }}" }));
+    form.append($('<input>', { 'type': 'hidden', 'name': 'period_start', 'value': start }));
+    form.append($('<input>', { 'type': 'hidden', 'name': 'period_end', 'value': end }));
+    if (plaza) form.append($('<input>', { 'type': 'hidden', 'name': 'plaza', 'value': plaza }));
+    if (tienda) form.append($('<input>', { 'type': 'hidden', 'name': 'tienda', 'value': tienda }));
+    
+    $('body').append(form);
+    form.submit();
+    form.remove();
+  });
+
+  // Export CSV
+  $('#btn_csv').on('click', function() {
+    const start = $('#period_start').val();
+    const end = $('#period_end').val();
+    const plaza = $('#plaza').val();
+    const tienda = $('#tienda').val();
+    
+    let form = $('<form>', {
+      'method': 'POST',
+      'action': "{{ url('/reportes/cartera-abonos/export-csv') }}",
+      'target': '_blank'
+    });
+    
+    form.append($('<input>', { 'type': 'hidden', 'name': '_token', 'value': "{{ csrf_token() }}" }));
+    form.append($('<input>', { 'type': 'hidden', 'name': 'period_start', 'value': start }));
+    form.append($('<input>', { 'type': 'hidden', 'name': 'period_end', 'value': end }));
+    if (plaza) form.append($('<input>', { 'type': 'hidden', 'name': 'plaza', 'value': plaza }));
+    if (tienda) form.append($('<input>', { 'type': 'hidden', 'name': 'tienda', 'value': tienda }));
+    
+    $('body').append(form);
+    form.submit();
+    form.remove();
+  });
+
   $('#btn_pdf').on('click', function() {
     const start = $('#period_start').val();
     const end = $('#period_end').val();
@@ -141,77 +260,143 @@ $(function() {
     if (tienda) url += '&tienda=' + encodeURIComponent(tienda);
     window.open(url, '_blank');
   });
-  // Reset filters to defaults and reload
-  $('#btn_reset_filters').on('click', function() {
-    $('#period_start').val("{{ $startDefault }}");
-    $('#period_end').val("{{ $endDefault }}");
-    $('#period_range').val('previous_month');
-    $('#period_range').trigger('change');
-    $('#plaza').val('');
-    $('#tienda').val('');
-  });
-  // Period filters changes
+
   $('#period_start, #period_end').on('change', function() {
-    $('#report-table').DataTable().ajax.reload();
+    dataTable.ajax.reload();
     updateCurrentPeriodDisplay();
   });
-  // Predefined ranges
-  function formatDate(d) {
-    const pad = (n) => (n < 10 ? '0' + n : n);
-    const year = d.getFullYear();
-    const month = pad(d.getMonth() + 1);
-    const day = pad(d.getDate());
-    return year + '-' + month + '-' + day;
-  }
-  function applyPeriodRange(range) {
-    const now = new Date();
-    let start = null, end = null;
-    switch (range) {
-      case 'this_month': {
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-      }
-      case 'previous_month': {
-        const m = now.getMonth();
-        const y = now.getFullYear();
-        start = new Date(y, m - 1, 1);
-        end = new Date(y, m - 1, 0);
-        break;
-      }
-      case 'last_7_days': {
-        end = new Date(now);
-        start = new Date(now);
-        start.setDate(now.getDate() - 6);
-        break;
-      }
-      case 'last_30_days': {
-        end = new Date(now);
-        start = new Date(now);
-        start.setDate(now.getDate() - 29);
-        break;
-      }
-      case 'year_to_date': {
-        start = new Date(now.getFullYear(), 0, 1);
-        end = now;
-        break;
-      }
-      default:
-        return;
-    }
-    if (start) document.getElementById('period_start').value = formatDate(start);
-    if (end) document.getElementById('period_end').value = formatDate(end);
-    $('#report-table').DataTable().ajax.reload();
-    updateCurrentPeriodDisplay();
-  }
-  $('#period_range').on('change', function(){ applyPeriodRange(this.value); });
-  applyPeriodRange($('#period_range').val());
+
   function updateCurrentPeriodDisplay(){
     const s = $('#period_start').val();
     const e = $('#period_end').val();
     $('#current_period_display').text('Periodo: ' + s + ' a ' + e);
   }
+
+  // Initialize
   updateCurrentPeriodDisplay();
+
+  // Load plazas (placeholder - implement actual loading logic)
+  // This would typically load from an API endpoint
+  setTimeout(function() {
+    $('#plaza').html('<option value="">Todas</option><option value="01">Plaza 01</option><option value="02">Plaza 02</option>');
+  }, 500);
+
+  // Validación en tiempo real cuando se pierde el foco
+  $('#plaza, #tienda').on('blur', function() {
+    const inputElement = this;
+    const filterName = $(this).attr('id');
+    const filterValue = $(this).val().trim();
+    
+    let isValid = true;
+    let errorMessage = '';
+    
+    if (filterValue) {
+      if (filterName === 'plaza') {
+        // Plaza: 5 caracteres, mayúsculas y números
+        const plazaRegex = /^[A-Z0-9]{5}$/;
+        isValid = plazaRegex.test(filterValue);
+        if (!isValid) {
+          errorMessage = 'Formato inválido. Plaza: 5 caracteres, solo mayúsculas y números (Ej: A001)';
+        }
+      } else if (filterName === 'tienda') {
+        // Tienda: hasta 10 caracteres, mayúculas y números
+        const tiendaRegex = /^[A-Z0-9]{1,10}$/;
+        isValid = tiendaRegex.test(filterValue);
+        if (!isValid) {
+          errorMessage = 'Formato inválido. Tienda: hasta 10 caracteres, mayúsculas y números (Ej: B001)';
+        }
+      }
+    }
+    
+    if (!isValid && filterValue) {
+      $(this).addClass('border-danger');
+      $(this).removeClass('border-primary border-secondary');
+      $(this).attr('title', errorMessage);
+      setTimeout(() => {
+        $(this).attr('title', 'Ingrese código ' + filterName + ' (Ej: A001 para plaza, B001 para tienda)');
+        if ($(this).val().trim()) {
+          if ($(this)[0].checkValidity()) {
+            $(this).removeClass('border-danger');
+            $(this).addClass($(this).val().trim() ? 'border-primary' : 'border-secondary');
+          }
+        }
+      }, 3000);
+    } else {
+      $(this).removeClass('border-danger');
+      $(this).addClass(filterValue ? 'border-primary' : 'border-secondary');
+      $(this).attr('title', 'Ingrese código ' + filterName + ' (Ej: A001 para plaza, B001 para tienda)');
+    }
+  });
+
+  // Mantener funcionalidad de actualización cuando se pierde el foco
+  $('#plaza, #tienda').on('change', function() {
+    // Convertir a mayúsculas y validar
+    $(this).val($(this).val().toUpperCase());
+    
+    if ($(this)[0].checkValidity()) {
+      $(this).removeClass('border-danger');
+      $(this).addClass('border-primary');
+      $(this).removeClass('border-secondary');
+    } else {
+      $(this).addClass('border-danger');
+      $(this).removeClass('border-primary border-secondary');
+    }
+    
+    dataTable.ajax.reload();
+    updateCurrentPeriodDisplay();
+  });
+
+  // Permitir búsqueda rápida con Enter en cualquier campo
+  $('#plaza, #tienda').on('keypress', function(e) {
+    if (e.which === 13) { // Enter key
+      e.preventDefault();
+      clearTimeout(searchTimeout);
+      
+      const inputElement = this;
+      const filterValue = $(this).val().trim();
+      
+      // Validar formato usando pattern HTML5
+      if (filterValue && !inputElement.checkValidity()) {
+        // Mostrar error visual pero permitir búsqueda (el backend procesará el formato)
+        $(this).addClass('border-warning');
+        $(this).removeClass('border-primary border-secondary');
+        
+        // Mostrar mensaje de error temporal
+        const originalTitle = $(this).attr('title') || '';
+        const filterName = $(this).attr('id');
+        let errorMessage = '';
+        
+        if (filterName === 'plaza') {
+          errorMessage = 'Formato: 5 caracteres, mayúsculas y números (Ej: A001)';
+        } else if (filterName === 'tienda') {
+          errorMessage = 'Formato: hasta 10 caracteres, mayúsculas y números (Ej: B001)';
+        }
+        
+        $(this).attr('title', errorMessage);
+        setTimeout(() => {
+          $(this).attr('title', originalTitle);
+          if ($(this).val().trim()) {
+            $(this).removeClass('border-warning');
+            $(this).addClass($(this).val().trim() ? 'border-primary' : 'border-secondary');
+          } else {
+            $(this).removeClass('border-warning');
+            $(this).addClass('border-secondary');
+          }
+        }, 2000);
+        return false; // Prevenir búsqueda inválida
+      }
+      
+      clearTimeout(searchTimeout);
+      dataTable.ajax.reload();
+      updateCurrentPeriodDisplay();
+    } else {
+      $(this).removeClass('border-warning border-danger');
+      $(this).addClass($(this).val().trim() ? 'border-primary' : 'border-secondary');
+    }
+  });
+
+        // Limpiar filtros con ESC (manejado por el handler anterior)
+        // Este código es redundante y se elimina para evitar conflictos
 });
 </script>
 @endsection

@@ -9,7 +9,7 @@ class ReporteCarteraAbonosController extends Controller
 {
     public function index()
     {
-        return view('reportes.cartera_abonos.cartera_abonos');
+        return view('reportes.cartera_abonos.index');
     }
 
     public function data(Request $request)
@@ -27,7 +27,9 @@ class ReporteCarteraAbonosController extends Controller
         $draw = (int) $request->input('draw', 1);
         $startIdx = (int) $request->input('start', 0);
         $length = (int) $request->input('length', 10);
+        $search = $request->input('search.value', '');
 
+        // Build base query with multi-field search
         $sql = "SELECT
                   c.cplaza AS plaza,
                   c.ctienda AS tienda,
@@ -52,38 +54,100 @@ class ReporteCarteraAbonosController extends Controller
                 ) AS c2 ON (c.cplaza=c2.cplaza AND c.ctienda=c2.ctienda AND c.tipo_ref=c2.tipo_ref AND c.no_ref=c2.no_ref AND c.clave_cl=c2.clave_cl)
                 LEFT JOIN zona z ON z.plaza=c.cplaza AND z.tienda=c.ctienda
                 LEFT JOIN cliente_depurado cl ON (c.ctienda = cl.ctienda AND c.cplaza = cl.cplaza AND c.clave_cl = cl.clie_clave)
-                WHERE c.cargo_ab = 'A' AND c.estado = 'S' AND c.cborrado <> '1' AND c.fecha >= :start AND c.fecha <= :end
-                ORDER BY plaza, tienda, fecha
-                LIMIT :length OFFSET :offset";
+                WHERE c.cargo_ab = 'A' AND c.estado = 'S' AND c.cborrado <> '1' AND c.fecha >= :start AND c.fecha <= :end";
 
-        $rows = DB::select($sql, ['start'=>$start, 'end'=>$end, 'length'=>$length, 'offset'=>$startIdx]);
+        $params = ['start' => $start, 'end' => $end];
 
-        $total = DB::table('cobranza')
-            ->where('cargo_ab','A')
-            ->where('estado','S')
-            ->where('cborrado','<>','1')
-            ->whereBetween('fecha', [$start, $end])
-            ->count();
+        // Add multi-field search if provided
+        if (!empty($search)) {
+            $sql .= " AND (
+                c.cplaza ILIKE :search OR
+                c.ctienda ILIKE :search OR
+                cl.clie_nombr ILIKE :search OR
+                cl.clie_rfc ILIKE :search OR
+                c.no_ref ILIKE :search OR
+                cl.clie_clave ILIKE :search
+            )";
+            $params['search'] = '%' . $search . '%';
+        }
+
+        // Add plaza filter if provided (búsqueda exacta por código)
+        if ($request->filled('plaza') && $request->input('plaza') !== '') {
+            $sql .= " AND c.cplaza = :plaza";
+            $params['plaza'] = trim($request->input('plaza'));
+        }
+
+        // Add tienda filter if provided (búsqueda exacta por código)
+        if ($request->filled('tienda') && $request->input('tienda') !== '') {
+            $sql .= " AND c.ctienda = :tienda";
+            $params['tienda'] = trim($request->input('tienda'));
+        }
+
+        // Get total count for pagination - proper query construction
+        $countSql = "SELECT COUNT(*) as count
+                    FROM cobranza c
+                    LEFT JOIN (
+                      SELECT co.cplaza, co.ctienda, co.tipo_ref, co.no_ref, co.fecha_venc, co.dfechafac, co.clave_cl
+                      FROM cobranza co
+                      WHERE co.cargo_ab = 'C'
+                    ) AS c2 ON (c.cplaza=c2.cplaza AND c.ctienda=c2.ctienda AND c.tipo_ref=c2.tipo_ref AND c.no_ref=c2.no_ref AND c.clave_cl=c2.clave_cl)
+                    LEFT JOIN zona z ON z.plaza=c.cplaza AND z.tienda=c.ctienda
+                    LEFT JOIN cliente_depurado cl ON (c.ctienda = cl.ctienda AND c.cplaza = cl.cplaza AND c.clave_cl = cl.clie_clave)
+                    WHERE c.cargo_ab = 'A' AND c.estado = 'S' AND c.cborrado <> '1' AND c.fecha >= :start AND c.fecha <= :end";
+
+        $countParams = ['start' => $start, 'end' => $end];
+
+        // Add same search conditions to count
+        if (!empty($search)) {
+            $countSql .= " AND (
+                c.cplaza ILIKE :search OR
+                c.ctienda ILIKE :search OR
+                cl.clie_nombr ILIKE :search OR
+                cl.clie_rfc ILIKE :search OR
+                c.no_ref ILIKE :search OR
+                cl.clie_clave ILIKE :search
+            )";
+            $countParams['search'] = '%' . $search . '%';
+        }
+
+        // Add same filters to count (búsqueda exacta por código)
+        if ($request->filled('plaza') && $request->input('plaza') !== '') {
+            $countSql .= " AND c.cplaza = :plaza";
+            $countParams['plaza'] = trim($request->input('plaza'));
+        }
+
+        if ($request->filled('tienda') && $request->input('tienda') !== '') {
+            $countSql .= " AND c.ctienda = :tienda";
+            $countParams['tienda'] = trim($request->input('tienda'));
+        }
+
+        $total = DB::selectOne($countSql, $countParams)->count ?? 0;
+
+        $sql .= " ORDER BY plaza, tienda, fecha LIMIT :length OFFSET :offset";
+        $params['length'] = $length;
+        $params['offset'] = $startIdx;
+
+        $rows = DB::select($sql, $params);
 
         $data = [];
         foreach ($rows as $row) {
-            $data[] = [
-                'plaza' => $row->plaza ?? '',
-                'tienda' => $row->tienda ?? '',
-                'fecha' => $row->fecha ?? '',
-                'fecha_vta' => $row->fecha_vta ?? '',
-                'concepto' => $row->concepto ?? '',
-                'tipo' => $row->tipo ?? '',
-                'factura' => $row->factura ?? '',
-                'clave' => $row->clave ?? '',
-                'rfc' => $row->rfc ?? '',
-                'nombre' => $row->nombre ?? '',
-                'monto_fa' => $row->monto_fa ?? 0,
-                'monto_dv' => $row->monto_dv ?? 0,
-                'monto_cd' => $row->monto_cd ?? 0,
-                'dias_cred' => $row->dias_cred ?? 0,
-                'dias_vencidos' => $row->dias_vencidos ?? 0
-            ];
+        $data[] = [
+            'plaza' => $row->plaza ?? '',
+            'tienda' => $row->tienda ?? '',
+            'fecha' => $row->fecha ?? '',
+            'fecha_vta' => $row->fecha_vta ?? '',
+            'concepto' => $row->concepto ?? '',
+            'tipo' => $row->tipo ?? '',
+            'factura' => $row->factura ?? '',
+            'clave' => $row->clave ?? '',
+            'rfc' => $row->rfc ?? '',
+            'nombre' => $row->nombre ?? '',
+            'monto_fa' => $row->monto_fa ?? 0,
+            'monto_dv' => $row->monto_dv ?? 0,
+            'monto_cd' => $row->monto_cd ?? 0,
+            'dias_cred' => $row->dias_cred ?? 0,
+            'dias_vencidos' => $row->dias_vencidos ?? 0
+        ];
         }
 
         return response()->json([

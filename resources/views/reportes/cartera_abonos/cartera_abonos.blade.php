@@ -12,14 +12,15 @@
       <div class="row">
         <div class="col-md-4">
           <label for="plaza" class="form-label">Plaza</label>
-          <select id="plaza" class="form-control form-control-sm"></select>
+          <input type="text" id="plaza" class="form-control form-control-sm" placeholder="Ej: A001" maxlength="5" pattern="[A-Z0-9]{5}" title="5 caracteres: letras mayúsculas y números">
         </div>
         <div class="col-md-4">
           <label for="tienda" class="form-label">Tienda</label>
-          <select id="tienda" class="form-control form-control-sm"></select>
+          <input type="text" id="tienda" class="form-control form-control-sm" placeholder="Ej: B001" maxlength="10" pattern="[A-Z0-9]{1,10}" title="Hasta 10 caracteres: letras mayúsculas y números">
         </div>
         <div class="col-md-4 align-self-end d-flex align-items-end">
-          <button id="btn_refresh" class="btn btn-primary btn-sm ml-auto">Actualizar</button>
+          <button id="btn_search" class="btn btn-success btn-sm ml-auto">Buscar</button>
+          <button id="btn_refresh" class="btn btn-primary btn-sm ml-2">Actualizar</button>
           <button id="btn_reset_filters" class="btn btn-secondary btn-sm ml-2">Limpiar filtros</button>
           <button id="btn_pdf" class="btn btn-info btn-sm ml-2">Exportar PDF</button>
         </div>
@@ -84,9 +85,27 @@
 </div>
 @endsection
 
+
+
 @section('css')
 <!-- DataTables CSS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+<style>
+.code-filter-tooltip {
+  position: absolute;
+  background: #dc3545;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1050;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.code-filter-input {
+  position: relative;
+}
+</style>
 @endsection
 
 @section('js')
@@ -94,7 +113,132 @@
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script>
 $(function() {
-  console.log('CarteraAbonos: inicializando filtros');
+  console.log('CarteraAbonos: initializing with code filters');
+  
+  // Store for plaza and tienda data
+  let plazaData = [];
+  let tiendaData = [];
+  
+  // Load data for validation
+  $.get('{{ url("/reportes/cartera-abonos/data") }}', { length: 1, start: 0 }, function(response) {
+    // This would ideally be a dedicated endpoint, but we'll extract from first page
+    console.log('Data loaded for validation');
+  });
+  
+  // Helper functions
+  function showInputError(input, message) {
+    const existingTooltip = document.getElementById('tooltip-' + input.id);
+    if (existingTooltip) existingTooltip.remove();
+    
+    const tooltip = document.createElement('div');
+    tooltip.id = 'tooltip-' + input.id;
+    tooltip.className = 'code-filter-tooltip';
+    tooltip.textContent = message;
+    tooltip.style.top = (input.offsetTop + input.offsetHeight + 5) + 'px';
+    tooltip.style.left = input.offsetLeft + 'px';
+    
+    input.parentElement.appendChild(tooltip);
+    
+    setTimeout(() => {
+      if (document.getElementById('tooltip-' + input.id)) {
+        tooltip.remove();
+      }
+    }, 3000);
+  }
+  
+  function validateCodeInput(input, pattern, errorMessage) {
+    const value = input.value.toUpperCase();
+    input.value = value; // Force uppercase
+    
+    // Remove validation classes
+    input.classList.remove('is-valid', 'is-warning', 'is-invalid');
+    
+    // Remove any existing tooltip
+    const existingTooltip = document.getElementById('tooltip-' + input.id);
+    if (existingTooltip) existingTooltip.remove();
+    
+    if (value === '') {
+      return true; // Empty is valid
+    }
+    
+    // Test against pattern
+    if (!new RegExp(pattern).test(value)) {
+      input.classList.add('is-invalid');
+      showInputError(input, errorMessage);
+      return false;
+    }
+    
+    input.classList.add('is-valid');
+    return true;
+  }
+  
+  // Enhanced input handlers
+  $('#plaza, #tienda').on('input', function() {
+    const $this = $(this);
+    const value = $this.val();
+    const id = $this.attr('id');
+    
+    // Force uppercase and limit characters
+    $this.val(value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+    
+    // Debounced validation
+    clearTimeout($this.data('timer'));
+    $this.data('timer', setTimeout(() => {
+      if (id === 'plaza') {
+        validateCodeInput(this, '^[A-Z0-9]{5}$', 'Formato: 5 caracteres, letras mayúsculas y números (ej: A001)');
+      } else {
+        validateCodeInput(this, '^[A-Z0-9]{1,10}$', 'Formato: hasta 10 caracteres, letras mayúsculas y números (ej: B001)');
+      }
+    }, 500));
+  });
+  
+  // Enter key to search
+  $('#plaza, #tienda').on('keypress', function(e) {
+    if (e.which === 13) { // Enter key
+      e.preventDefault();
+      performSearch();
+    }
+  });
+  
+  // Function to perform search with validation
+  function performSearch() {
+    const plaza = $('#plaza').val();
+    const tienda = $('#tienda').val();
+    
+    // Validate plaza if provided
+    if (plaza && !new RegExp('^[A-Z0-9]{5}$').test(plaza)) {
+      validateCodeInput($('#plaza')[0], '^[A-Z0-9]{5}$', 'Formato: 5 caracteres, letras mayúsculas y números (ej: A001)');
+      return;
+    }
+    
+    // Validate tienda if provided  
+    if (tienda && !new RegExp('^[A-Z0-9]{1,10}$').test(tienda)) {
+      validateCodeInput($('#tienda')[0], '^[A-Z0-9]{1,10}$', 'Formato: hasta 10 caracteres, letras mayúsculas y números (ej: B001)');
+      return;
+    }
+    
+    // Reload data if validation passes
+    $('#report-table').DataTable().ajax.reload();
+    updateCurrentPeriodDisplay();
+  }
+  
+  // ESC key to clear
+  $('#plaza, #tienda').on('keydown', function(e) {
+    if (e.which === 27) { // ESC key
+      $(this).val('').removeClass('is-valid is-warning is-invalid');
+    }
+  });
+  
+  // Validate on blur
+  $('#plaza, #tienda').on('blur', function() {
+    const id = $(this).attr('id');
+    if (id === 'plaza') {
+      validateCodeInput(this, '^[A-Z0-9]{5}$', 'Formato: 5 caracteres, letras mayúsculas y números (ej: A001)');
+    } else {
+      validateCodeInput(this, '^[A-Z0-9]{1,10}$', 'Formato: hasta 10 caracteres, letras mayúsculas y números (ej: B001)');
+    }
+  });
+
   try {
     console.log('Initial period_start:', $('#period_start').val(), 'period_end:', $('#period_end').val(), 'period_range:', $('#period_range').val());
   } catch (e) {
@@ -136,8 +280,14 @@ $(function() {
     ]
   });
 
+  // Search button functionality
+  $('#btn_search').on('click', function() {
+    performSearch();
+  });
+  
+  // Refresh button functionality - same as search
   $('#btn_refresh').on('click', function() {
-    $('#report-table').DataTable().ajax.reload();
+    performSearch();
   });
   // Export to PDF using current filters
   $('#btn_pdf').on('click', function() {

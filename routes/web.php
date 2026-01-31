@@ -57,6 +57,10 @@ Route::middleware('web')->prefix('reportes')->group(function () {
     // NUEVO REPORTE: Metas Matricial (sin permisos)
     Route::get('metas-matricial', [ReporteMetasMatricialController::class, 'index'])
         ->name('reportes.metas-matricial.index');
+    
+    // API REST para consulta personalizada de metas
+    Route::post('metas/consultar-datos', [ReporteMetasVentasController::class, 'consultarDatosPersonalizados'])
+        ->name('reportes.metas.consultar_datos');
 
     Route::post('metas-matricial/export', [ReporteMetasMatricialController::class, 'exportExcel'])
         ->name('reportes.metas-matricial.export');
@@ -72,6 +76,12 @@ Route::middleware('web')->prefix('reportes')->group(function () {
     // Export PDF for Cartera Abonos with filters
     Route::get('cartera-abonos/pdf', [CarteraAbonosController::class, 'pdf'])
         ->name('reportes.cartera-abonos.pdf');
+    // Export Excel for Cartera Abonos with filters
+    Route::post('cartera-abonos/export-excel', [CarteraAbonosController::class, 'exportExcel'])
+        ->name('reportes.cartera-abonos.export.excel');
+    // Export CSV for Cartera Abonos with filters
+    Route::post('cartera-abonos/export-csv', [CarteraAbonosController::class, 'exportCsv'])
+        ->name('reportes.cartera-abonos.export.csv');
 
     // Listas dinámicas para filtros (removidas: no se usan patrones de listas externas)
 
