@@ -8,6 +8,7 @@ use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
+use App\Http\Controllers\Reportes\NotasCompletasController;
 
 
 Route::get('/', function () {
@@ -82,6 +83,21 @@ Route::middleware('web')->prefix('reportes')->group(function () {
     // Export CSV for Cartera Abonos with filters
     Route::post('cartera-abonos/export-csv', [CarteraAbonosController::class, 'exportCsv'])
         ->name('reportes.cartera-abonos.export.csv');
+    // Sync Cartera Abonos Cache
+    Route::post('cartera-abonos/sync', [CarteraAbonosController::class, 'sync'])
+        ->name('reportes.cartera-abonos.sync');
+
+    // Notas Completas - Reporte
+    Route::get('notas-completas', [NotasCompletasController::class, 'index'])
+        ->name('reportes.notas-completas.index');
+    Route::get('notas-completas/data', [NotasCompletasController::class, 'data'])
+        ->name('reportes.notas-completas.data');
+    Route::post('notas-completas/export-excel', [NotasCompletasController::class, 'exportExcel'])
+        ->name('reportes.notas-completas.export.excel');
+    Route::post('notas-completas/export-csv', [NotasCompletasController::class, 'exportCsv'])
+        ->name('reportes.notas-completas.export.csv');
+    Route::post('notas-completas/sync', [NotasCompletasController::class, 'sync'])
+        ->name('reportes.notas-completas.sync');
 
     // Listas dinámicas para filtros (removidas: no se usan patrones de listas externas)
 
@@ -131,6 +147,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/metas-mensual/store', [App\Http\Controllers\MetasMensualController::class, 'store'])->name('metas.store');
     Route::post('/metas-mensual/update', [App\Http\Controllers\MetasMensualController::class, 'update'])->name('metas.update');
     Route::post('/metas-mensual/delete', [App\Http\Controllers\MetasMensualController::class, 'destroy'])->name('metas.destroy');
+    Route::post('/metas-mensual/generar', [App\Http\Controllers\MetasMensualController::class, 'generarMetas'])->name('metas.generar');
 });
 
 // Agent API routes (no auth, no CSRF for agents)
@@ -141,4 +158,7 @@ Route::post('/api/report', [App\Http\Controllers\Api\AgentController::class, 're
 Route::get('/api/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/api/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/api/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+Route::get('/api/dias-periodo', [App\Http\Controllers\MetasMensualController::class, 'getDiasPeriodo']);
 Route::post('/metas-dias/generate', [App\Http\Controllers\MetasMensualController::class, 'generateDias'])->name('metas_dias.generate');
+Route::get('/metas-mensual/performance-test', [App\Http\Controllers\MetasMensualController::class, 'performanceTest'])
+    ->name('metas.performance.test');

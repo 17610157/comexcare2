@@ -32,7 +32,7 @@
       <table>
         <thead>
           <tr>
-            <th>Plaza</th><th>Tienda</th><th>Fecha</th><th>Fecha Vta</th><th>Concepto</th><th>Tipo</th><th>Factura</th><th>Clave</th><th>RFC</th><th>Nombre</th><th>Monto FA</th><th>Monto DV</th><th>Monto CD</th><th>Días Crédito</th><th>Días Vencidos</th>
+            <th>Plaza</th><th>Tienda</th><th>Fecha</th><th>Fecha Vta</th><th>Concepto</th><th>Tipo</th><th>Factura</th><th>Clave</th><th>RFC</th><th>Nombre</th><th>Vendedor</th><th>Monto FA</th><th>Monto DV</th><th>Monto CD</th><th>Días Crédito</th><th>Días Vencidos</th>
           </tr>
         </thead>
         <tbody>
@@ -59,6 +59,7 @@
               <td>{{ $row->clave ?? '' }}</td>
               <td class="text-left">{{ $row->rfc ?? '' }}</td>
               <td class="text-left">{{ $row->nombre ?? '' }}</td>
+              <td>{{ $row->vend_clave ?? '' }}</td>
               <td class="currency">$ {{ number_format($row->monto_fa ?? 0, 2) }}</td>
               <td class="currency">$ {{ number_format($row->monto_dv ?? 0, 2) }}</td>
               <td class="currency">$ {{ number_format($row->monto_cd ?? 0, 2) }}</td>
@@ -68,7 +69,7 @@
           @endforeach
           
           <tr class="total-row">
-            <td colspan="10"><strong>TOTALES</strong></td>
+            <td colspan="11"><strong>TOTALES</strong></td>
             <td class="currency"><strong>$ {{ number_format($total_monto_fa, 2) }}</strong></td>
             <td class="currency"><strong>$ {{ number_format($total_monto_dv, 2) }}</strong></td>
             <td class="currency"><strong>$ {{ number_format($total_monto_cd, 2) }}</strong></td>

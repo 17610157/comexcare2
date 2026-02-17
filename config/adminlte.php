@@ -366,6 +366,11 @@ return [
                     'text' => 'Reporte Cargos y Abonos',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/cartera-abonos',
+                ],
+                [
+                    'text' => 'Reporte Notas completas',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/notas-completas',
                 ]
             ],
         ],
