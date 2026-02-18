@@ -185,9 +185,43 @@ class NotasCompletasController extends Controller
         $type = $request->input('type');
         $append = $request->boolean('append', false);
 
+        // Determinar el período primero
+        switch ($type) {
+            case 'lastMonth':
+                $start = Carbon::parse('first day of previous month')->toDateString();
+                $end = Carbon::parse('last day of previous month')->toDateString();
+                break;
+            case 'lastDays':
+                $days = (int) $request->input('lastDays', 30);
+                $end = date('Y-m-d');
+                $start = date('Y-m-d', strtotime("-{$days} days"));
+                break;
+            case 'day':
+                $start = $request->input('day');
+                $end = $request->input('day');
+                break;
+            case 'period':
+                $start = $request->input('periodStart');
+                $end = $request->input('periodEnd');
+                break;
+            case 'full':
+                $start = '2000-01-01';
+                $end = date('Y-m-d');
+                break;
+            default:
+                $start = Carbon::parse('first day of previous month')->toDateString();
+                $end = Carbon::parse('last day of previous month')->toDateString();
+        }
+
         try {
-            if (!$append) {
+            // Si es full o no append, truncamos la tabla
+            if (!$append || $type === 'full') {
                 DB::statement('TRUNCATE TABLE notas_completas_cache RESTART IDENTITY CASCADE');
+            } else {
+                // Solo eliminar los registros del período seleccionado
+                DB::table('notas_completas_cache')
+                    ->whereBetween('fecha_vta', [$start, $end])
+                    ->delete();
             }
 
             $sql = "INSERT INTO notas_completas_cache (
@@ -228,33 +262,6 @@ class NotasCompletasController extends Controller
                     AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027','00095','GALMA','BOVER')
                     AND c.ctienda NOT LIKE '%DESC%'
                     AND c.ctienda NOT LIKE '%CEDI%'";
-
-            switch ($type) {
-                case 'lastMonth':
-                    $start = Carbon::parse('first day of previous month')->toDateString();
-                    $end = Carbon::parse('last day of previous month')->toDateString();
-                    break;
-                case 'lastDays':
-                    $days = (int) $request->input('lastDays', 30);
-                    $end = date('Y-m-d');
-                    $start = date('Y-m-d', strtotime("-{$days} days"));
-                    break;
-                case 'day':
-                    $start = $request->input('day');
-                    $end = $request->input('day');
-                    break;
-                case 'period':
-                    $start = $request->input('periodStart');
-                    $end = $request->input('periodEnd');
-                    break;
-                case 'full':
-                    $start = '2000-01-01';
-                    $end = date('Y-m-d');
-                    break;
-                default:
-                    $start = Carbon::parse('first day of previous month')->toDateString();
-                    $end = Carbon::parse('last day of previous month')->toDateString();
-            }
 
             DB::insert($sql, ['start' => $start, 'end' => $end]);
 

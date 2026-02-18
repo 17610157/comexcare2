@@ -208,9 +208,43 @@ class CarteraAbonosController extends Controller
         $type = $request->input('type');
         $append = $request->boolean('append', false);
 
+        // Determinar el período primero
+        switch ($type) {
+            case 'lastMonth':
+                $start = Carbon::parse('first day of previous month')->toDateString();
+                $end = Carbon::parse('last day of previous month')->toDateString();
+                break;
+            case 'lastDays':
+                $days = (int) $request->input('lastDays', 30);
+                $end = date('Y-m-d');
+                $start = date('Y-m-d', strtotime("-{$days} days"));
+                break;
+            case 'day':
+                $start = $request->input('day');
+                $end = $request->input('day');
+                break;
+            case 'period':
+                $start = $request->input('periodStart');
+                $end = $request->input('periodEnd');
+                break;
+            case 'full':
+                $start = '2000-01-01';
+                $end = date('Y-m-d');
+                break;
+            default:
+                $start = Carbon::parse('first day of previous month')->toDateString();
+                $end = Carbon::parse('last day of previous month')->toDateString();
+        }
+
         try {
-            if (!$append) {
+            // Si es full o no append, truncamos la tabla
+            if (!$append || $type === 'full') {
                 DB::statement('TRUNCATE TABLE cartera_abonos_cache RESTART IDENTITY CASCADE');
+            } else {
+                // Solo eliminar los registros del período seleccionado
+                DB::table('cartera_abonos_cache')
+                    ->whereBetween('fecha', [$start, $end])
+                    ->delete();
             }
 
             $sql = "INSERT INTO cartera_abonos_cache (
@@ -245,33 +279,6 @@ class CarteraAbonosController extends Controller
                     LEFT JOIN canota cn ON (cn.cplaza = c.cplaza AND cn.ctienda = c.ctienda AND cn.cfolio_r = c.no_ref AND cn.ban_status <> 'C')
                     WHERE c.cargo_ab = 'A' AND c.estado = 'S' AND c.cborrado <> '1' 
                     AND c.fecha >= :start AND c.fecha <= :end";
-
-            switch ($type) {
-                case 'lastMonth':
-                    $start = Carbon::parse('first day of previous month')->toDateString();
-                    $end = Carbon::parse('last day of previous month')->toDateString();
-                    break;
-                case 'lastDays':
-                    $days = (int) $request->input('lastDays', 30);
-                    $end = date('Y-m-d');
-                    $start = date('Y-m-d', strtotime("-{$days} days"));
-                    break;
-                case 'day':
-                    $start = $request->input('day');
-                    $end = $request->input('day');
-                    break;
-                case 'period':
-                    $start = $request->input('periodStart');
-                    $end = $request->input('periodEnd');
-                    break;
-                case 'full':
-                    $start = '2000-01-01';
-                    $end = date('Y-m-d');
-                    break;
-                default:
-                    $start = Carbon::parse('first day of previous month')->toDateString();
-                    $end = Carbon::parse('last day of previous month')->toDateString();
-            }
 
             DB::insert($sql, ['start' => $start, 'end' => $end]);
 

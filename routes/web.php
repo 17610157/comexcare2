@@ -9,6 +9,7 @@ use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
 use App\Http\Controllers\Reportes\NotasCompletasController;
+use App\Http\Controllers\UserController;
 
 
 Route::get('/', function () {
@@ -22,6 +23,16 @@ Route::get('/home', function () {
 Route::get('/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
 Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
+
+// Rutas de usuarios (protegidas por auth)
+Route::middleware('auth')->prefix('admin/usuarios')->group(function () {
+    Route::get('/', [UserController::class, 'index'])->name('usuarios.index');
+    Route::get('/data', [UserController::class, 'data'])->name('usuarios.data');
+    Route::post('/', [UserController::class, 'store'])->name('usuarios.store');
+    Route::get('/{user}', [UserController::class, 'show'])->name('usuarios.show');
+    Route::put('/{user}', [UserController::class, 'update'])->name('usuarios.update');
+    Route::delete('/{user}', [UserController::class, 'destroy'])->name('usuarios.destroy');
+});
 
 Route::middleware('web')->prefix('reportes')->group(function () {
     Route::get('vendedores', [ReporteVendedoresController::class, 'index'])

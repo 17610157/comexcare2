@@ -405,9 +405,43 @@ class ReporteComprasDirectoController extends Controller
         $type = $request->input('type');
         $append = $request->boolean('append', false);
 
+        // Determinar el período primero
+        switch ($type) {
+            case 'lastMonth':
+                $start = Carbon::parse('first day of previous month')->toDateString();
+                $end = Carbon::parse('last day of previous month')->toDateString();
+                break;
+            case 'lastDays':
+                $days = (int) $request->input('lastDays', 30);
+                $end = date('Y-m-d');
+                $start = date('Y-m-d', strtotime("-{$days} days"));
+                break;
+            case 'day':
+                $start = $request->input('day');
+                $end = $request->input('day');
+                break;
+            case 'period':
+                $start = $request->input('periodStart');
+                $end = $request->input('periodEnd');
+                break;
+            case 'full':
+                $start = '2000-01-01';
+                $end = date('Y-m-d');
+                break;
+            default:
+                $start = Carbon::parse('first day of previous month')->toDateString();
+                $end = Carbon::parse('last day of previous month')->toDateString();
+        }
+
         try {
-            if (!$append) {
+            // Si es full o no append, truncamos la tabla
+            if (!$append || $type === 'full') {
                 DB::statement('TRUNCATE TABLE compras_directo_cache RESTART IDENTITY CASCADE');
+            } else {
+                // Solo eliminar los registros del período seleccionado
+                DB::table('compras_directo_cache')
+                    ->whereBetween('f_emision', [$start, $end])
+                    ->delete();
             }
 
             $sql = "INSERT INTO compras_directo_cache (
@@ -440,33 +474,6 @@ class ReporteComprasDirectoController extends Controller
                     JOIN proveed por ON por.clave_pro = c.clave_pro AND c.ctienda = por.ctienda AND c.cplaza = por.cplaza
                     JOIN grupos pr ON p.clave_art = pr.clave
                     WHERE c.f_emision >= :start AND c.f_emision <= :end";
-
-            switch ($type) {
-                case 'lastMonth':
-                    $start = Carbon::parse('first day of previous month')->toDateString();
-                    $end = Carbon::parse('last day of previous month')->toDateString();
-                    break;
-                case 'lastDays':
-                    $days = (int) $request->input('lastDays', 30);
-                    $end = date('Y-m-d');
-                    $start = date('Y-m-d', strtotime("-{$days} days"));
-                    break;
-                case 'day':
-                    $start = $request->input('day');
-                    $end = $request->input('day');
-                    break;
-                case 'period':
-                    $start = $request->input('periodStart');
-                    $end = $request->input('periodEnd');
-                    break;
-                case 'full':
-                    $start = '2000-01-01';
-                    $end = date('Y-m-d');
-                    break;
-                default:
-                    $start = Carbon::parse('first day of previous month')->toDateString();
-                    $end = Carbon::parse('last day of previous month')->toDateString();
-            }
 
             DB::insert($sql, ['start' => $start, 'end' => $end]);
 
