@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Reportes;
 
 use App\Http\Controllers\Controller;
@@ -6,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Exports\CarteraAbonosExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CarteraAbonosController extends Controller
 {
@@ -114,58 +117,13 @@ class CarteraAbonosController extends Controller
     {
         $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
         $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
+        $plaza = $request->input('plaza', '');
+        $tienda = $request->input('tienda', '');
 
         try {
-            $query = DB::table('cartera_abonos_cache')
-                ->whereBetween('fecha', [$start, $end]);
-
-            if ($request->filled('plaza') && $request->input('plaza') !== '') {
-                $query->where('plaza', trim($request->input('plaza')));
-            }
-
-            if ($request->filled('tienda') && $request->input('tienda') !== '') {
-                $query->where('tienda', trim($request->input('tienda')));
-            }
-
-            $rows = $query->orderBy('plaza')->orderBy('tienda')->orderBy('fecha')->get();
-
             $filename = 'cartera_abonos_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.xlsx';
 
-            if (class_exists('\Maatwebsite\Excel\Facades\Excel')) {
-                return \Maatwebsite\Excel\Facades\Excel::download(
-                    new class($rows) implements \Maatwebsite\Excel\Concerns\FromArray {
-                        private $rows;
-                        public function __construct($rows) { $this->rows = $rows; }
-                        public function array(): array { 
-                            $data = [];
-                            foreach ($this->rows as $row) {
-                                $data[] = [
-                                    'Plaza' => $row->plaza ?? '',
-                                    'Tienda' => $row->tienda ?? '',
-                                    'Fecha' => $row->fecha ?? '',
-                                    'Fecha Vta' => $row->fecha_vta ?? '',
-                                    'Concepto' => $row->concepto ?? '',
-                                    'Tipo' => $row->tipo ?? '',
-                                    'Factura' => $row->factura ?? '',
-                                    'Clave' => $row->clave ?? '',
-                                    'RFC' => $row->rfc ?? '',
-                                    'Nombre' => $row->nombre ?? '',
-                                    'Vendedor' => $row->vend_clave ?? '',
-                                    'Monto FA' => $row->monto_fa ?? 0,
-                                    'Monto DV' => $row->monto_dv ?? 0,
-                                    'Monto CD' => $row->monto_cd ?? 0,
-                                    'Días Crédito' => $row->dias_cred ?? 0,
-                                    'Días Vencidos' => $row->dias_vencidos ?? 0,
-                                ];
-                            }
-                            return $data;
-                        }
-                    }, 
-                    $filename
-                );
-            }
-
-            return $this->exportCsv($request);
+            return Excel::download(new CarteraAbonosExport($start, $end, $plaza, $tienda), $filename);
         } catch (\Exception $e) {
             Log::error('CarteraAbonos Excel error: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
@@ -189,7 +147,7 @@ class CarteraAbonosController extends Controller
                 $query->where('tienda', trim($request->input('tienda')));
             }
 
-            $rows = $query->orderBy('plaza')->orderBy('tienda')->orderBy('fecha')->get();
+            $count = $query->count();
 
             $filename = 'cartera_abonos_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.csv';
             
@@ -198,7 +156,7 @@ class CarteraAbonosController extends Controller
                 'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ];
 
-            $callback = function() use ($rows) {
+            $callback = function() use ($query, $count) {
                 $file = fopen('php://output', 'w');
                 
                 fputcsv($file, [
@@ -207,26 +165,29 @@ class CarteraAbonosController extends Controller
                     'Días Crédito', 'Días Vencidos'
                 ]);
                 
-                foreach ($rows as $row) {
-                    fputcsv($file, [
-                        $row->plaza ?? '',
-                        $row->tienda ?? '',
-                        $row->fecha ?? '',
-                        $row->fecha_vta ?? '',
-                        $row->concepto ?? '',
-                        $row->tipo ?? '',
-                        $row->factura ?? '',
-                        $row->clave ?? '',
-                        $row->rfc ?? '',
-                        $row->nombre ?? '',
-                        $row->vend_clave ?? '',
-                        $row->monto_fa ?? 0,
-                        $row->monto_dv ?? 0,
-                        $row->monto_cd ?? 0,
-                        $row->dias_cred ?? 0,
-                        $row->dias_vencidos ?? 0
-                    ]);
-                }
+                $query->orderBy('plaza')->orderBy('tienda')->orderBy('fecha')
+                    ->chunk(1000, function ($rows) use ($file) {
+                        foreach ($rows as $row) {
+                            fputcsv($file, [
+                                $row->plaza ?? '',
+                                $row->tienda ?? '',
+                                $row->fecha ?? '',
+                                $row->fecha_vta ?? '',
+                                $row->concepto ?? '',
+                                $row->tipo ?? '',
+                                $row->factura ?? '',
+                                $row->clave ?? '',
+                                $row->rfc ?? '',
+                                $row->nombre ?? '',
+                                $row->vend_clave ?? '',
+                                $row->monto_fa ?? 0,
+                                $row->monto_dv ?? 0,
+                                $row->monto_cd ?? 0,
+                                $row->dias_cred ?? 0,
+                                $row->dias_vencidos ?? 0
+                            ]);
+                        }
+                    });
                 
                 fclose($file);
             };

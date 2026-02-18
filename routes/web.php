@@ -108,6 +108,10 @@ Route::middleware('web')->prefix('reportes')->group(function () {
         ->name('reportes.compras-directo.data');
     Route::post('compras-directo/export', [ReporteComprasDirectoController::class, 'export'])
         ->name('reportes.compras-directo.export');
+    Route::post('compras-directo/export-excel', [ReporteComprasDirectoController::class, 'exportExcel'])
+        ->name('reportes.compras-directo.export.excel');
+    Route::post('compras-directo/export-csv', [ReporteComprasDirectoController::class, 'exportCsv'])
+        ->name('reportes.compras-directo.export.csv');
     Route::post('compras-directo/export-pdf', [ReporteComprasDirectoController::class, 'exportPdf'])
         ->name('reportes.compras-directo.export.pdf');
     Route::post('compras-directo/sync', [ReporteComprasDirectoController::class, 'sync'])

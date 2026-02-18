@@ -9,3 +9,224 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* ========================================
+   ESTILOS RESPONSIVE GLOBALES
+   ======================================== */
+
+/* Prevenir overflow horizontal */
+html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+.wrapper, .content-wrapper, .main-footer, .main-sidebar {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Contenedores responsive */
+.container-fluid {
+    max-width: 100%;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* Tarjetas responsive */
+.card {
+    max-width: 100%;
+    overflow: hidden;
+    word-wrap: break-word;
+}
+
+.card-body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Tablas responsive */
+.table-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    max-width: 100%;
+    font-size: 0.875rem;
+}
+
+.table th, .table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+/* DataTables responsive */
+.dataTables_wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.dataTables_scrollHeadInner,
+.dataTables_scrollBody {
+    max-width: 100%;
+}
+
+/* Formularios responsive */
+.form-control, .form-select {
+    max-width: 100%;
+}
+
+.input-group {
+    max-width: 100%;
+}
+
+/* Botones responsive */
+.btn {
+    white-space: nowrap;
+}
+
+/* Modales responsive */
+.modal-dialog {
+    max-width: 95vw;
+    margin: 0.5rem auto;
+}
+
+.modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+.modal-content {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Grid responsive para filtros */
+.filtros-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+/* Ajustes para pantallas pequeñas */
+@media (max-width: 768px) {
+    .table {
+        font-size: 0.75rem;
+    }
+    
+    .table th, .table td {
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    .modal-dialog {
+        max-width: 100%;
+        margin: 0.5rem;
+    }
+}
+
+/* Scroll horizontal para tablas pequeñas */
+@media (max-width: 576px) {
+    .table-responsive-sm {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Util */
+.overflow-auto-x {
+    overflow-xidades responsive: auto;
+}
+
+.overflow-hidden-x {
+    overflow-x: hidden;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Badge responsive */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.5em;
+}
+
+/* Ajustes para sidebar */
+@media (max-width: 991.98px) {
+    .sidebar-collapse .main-sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .main-sidebar.sidebar-focused,
+    .sidebar-is-opening .main-sidebar {
+        transform: translateX(0);
+    }
+}
+
+/* Fix para contenido principal */
+.content-wrapper {
+    min-height: auto;
+    overflow-x: hidden;
+}
+
+/* Ajustes de padding para móvil */
+@media (max-width: 767.98px) {
+    .content-header {
+        padding: 0.5rem 1rem;
+    }
+    
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+
+/* Fix para tablas muy anchas */
+.table-wrapper {
+    position: relative;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Utility classes adicionales */
+.w-100-responsive {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .w-md-100 {
+        width: 100%;
+    }
+}

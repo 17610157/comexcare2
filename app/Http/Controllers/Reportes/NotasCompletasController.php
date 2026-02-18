@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Exports\NotasCompletasExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class NotasCompletasController extends Controller
 {
@@ -87,63 +89,14 @@ class NotasCompletasController extends Controller
     {
         $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
         $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
+        $plaza = $request->input('plaza', '');
+        $tienda = $request->input('tienda', '');
+        $vendedor = $request->input('vendedor', '');
 
         try {
-            $query = DB::table('notas_completas_cache')
-                ->whereBetween('fecha_vta', [$start, $end]);
-
-            if ($request->filled('plaza') && $request->input('plaza') !== '') {
-                $query->where('plaza_ajustada', trim($request->input('plaza')));
-            }
-
-            if ($request->filled('tienda') && $request->input('tienda') !== '') {
-                $query->where('ctienda', trim($request->input('tienda')));
-            }
-
-            if ($request->filled('vendedor') && $request->input('vendedor') !== '') {
-                $query->where('vend_clave', trim($request->input('vendedor')));
-            }
-
-            $rows = $query->orderBy('fecha_vta')->orderBy('ctienda')->orderBy('num_referencia')->get();
-
             $filename = 'notas_completas_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.xlsx';
 
-            if (class_exists('\Maatwebsite\Excel\Facades\Excel')) {
-                return \Maatwebsite\Excel\Facades\Excel::download(
-                    new class($rows) implements \Maatwebsite\Excel\Concerns\FromArray {
-                        private $rows;
-                        public function __construct($rows) { $this->rows = $rows; }
-                        public function array(): array { 
-                            $data = [];
-                            foreach ($this->rows as $row) {
-                                $data[] = [
-                                    'Plaza' => $row->plaza_ajustada ?? '',
-                                    'Tienda' => $row->ctienda ?? '',
-                                    'Num Referencia' => $row->num_referencia ?? '',
-                                    'Vendedor' => $row->vend_clave ?? '',
-                                    'Factura' => $row->factura ?? '',
-                                    'Nota Club' => $row->nota_club ?? '',
-                                    'Club TR' => $row->club_tr ?? '',
-                                    'Club ID' => $row->club_id ?? '',
-                                    'Fecha Vta' => $row->fecha_vta ?? '',
-                                    'Producto' => $row->producto ?? '',
-                                    'Descripcion' => $row->descripcion ?? '',
-                                    'Piezas' => $row->piezas ?? 0,
-                                    'Descuento' => $row->descuento ?? 0,
-                                    'Precio Venta' => $row->precio_venta ?? 0,
-                                    'Costo' => $row->costo ?? 0,
-                                    'Total con IVA' => $row->total_con_iva ?? 0,
-                                    'Total sin IVA' => $row->total_sin_iva ?? 0,
-                                ];
-                            }
-                            return $data;
-                        }
-                    }, 
-                    $filename
-                );
-            }
-
-            return $this->exportCsv($request);
+            return Excel::download(new NotasCompletasExport($start, $end, $plaza, $tienda, $vendedor), $filename);
         } catch (\Exception $e) {
             Log::error('NotasCompletas Excel error: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
@@ -171,8 +124,6 @@ class NotasCompletasController extends Controller
                 $query->where('vend_clave', trim($request->input('vendedor')));
             }
 
-            $rows = $query->orderBy('fecha_vta')->orderBy('ctienda')->orderBy('num_referencia')->get();
-
             $filename = 'notas_completas_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.csv';
             
             $headers = [
@@ -180,7 +131,7 @@ class NotasCompletasController extends Controller
                 'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ];
 
-            $callback = function() use ($rows) {
+            $callback = function() use ($query) {
                 $file = fopen('php://output', 'w');
                 
                 fputcsv($file, [
@@ -190,27 +141,30 @@ class NotasCompletasController extends Controller
                     'Total con IVA', 'Total sin IVA'
                 ]);
                 
-                foreach ($rows as $row) {
-                    fputcsv($file, [
-                        $row->plaza_ajustada ?? '',
-                        $row->ctienda ?? '',
-                        $row->num_referencia ?? '',
-                        $row->vend_clave ?? '',
-                        $row->factura ?? '',
-                        $row->nota_club ?? '',
-                        $row->club_tr ?? '',
-                        $row->club_id ?? '',
-                        $row->fecha_vta ?? '',
-                        $row->producto ?? '',
-                        $row->descripcion ?? '',
-                        $row->piezas ?? 0,
-                        $row->descuento ?? 0,
-                        $row->precio_venta ?? 0,
-                        $row->costo ?? 0,
-                        $row->total_con_iva ?? 0,
-                        $row->total_sin_iva ?? 0
-                    ]);
-                }
+                $query->orderBy('fecha_vta')->orderBy('ctienda')->orderBy('num_referencia')
+                    ->chunk(1000, function ($rows) use ($file) {
+                        foreach ($rows as $row) {
+                            fputcsv($file, [
+                                $row->plaza_ajustada ?? '',
+                                $row->ctienda ?? '',
+                                $row->num_referencia ?? '',
+                                $row->vend_clave ?? '',
+                                $row->factura ?? '',
+                                $row->nota_club ?? '',
+                                $row->club_tr ?? '',
+                                $row->club_id ?? '',
+                                $row->fecha_vta ?? '',
+                                $row->producto ?? '',
+                                $row->descripcion ?? '',
+                                $row->piezas ?? 0,
+                                $row->descuento ?? 0,
+                                $row->precio_venta ?? 0,
+                                $row->costo ?? 0,
+                                $row->total_con_iva ?? 0,
+                                $row->total_sin_iva ?? 0
+                            ]);
+                        }
+                    });
                 
                 fclose($file);
             };

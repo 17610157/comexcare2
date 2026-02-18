@@ -20,52 +20,49 @@
         $endDefault = \Carbon\Carbon::parse('last day of previous month')->toDateString();
       @endphp
       
-      <div class="row">
-        <div class="col-md-2">
-          <label for="period_start" class="form-label">Periodo Inicio</label>
+      <div class="row g-2">
+        <div class="col-6 col-md-2">
+          <label for="period_start" class="form-label small mb-1">Periodo Inicio</label>
           <input type="date" id="period_start" class="form-control form-control-sm" value="{{ $startDefault }}">
         </div>
-        <div class="col-md-2">
-          <label for="period_end" class="form-label">Periodo Fin</label>
+        <div class="col-6 col-md-2">
+          <label for="period_end" class="form-label small mb-1">Periodo Fin</label>
           <input type="date" id="period_end" class="form-control form-control-sm" value="{{ $endDefault }}">
         </div>
-        <div class="col-md-2">
-          <label for="plaza" class="form-label">Plaza</label>
-          <input type="text" id="plaza" class="form-control form-control-sm border-secondary" placeholder="Plaza" maxlength="20">
+        <div class="col-4 col-md-2">
+          <label for="plaza" class="form-label small mb-1">Plaza</label>
+          <input type="text" id="plaza" class="form-control form-control-sm border-secondary" placeholder="Plaza">
         </div>
-        <div class="col-md-2">
-          <label for="tienda" class="form-label">Tienda</label>
-          <input type="text" id="tienda" class="form-control form-control-sm border-secondary" placeholder="Tienda" maxlength="20">
+        <div class="col-4 col-md-2">
+          <label for="tienda" class="form-label small mb-1">Tienda</label>
+          <input type="text" id="tienda" class="form-control form-control-sm border-secondary" placeholder="Tienda">
         </div>
-        <div class="col-md-2">
-          <label for="vendedor" class="form-label">Vendedor</label>
-          <input type="text" id="vendedor" class="form-control form-control-sm border-secondary" placeholder="Clave vendedor" maxlength="20">
+        <div class="col-4 col-md-2">
+          <label for="vendedor" class="form-label small mb-1">Vendedor</label>
+          <input type="text" id="vendedor" class="form-control form-control-sm border-secondary" placeholder="Vendedor">
         </div>
       </div>
       
       <div class="row mt-3">
-        <div class="col-md-12 d-flex align-items-end justify-content-between">
-          <div>
-            <button id="btn_sync" class="btn btn-warning btn-sm me-2" data-bs-toggle="modal" data-bs-target="#syncModal">
-              <i class="fas fa-database"></i> Sincronizar Datos
+        <div class="col-12 d-flex flex-wrap gap-2 align-items-center justify-content-between">
+          <div class="d-flex gap-2 flex-wrap">
+            <button id="btn_sync" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#syncModal">
+              <i class="fas fa-database"></i> <span class="d-none d-sm-inline">Sincronizar Datos</span>
             </button>
-            <span id="sync_status" class="badge bg-secondary"></span>
+            <span id="sync_status" class="badge bg-secondary align-self-center"></span>
           </div>
-          <div>
-            <button id="btn_search" class="btn btn-success btn-sm me-2">
-              <i class="fas fa-search"></i> Buscar
+          <div class="d-flex gap-1 flex-wrap">
+            <button id="btn_search" class="btn btn-success btn-sm">
+              <i class="fas fa-search"></i> <span class="d-none d-sm-inline">Buscar</span>
             </button>
-            <button id="btn_refresh" class="btn btn-primary btn-sm me-2">
-              <i class="fas fa-sync-alt"></i> Actualizar
+            <button id="btn_refresh" class="btn btn-primary btn-sm">
+              <i class="fas fa-sync-alt"></i> <span class="d-none d-sm-inline">Actualizar</span>
             </button>
-            <button id="btn_reset_filters" class="btn btn-secondary btn-sm me-2">
-              <i class="fas fa-undo"></i> Limpiar
-            </button>
-            <button id="btn_excel" class="btn btn-success btn-sm me-2">
-              <i class="fas fa-file-excel"></i> Excel
+            <button id="btn_reset_filters" class="btn btn-secondary btn-sm">
+              <i class="fas fa-undo"></i> <span class="d-none d-sm-inline">Limpiar</span>
             </button>
             <button id="btn_csv" class="btn btn-info btn-sm">
-              <i class="fas fa-file-csv"></i> CSV
+              <i class="fas fa-file-csv"></i> <span class="d-none d-sm-inline">CSV</span>
             </button>
           </div>
         </div>
@@ -201,9 +198,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <style>
 .card-header { border-bottom: 2px solid #dee2e6; }
-.table th { background-color: #f8f9fa; font-weight: 600; }
-.btn-sm { padding: 0.375rem 0.75rem; }
-.badge { font-size: 0.875em; }
+.table th { background-color: #f8f9fa; font-weight: 600; font-size: 0.75rem; white-space: nowrap; }
+.table td { font-size: 0.75rem; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.badge { font-size: 0.7rem; }
+.form-label { font-size: 0.75rem; }
+.form-control-sm { font-size: 0.75rem; }
+@media (max-width: 768px) {
+  .table th, .table td { font-size: 0.65rem; padding: 0.25rem; }
+  .btn-sm { padding: 0.2rem 0.4rem; font-size: 0.7rem; }
+}
 </style>
 @endsection
 
