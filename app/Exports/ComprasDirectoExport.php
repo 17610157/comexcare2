@@ -15,69 +15,41 @@ use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 
 class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents, WithColumnFormatting
 {
-    protected $filtros;
+    protected $start;
+    protected $end;
+    protected $plaza;
+    protected $tienda;
+    protected $proveedor;
 
-    public function __construct($filtros)
+    public function __construct($start, $end, $plaza = '', $tienda = '', $proveedor = '')
     {
-        $this->filtros = $filtros;
+        $this->start = $start;
+        $this->end = $end;
+        $this->plaza = $plaza;
+        $this->tienda = $tienda;
+        $this->proveedor = $proveedor;
     }
 
     public function collection()
     {
-        $fecha_inicio = str_replace('-', '', $this->filtros['fecha_inicio']);
-        $fecha_fin = str_replace('-', '', $this->filtros['fecha_fin']);
-        $plaza = $this->filtros['plaza'] ?? '';
-        $tienda = $this->filtros['tienda'] ?? '';
-        $proveedor = $this->filtros['proveedor'] ?? '';
+        $query = DB::table('compras_directo_cache')
+            ->whereBetween('f_emision', [$this->start, $this->end]);
 
-        $sql = "
-            SELECT
-                c.cplaza,
-                c.ctienda,
-                c.tipo_doc,
-                c.no_referen,
-                c.tipo_doc_a,
-                c.no_fact_pr,
-                c.clave_pro,
-                por.nombre,
-                c.cuenta,
-                c.f_emision,
-                ''''||p.clave_art AS clave_art,
-                pr.descripcio,
-                p.cantidad,
-                p.precio_uni,
-                pr.k_agrupa,
-                pr.k_familia,
-                pr.k_subfam,
-                p.cantidad * p.precio_uni as total
-            FROM compras c
-            JOIN partcomp p ON c.ctienda=p.ctienda AND c.cplaza=p.cplaza AND c.tipo_doc=p.tipo_doc AND c.no_referen=p.no_referen
-            JOIN proveed por ON por.clave_pro = c.clave_pro AND c.ctienda=por.ctienda AND c.cplaza=por.cplaza
-            JOIN grupos pr ON p.clave_art=pr.clave 
-            WHERE c.f_emision BETWEEN ? AND ?
-        ";
-
-        $params = [$fecha_inicio, $fecha_fin];
-
-        if (!empty($plaza)) {
-            $sql .= " AND c.cplaza = ?";
-            $params[] = $plaza;
-        }
-        if (!empty($tienda)) {
-            $sql .= " AND c.ctienda = ?";
-            $params[] = $tienda;
-        }
-        if (!empty($proveedor)) {
-            $sql .= " AND c.clave_pro = ?";
-            $params[] = $proveedor;
+        if (!empty($this->plaza)) {
+            $query->where('cplaza', trim($this->plaza));
         }
 
-        $sql .= " ORDER BY c.cplaza, c.ctienda, c.f_emision";
+        if (!empty($this->tienda)) {
+            $query->where('ctienda', trim($this->tienda));
+        }
 
-        $resultados = DB::select($sql, $params);
+        if (!empty($this->proveedor)) {
+            $query->where('clave_pro', trim($this->proveedor));
+        }
 
-        // Convertir a array con numeración
-        $collection = collect($resultados)->map(function ($item, $index) {
+        $rows = $query->orderBy('f_emision')->orderBy('ctienda')->orderBy('no_referen')->get();
+
+        $collection = $rows->map(function ($item, $index) {
             return [
                 'No.' => $index + 1,
                 'Plaza' => $item->cplaza,
@@ -87,11 +59,11 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
                 'Tipo Doc A' => $item->tipo_doc_a,
                 'No. Factura' => $item->no_fact_pr,
                 'Clave Proveedor' => $item->clave_pro,
-                'Nombre Proveedor' => $item->nombre,
+                'Nombre Proveedor' => $item->nombre_proveedor,
                 'Cuenta' => $item->cuenta,
                 'Fecha Emisión' => $item->f_emision,
                 'Clave Artículo' => $item->clave_art,
-                'Descripción' => $item->descripcio,
+                'Descripción' => $item->descripcion,
                 'Cantidad' => floatval($item->cantidad),
                 'Precio Unitario' => floatval($item->precio_uni),
                 'K Agrupa' => $item->k_agrupa,
@@ -101,7 +73,6 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
             ];
         });
 
-        // Agregar fila de totales
         $totalCantidad = $collection->sum('Cantidad');
         $totalCompras = $collection->sum('Total');
 
@@ -175,7 +146,6 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 
-                // Formato para encabezados
                 $sheet->getStyle('A1:S1')->applyFromArray([
                     'font' => [
                         'bold' => true,
@@ -187,17 +157,13 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
                     ],
                 ]);
 
-                // Ajustar altura de filas
                 $sheet->getDefaultRowDimension()->setRowHeight(20);
                 $sheet->getRowDimension(1)->setRowHeight(25);
 
-                // Auto-filter
                 $sheet->setAutoFilter('A1:S1');
 
-                // Congelar filas
                 $sheet->freezePane('A2');
             },
         ];
     }
-    
 }
