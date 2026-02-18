@@ -100,7 +100,7 @@ class ReportService
 
                 // Ajustar vendedor_dia
                 $vendedor_dia = $row->vendedor_dia;
-                if (strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
+                if (!empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
                     $partes = explode('-', $vendedor_dia);
                     if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
                         $dia = substr($fecha_str, 6, 2);
@@ -232,7 +232,7 @@ class ReportService
 
                 // Ajustar vendedor_dia
                 $vendedor_dia = $row->vendedor_dia;
-                if (strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
+                if (!empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
                     $partes = explode('-', $vendedor_dia);
                     if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
                         $dia = substr($fecha_str, 6, 2);

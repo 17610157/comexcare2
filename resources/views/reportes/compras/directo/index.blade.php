@@ -1,437 +1,422 @@
 @extends('adminlte::page')
-
-@section('title', 'Reporte de Compras Directo')
+@section('title', 'Compras Directo')
 
 @section('content_header')
-    <div class="d-flex justify-content-between align-items-center">
-        <h1><i class="fas fa-shopping-cart text-info"></i> Reporte de Compras Directo</h1>
-        <div>
-            <form method="POST" action="{{ route('reportes.compras-directo.export') }}" style="display: inline;" id="export-excel-form">
-                @csrf
-                <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
-                <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
-                <input type="hidden" name="plaza" value="{{ $plaza }}">
-                <input type="hidden" name="tienda" value="{{ $tienda }}">
-                <input type="hidden" name="proveedor" value="{{ $proveedor }}">
-                <button type="button" class="btn btn-success" id="btn-export-excel">
-                    <i class="fas fa-file-excel"></i> Excel
-                </button>
-            </form>
-            <form method="POST" action="{{ route('reportes.compras-directo.export') }}" style="display: inline;" id="export-csv-form">
-                @csrf
-                <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
-                <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
-                <input type="hidden" name="plaza" value="{{ $plaza }}">
-                <input type="hidden" name="tienda" value="{{ $tienda }}">
-                <input type="hidden" name="proveedor" value="{{ $proveedor }}">
-                <input type="hidden" name="format" value="csv">
-                <button type="button" class="btn btn-warning ml-2" id="btn-export-csv">
-                    <i class="fas fa-file-csv"></i> CSV
-                </button>
-            </form>
-            <form method="POST" action="{{ route('reportes.compras-directo.export.pdf') }}" style="display: inline;" id="export-pdf-form">
-                @csrf
-                <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
-                <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
-                <input type="hidden" name="plaza" value="{{ $plaza }}">
-                <input type="hidden" name="tienda" value="{{ $tienda }}">
-                <input type="hidden" name="proveedor" value="{{ $proveedor }}">
-                <button type="button" class="btn btn-danger ml-2" id="btn-export-pdf">
-                    <i class="fas fa-file-pdf"></i> PDF
-                </button>
-            </form>
-
-            <a href="{{ url()->current() }}" class="btn btn-primary ml-2">
-                <i class="fas fa-sync-alt"></i> Recargar
-            </a>
-        </div>
-    </div>
+<h1>Compras Directo</h1>
 @stop
 
 @section('content')
-    <!-- Panel de Filtros -->
-    <div class="card card-primary">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-filter"></i> Filtros Rápidos</h3>
-        </div>
-        <div class="card-body">
-            <form method="GET" action="{{ route('reportes.compras-directo') }}" id="filtros-form">
-                <div class="row">
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label>Fecha Inicio</label>
-                            <input type="date" name="fecha_inicio" class="form-control form-control-sm" 
-                                   value="{{ $fecha_inicio }}" required>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label>Fecha Fin</label>
-                            <input type="date" name="fecha_fin" class="form-control form-control-sm" 
-                                   value="{{ $fecha_fin }}" required>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label>Plaza</label>
-                            <input type="text" name="plaza" class="form-control form-control-sm" 
-                                   value="{{ $plaza }}" placeholder="Todas">
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label>Tienda</label>
-                            <input type="text" name="tienda" class="form-control form-control-sm" 
-                                   value="{{ $tienda }}" placeholder="Todas">
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label>Proveedor</label>
-                            <input type="text" name="proveedor" class="form-control form-control-sm" 
-                                   value="{{ $proveedor }}" placeholder="Todos">
-                        </div>
-                    </div>
-                    <div class="col-md-2 align-self-end">
-                        <button type="submit" class="btn btn-primary btn-block" id="btn-buscar">
-                            <i class="fas fa-search"></i> Buscar
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
+<div class="container-fluid">
+  <!-- Filtros Superiores -->
+  <div class="card bg-light mb-3">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="fas fa-filter"></i> Filtros
+      </h5>
     </div>
+    <div class="card-body">
+      @php
+        $startDefault = \Carbon\Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = \Carbon\Carbon::parse('last day of previous month')->toDateString();
+      @endphp
+      
+      <div class="row g-2">
+        <div class="col-6 col-md-2">
+          <label for="period_start" class="form-label small mb-1">Periodo Inicio</label>
+          <input type="date" id="period_start" class="form-control form-control-sm" value="{{ $startDefault }}">
+        </div>
+        <div class="col-6 col-md-2">
+          <label for="period_end" class="form-label small mb-1">Periodo Fin</label>
+          <input type="date" id="period_end" class="form-control form-control-sm" value="{{ $endDefault }}">
+        </div>
+        <div class="col-4 col-md-2">
+          <label for="plaza" class="form-label small mb-1">Plaza</label>
+          <input type="text" id="plaza" class="form-control form-control-sm border-secondary" placeholder="Plaza">
+        </div>
+        <div class="col-4 col-md-2">
+          <label for="tienda" class="form-label small mb-1">Tienda</label>
+          <input type="text" id="tienda" class="form-control form-control-sm border-secondary" placeholder="Tienda">
+        </div>
+        <div class="col-4 col-md-2">
+          <label for="proveedor" class="form-label small mb-1">Proveedor</label>
+          <input type="text" id="proveedor" class="form-control form-control-sm border-secondary" placeholder="Proveedor">
+        </div>
+      </div>
+      
+      <div class="row mt-3">
+        <div class="col-12 d-flex flex-wrap gap-2 align-items-center justify-content-between">
+          <div class="d-flex gap-2 flex-wrap">
+            <button id="btn_sync" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#syncModal">
+              <i class="fas fa-database"></i> <span class="d-none d-sm-inline">Sincronizar Datos</span>
+            </button>
+            <span id="sync_status" class="badge bg-secondary align-self-center"></span>
+          </div>
+          <div class="d-flex gap-1 flex-wrap">
+            <button id="btn_search" class="btn btn-success btn-sm">
+              <i class="fas fa-search"></i> <span class="d-none d-sm-inline">Buscar</span>
+            </button>
+            <button id="btn_refresh" class="btn btn-primary btn-sm">
+              <i class="fas fa-sync-alt"></i> <span class="d-none d-sm-inline">Actualizar</span>
+            </button>
+            <button id="btn_reset_filters" class="btn btn-secondary btn-sm">
+              <i class="fas fa-undo"></i> <span class="d-none d-sm-inline">Limpiar</span>
+            </button>
+            <button id="btn_csv" class="btn btn-info btn-sm">
+              <i class="fas fa-file-csv"></i> <span class="d-none d-sm-inline">CSV</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row mt-2">
+        <div class="col-12">
+          <span id="current_period_display" class="badge bg-info text-white"></span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    @if(!empty($error_msg))
-        <div class="alert alert-danger alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-            <h5><i class="icon fas fa-ban"></i> Error!</h5>
-            {{ $error_msg }}
-        </div>
-    @endif
+  <!-- DataTable -->
+  <div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap">
+      <h5 class="mb-0">
+        <i class="fas fa-table"></i> Resultados
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table id="report-table" class="table table-bordered table-hover table-striped mb-0" style="width:100%">
+          <thead class="thead-light">
+            <tr>
+              <th>Plaza</th>
+              <th>Tienda</th>
+              <th>Tipo Doc</th>
+              <th>No. Referencia</th>
+              <th>Tipo Doc A</th>
+              <th>No. Factura</th>
+              <th>Clave Proveedor</th>
+              <th>Nombre Proveedor</th>
+              <th>Cuenta</th>
+              <th>Fecha Emisión</th>
+              <th>Clave Artículo</th>
+              <th>Descripción</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario</th>
+              <th>Agrupa</th>
+              <th>Familia</th>
+              <th>Subfamilia</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-            <h5><i class="icon fas fa-ban"></i> Error!</h5>
-            {{ session('error') }}
-        </div>
-    @endif
-
-    @if(count($resultados ?? []) > 0)
-        <!-- Estadísticas -->
-        <div class="row">
-            <div class="col-lg-3 col-6">
-                <div class="small-box bg-info">
-                    <div class="inner">
-                        <h3>{{ number_format(count($resultados)) }}</h3>
-                        <p>Registros</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-list-ol"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-6">
-                <div class="small-box bg-success">
-                    <div class="inner">
-                        <h3>{{ number_format($total_cantidad ?? 0, 2) }}</h3>
-                        <p>Cantidad Total</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-boxes"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-6">
-                <div class="small-box bg-warning">
-                    <div class="inner">
-                        <h3>{{ number_format($total_proveedores ?? 0) }}</h3>
-                        <p>Proveedores</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-truck"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-6">
-                <div class="small-box bg-primary">
-                    <div class="inner">
-                        <h3>${{ number_format($total_compras ?? 0, 2) }}</h3>
-                        <p>Total Compras</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-dollar-sign"></i>
-                    </div>
-                </div>
-            </div>
+<!-- Modal de Sincronización -->
+<div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title" id="syncModalLabel">
+          <i class="fas fa-database"></i> Sincronizar Datos
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Tipo de sincronización:</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncLastMonth" value="lastMonth" checked>
+            <label class="form-check-label" for="syncLastMonth">Mes anterior (por defecto)</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncLastDays" value="lastDays">
+            <label class="form-check-label" for="syncLastDays">Últimos días</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncDay" value="day">
+            <label class="form-check-label" for="syncDay">Un día específico</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncPeriod" value="period">
+            <label class="form-check-label" for="syncPeriod">Período específico</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncFull" value="full">
+            <label class="form-check-label" for="syncFull">Completo (desde 2000)</label>
+          </div>
         </div>
 
-        <!-- Tabla de resultados -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-table"></i> Resultados
-                    @if($tiempo_carga > 0)
-                        <span class="badge badge-secondary ml-2">{{ $tiempo_carga }}ms</span>
-                    @endif
-                </h3>
-                <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover table-bordered table-striped" id="tabla-reportes">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th width="40">#</th>
-                                <th width="60">Plaza</th>
-                                <th width="60">Tienda</th>
-                                <th width="80">Tipo Doc</th>
-                                <th width="100">No. Referencia</th>
-                                <th width="80">Tipo Doc A</th>
-                                <th width="100">No. Factura</th>
-                                <th width="80">Clave Pro</th>
-                                <th width="120">Nombre Proveedor</th>
-                                <th width="80">Cuenta</th>
-                                <th width="90">Fecha Emisión</th>
-                                <th width="100">Clave Artículo</th>
-                                <th>Descripción</th>
-                                <th width="80" class="text-right bg-success">Cantidad</th>
-                                <th width="100" class="text-right bg-info">Precio Unitario</th>
-                                <th width="100" class="text-right bg-primary">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($resultados as $item)
-                            <tr>
-                                <td class="text-center">{{ $item['no'] }}</td>
-                                <td>{{ $item['cplaza'] }}</td>
-                                <td>{{ $item['ctienda'] }}</td>
-                                <td>{{ $item['tipo_doc'] }}</td>
-                                <td>{{ $item['no_referen'] }}</td>
-                                <td>{{ $item['tipo_doc_a'] }}</td>
-                                <td>{{ $item['no_fact_pr'] }}</td>
-                                <td>{{ $item['clave_pro'] }}</td>
-                                <td>{{ $item['nombre'] }}</td>
-                                <td>{{ $item['cuenta'] }}</td>
-                                <td>{{ $item['f_emision'] }}</td>
-                                <td>{{ $item['clave_art'] }}</td>
-                                <td>{{ $item['descripcio'] }}</td>
-                                <td class="text-right text-success font-weight-bold">{{ number_format($item['cantidad'], 2) }}</td>
-                                <td class="text-right text-info font-weight-bold">${{ number_format($item['precio_uni'], 2) }}</td>
-                                <td class="text-right text-primary font-weight-bold">${{ number_format($item['total'], 2) }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot class="bg-light">
-                            <tr>
-                                <td colspan="13" class="text-right font-weight-bold">TOTALES:</td>
-                                <td class="text-right font-weight-bold text-success">{{ number_format($total_cantidad ?? 0, 2) }}</td>
-                                <td class="text-right font-weight-bold text-info">-</td>
-                                <td class="text-right font-weight-bold text-primary">${{ number_format($total_compras ?? 0, 2) }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-            <div class="card-footer">
-                <small class="text-muted">
-                    Mostrando {{ count($resultados) }} registros |
-                    Exportado el {{ date('d/m/Y H:i:s') }}
-                </small>
-            </div>
+        <div id="syncLastDaysOptions" class="mb-3" style="display:none;">
+          <label for="lastDaysInput" class="form-label">Número de días:</label>
+          <input type="number" class="form-control" id="lastDaysInput" value="30" min="1" max="365">
         </div>
-    @elseif(request()->has('fecha_inicio') && request()->has('fecha_fin'))
-        <div class="alert alert-warning text-center">
-            <i class="icon fas fa-exclamation-triangle"></i>
-            No se encontraron resultados para los filtros seleccionados
-        </div>
-    @else
-        <div class="alert alert-info text-center">
-            <i class="fas fa-info-circle"></i>
-            Por favor seleccione un rango de fechas y haga clic en "Buscar".
-        </div>
-    @endif
 
-@stop
+        <div id="syncDayOptions" class="mb-3" style="display:none;">
+          <label for="dayInput" class="form-label">Fecha:</label>
+          <input type="date" class="form-control" id="dayInput" value="{{ date('Y-m-d') }}">
+        </div>
+
+        <div id="syncPeriodOptions" class="mb-3" style="display:none;">
+          <div class="row">
+            <div class="col-6">
+              <label for="periodStartInput" class="form-label">Fecha inicio:</label>
+              <input type="date" class="form-control" id="periodStartInput" value="{{ date('Y-m-01') }}">
+            </div>
+            <div class="col-6">
+              <label for="periodEndInput" class="form-label">Fecha fin:</label>
+              <input type="date" class="form-control" id="periodEndInput" value="{{ date('Y-m-d') }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="appendData">
+          <label class="form-check-label" for="appendData">Agregar datos sin limpiar la tabla (append)</label>
+        </div>
+
+        <div id="syncProgress" class="alert alert-info" style="display:none;">
+          <i class="fas fa-spinner fa-spin"></i> Sincronizando...
+        </div>
+
+        <div id="syncResult" class="alert" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-warning" id="btnExecuteSync">
+          <i class="fas fa-sync-alt"></i> Sincronizar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+@endsection
 
 @section('css')
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap4.min.css">
-    <style>
-        .text-right { text-align: right !important; }
-        .bg-success { background-color: #d4edda !important; }
-        .bg-info { background-color: #d1ecf1 !important; }
-        .bg-primary { background-color: #cce5ff !important; }
-        .monetary { 
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-        }
-        .small-box .icon {
-            font-size: 70px;
-        }
-        .dataTables_wrapper {
-            padding: 10px;
-        }
-        #tabla-reportes_wrapper {
-            margin-top: 10px;
-        }
-        .btn-warning {
-            color: #212529;
-            background-color: #ffc107;
-            border-color: #ffc107;
-        }
-        .btn-warning:hover {
-            color: #212529;
-            background-color: #e0a800;
-            border-color: #d39e00;
-        }
-    </style>
-@stop
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<style>
+.card-header { border-bottom: 2px solid #dee2e6; }
+.table th { background-color: #f8f9fa; font-weight: 600; font-size: 0.75rem; white-space: nowrap; }
+.table td { font-size: 0.75rem; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.badge { font-size: 0.7rem; }
+.form-label { font-size: 0.75rem; }
+.form-control-sm { font-size: 0.75rem; }
+@media (max-width: 768px) {
+  .table th, .table td { font-size: 0.65rem; padding: 0.25rem; }
+  .btn-sm { padding: 0.2rem 0.4rem; font-size: 0.7rem; }
+}
+</style>
+@endsection
 
 @section('js')
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <!-- DataTables -->
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap4.min.js"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(function() {
+  const dataTable = $('#report-table').DataTable({
+    processing: true,
+    serverSide: true,
+    responsive: true,
+    pageLength: 5,
+    language: {
+      search: "Buscar:",
+      lengthMenu: "Mostrar _MENU_ registros",
+      info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+      paginate: {
+        first: "Primero",
+        last: "Último",
+        next: "Siguiente",
+        previous: "Anterior"
+      },
+      emptyTable: "No hay datos disponibles",
+      zeroRecords: "No se encontraron resultados"
+    },
+    ajax: {
+      url: "{{ url('/reportes/compras-directo/data') }}",
+      data: function (d) {
+        d.plaza = $('#plaza').val();
+        d.tienda = $('#tienda').val();
+        d.proveedor = $('#proveedor').val();
+        if ($('#period_start').length && $('#period_start').val()) {
+          d.period_start = $('#period_start').val();
+        }
+        if ($('#period_end').length && $('#period_end').val()) {
+          d.period_end = $('#period_end').val();
+        }
+      }
+    },
+    columns: [
+      { data: 'cplaza', className: 'text-center' },
+      { data: 'ctienda', className: 'text-center' },
+      { data: 'tipo_doc', className: 'text-center' },
+      { data: 'no_referen', className: 'text-center' },
+      { data: 'tipo_doc_a', className: 'text-center' },
+      { data: 'no_fact_pr', className: 'text-center' },
+      { data: 'clave_pro', className: 'text-center' },
+      { data: 'nombre_proveedor' },
+      { data: 'cuenta', className: 'text-center' },
+      { data: 'f_emision', className: 'text-center' },
+      { data: 'clave_art', className: 'text-center' },
+      { data: 'descripcion' },
+      { data: 'cantidad', className: 'text-end', render: $.fn.dataTable.render.number(',', '.', 0, '') },
+      { data: 'precio_uni', className: 'text-end', render: $.fn.dataTable.render.number(',', '.', 2, '$') },
+      { data: 'k_agrupa' },
+      { data: 'k_familia' },
+      { data: 'k_subfam' },
+      { data: 'total', className: 'text-end', render: $.fn.dataTable.render.number(',', '.', 2, '$') }
+    ]
+  });
 
-    <script>
-        $(document).ready(function() {
-            // Inicializar DataTable si hay resultados
+  $('#btn_search').on('click', function() { dataTable.ajax.reload(); });
+  $('#btn_refresh').on('click', function() { dataTable.ajax.reload(); });
 
+  $('#btn_reset_filters').on('click', function() {
+    $('#period_start').val("{{ $startDefault }}");
+    $('#period_end').val("{{ $endDefault }}");
+    $('#plaza').val('');
+    $('#tienda').val('');
+    $('#proveedor').val('');
+    updateCurrentPeriodDisplay();
+  });
 
-    @if(count($resultados ?? []) > 0)
-                var table = $('#tabla-reportes').DataTable({
-                    "pageLength": 25,
-                    "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-                    "order": [[0, 'asc']],
-                    "language": {
-                        "processing": "Procesando...",
-                        "lengthMenu": "Mostrar _MENU_ registros",
-                        "zeroRecords": "No se encontraron resultados",
-                        "emptyTable": "Ningún dato disponible en esta tabla",
-                        "info": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
-                        "infoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
-                        "infoFiltered": "(filtrado de un total de _MAX_ registros)",
-                        "search": "Buscar:",
-                        "paginate": {
-                            "first": "Primero",
-                            "last": "Último",
-                            "next": "Siguiente",
-                            "previous": "Anterior"
-                        },
-                        "aria": {
-                            "sortAscending": ": Activar para ordenar la columna de manera ascendente",
-                            "sortDescending": ": Activar para ordenar la columna de manera descendente"
-                        }
-                    },
-                    "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
-                           '<"row"<"col-sm-12"tr>>' +
-                           '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-                    "columnDefs": [
-                        { "targets": [13, 14, 15], "className": "text-right" }
-                    ]
-                });
-            @endif
+  $('#btn_excel').on('click', function() {
+    const start = $('#period_start').val();
+    const end = $('#period_end').val();
+    const plaza = $('#plaza').val();
+    const tienda = $('#tienda').val();
+    const proveedor = $('#proveedor').val();
+    
+    let form = $('<form>', {
+      'method': 'POST',
+      'action': "{{ url('/reportes/compras-directo/export-excel') }}",
+      'target': '_blank'
+    });
+    
+    form.append($('<input>', { 'type': 'hidden', 'name': '_token', 'value': "{{ csrf_token() }}" }));
+    form.append($('<input>', { 'type': 'hidden', 'name': 'period_start', 'value': start }));
+    form.append($('<input>', { 'type': 'hidden', 'name': 'period_end', 'value': end }));
+    if (plaza) form.append($('<input>', { 'type': 'hidden', 'name': 'plaza', 'value': plaza }));
+    if (tienda) form.append($('<input>', { 'type': 'hidden', 'name': 'tienda', 'value': tienda }));
+    if (proveedor) form.append($('<input>', { 'type': 'hidden', 'name': 'proveedor', 'value': proveedor }));
+    
+    $('body').append(form);
+    form.submit();
+    form.remove();
+  });
 
-            // Botón exportar Excel
-            $('#btn-export-excel').on('click', function() {
-                Swal.fire({
-                    title: 'Exportar a Excel',
-                    text: '¿Desea descargar el archivo Excel?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, descargar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#export-excel-form').submit();
-                    }
-                });
-            });
+  $('#btn_csv').on('click', function() {
+    const start = $('#period_start').val();
+    const end = $('#period_end').val();
+    const plaza = $('#plaza').val();
+    const tienda = $('#tienda').val();
+    const proveedor = $('#proveedor').val();
+    
+    let form = $('<form>', {
+      'method': 'POST',
+      'action': "{{ url('/reportes/compras-directo/export-csv') }}",
+      'target': '_blank'
+    });
+    
+    form.append($('<input>', { 'type': 'hidden', 'name': '_token', 'value': "{{ csrf_token() }}" }));
+    form.append($('<input>', { 'type': 'hidden', 'name': 'period_start', 'value': start }));
+    form.append($('<input>', { 'type': 'hidden', 'name': 'period_end', 'value': end }));
+    if (plaza) form.append($('<input>', { 'type': 'hidden', 'name': 'plaza', 'value': plaza }));
+    if (tienda) form.append($('<input>', { 'type': 'hidden', 'name': 'tienda', 'value': tienda }));
+    if (proveedor) form.append($('<input>', { 'type': 'hidden', 'name': 'proveedor', 'value': proveedor }));
+    
+    $('body').append(form);
+    form.submit();
+    form.remove();
+  });
 
+  $('#period_start, #period_end').on('change', function() {
+    dataTable.ajax.reload();
+    updateCurrentPeriodDisplay();
+  });
 
+  function updateCurrentPeriodDisplay(){
+    const s = $('#period_start').val();
+    const e = $('#period_end').val();
+    $('#current_period_display').text('Periodo: ' + s + ' a ' + e);
+  }
 
-            // Botón exportar CSV
-            $('#btn-export-csv').on('click', function() {
-                Swal.fire({
-                    title: 'Exportar a CSV',
-                    text: '¿Desea descargar el archivo CSV?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ffc107',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, descargar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#export-csv-form').submit();
-                    }
-                });
-            });
+  updateCurrentPeriodDisplay();
 
-            // Botón exportar PDF
-            $('#btn-export-pdf').on('click', function() {
-                Swal.fire({
-                    title: 'Exportar a PDF',
-                    text: '¿Desea descargar el archivo PDF?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, descargar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#export-pdf-form').submit();
-                    }
-                });
-            });
+  // Sincronización Modal
+  $('input[name="syncType"]').on('change', function() {
+    const syncType = $('input[name="syncType"]:checked').val();
+    $('#syncLastDaysOptions').hide();
+    $('#syncDayOptions').hide();
+    $('#syncPeriodOptions').hide();
+    
+    if (syncType === 'lastDays') {
+      $('#syncLastDaysOptions').show();
+    } else if (syncType === 'day') {
+      $('#syncDayOptions').show();
+    } else if (syncType === 'period') {
+      $('#syncPeriodOptions').show();
+    }
+  });
 
-            // Validar fechas con SweetAlert
-            $('#filtros-form').submit(function(e) {
-                var fechaInicio = $('input[name="fecha_inicio"]').val();
-                var fechaFin = $('input[name="fecha_fin"]').val();
-                
-                if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'La fecha de inicio no puede ser mayor a la fecha fin'
-                    });
-                    return false;
-                }
-                
-                return true;
-            });
-
-            // SweetAlert para recargar página
-            $('a.btn-primary[href*="current"]').on('click', function(e) {
-                e.preventDefault();
-                Swal.fire({
-                    title: 'Recargar página',
-                    text: '¿Desea recargar la página?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#007bff',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, recargar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        location.reload();
-                    }
-                });
-            });
-        });
-    </script>
-@stop
+  $('#btnExecuteSync').on('click', function() {
+    const syncType = $('input[name="syncType"]:checked').val();
+    const append = $('#appendData').is(':checked');
+    
+    let url = "{{ url('/reportes/compras-directo/sync') }}";
+    let data = {
+      _token: "{{ csrf_token() }}",
+      type: syncType,
+      append: append
+    };
+    
+    if (syncType === 'lastDays') {
+      data.lastDays = $('#lastDaysInput').val();
+    } else if (syncType === 'day') {
+      data.day = $('#dayInput').val();
+    } else if (syncType === 'period') {
+      data.periodStart = $('#periodStartInput').val();
+      data.periodEnd = $('#periodEndInput').val();
+    }
+    
+    $('#syncProgress').show();
+    $('#syncResult').hide();
+    $('#btnExecuteSync').prop('disabled', true);
+    
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: data,
+      success: function(response) {
+        $('#syncProgress').hide();
+        $('#syncResult').show();
+        if (response.success) {
+          $('#syncResult').removeClass('alert-danger').addClass('alert-success');
+          $('#syncResult').html('<i class="fas fa-check-circle"></i> ' + response.message);
+          dataTable.ajax.reload();
+        } else {
+          $('#syncResult').removeClass('alert-success').addClass('alert-danger');
+          $('#syncResult').html('<i class="fas fa-exclamation-circle"></i> ' + response.message);
+        }
+      },
+      error: function(xhr) {
+        $('#syncProgress').hide();
+        $('#syncResult').show();
+        $('#syncResult').removeClass('alert-success').addClass('alert-danger');
+        $('#syncResult').html('<i class="fas fa-exclamation-circle"></i> Error: ' + xhr.responseJSON.message);
+      },
+      complete: function() {
+        $('#btnExecuteSync').prop('disabled', false);
+      }
+    });
+  });
+});
+</script>
+@endsection

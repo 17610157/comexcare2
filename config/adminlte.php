@@ -298,9 +298,14 @@ return [
     |
     */
 
-    'menu' => [
-
+        'menu' => [
+    
         ['header' => 'account_settings'],
+        [
+            'text' => 'Usuarios',
+            'url' => 'admin/usuarios',
+            'icon' => 'fas fa-users',
+        ],
         [
             'text' => 'profile',
             'url' => 'admin/settings',
@@ -357,10 +362,20 @@ return [
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-matricial',
                 ],
-                 [
+                [
                     'text' => 'Reporte Compras',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/compras-directo',
+                ],
+                [
+                    'text' => 'Reporte Cargos y Abonos',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/cartera-abonos',
+                ],
+                [
+                    'text' => 'Reporte Notas completas',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/notas-completas',
                 ]
             ],
         ],
