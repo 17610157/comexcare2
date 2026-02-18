@@ -25,7 +25,7 @@ Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login'
 Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
 
 // Rutas de usuarios (protegidas por auth)
-Route::middleware('auth')->prefix('admin/usuarios')->group(function () {
+Route::middleware(['auth', 'web'])->prefix('admin/usuarios')->group(function () {
     Route::get('/', [UserController::class, 'index'])->name('usuarios.index');
     Route::get('/data', [UserController::class, 'data'])->name('usuarios.data');
     Route::post('/', [UserController::class, 'store'])->name('usuarios.store');
