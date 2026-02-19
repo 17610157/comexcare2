@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\Reportes\CarteraAbonosController;
 use App\Http\Controllers\Reportes\NotasCompletasController;
 use App\Http\Controllers\ReporteVendedoresController;
 use App\Http\Controllers\ReporteVendedoresMatricialController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,23 @@ Route::middleware(['auth', 'web'])->prefix('admin/usuarios')->group(function () 
     Route::get('/{user}', [UserController::class, 'show'])->name('usuarios.show');
     Route::put('/{user}', [UserController::class, 'update'])->name('usuarios.update');
     Route::delete('/{user}', [UserController::class, 'destroy'])->name('usuarios.destroy');
+});
+
+// Rutas de roles (protegidas por auth)
+Route::middleware(['auth', 'web'])->prefix('admin/roles')->group(function () {
+    Route::get('/', [RoleController::class, 'index'])->name('roles.index');
+    Route::get('/data', [RoleController::class, 'data'])->name('roles.data');
+    Route::post('/', [RoleController::class, 'store'])->name('roles.store');
+    Route::get('/permissions', [RoleController::class, 'allPermissions'])->name('roles.permissions');
+    Route::get('/{role}', [RoleController::class, 'show'])->name('roles.show');
+    Route::put('/{role}', [RoleController::class, 'update'])->name('roles.update');
+    Route::delete('/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+});
+
+// Rutas de permisos (protegidas por auth)
+Route::middleware(['auth', 'web'])->prefix('admin/permissions')->group(function () {
+    Route::get('/', [PermissionController::class, 'index'])->name('permissions.index');
+    Route::get('/data', [PermissionController::class, 'data'])->name('permissions.data');
 });
 
 // Rutas de reportes
