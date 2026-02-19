@@ -6,6 +6,7 @@
     <div class="d-flex justify-content-between align-items-center">
         <h1><i class="fas fa-users text-primary"></i> Reporte de Vendedores</h1>
         <div>
+            @hasPermission('reportes.vendedores.exportar')
             <form method="POST" action="{{ route('reportes.vendedores.export') }}" style="display: inline;" id="export-excel-form">
                 @csrf
                 <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
@@ -39,9 +40,12 @@
                     <i class="fas fa-file-csv"></i> CSV
                 </button>
             </form>
+            @endhasPermission
+            @hasPermission('reportes.vendedores.ver')
             <a href="{{ url()->current() }}" class="btn btn-primary ml-2">
                 <i class="fas fa-sync-alt"></i> Recargar
             </a>
+            @endhasPermission
         </div>
     </div>
 @stop
@@ -71,16 +75,38 @@
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label>Plaza</label>
-                            <input type="text" name="plaza" class="form-control form-control-sm" 
-                                   value="{{ $plaza }}" placeholder="Todas">
+                            <label>Plazas</label>
+                            <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
+                                <div class="form-check">
+                                    <input type="checkbox" id="select_all_plazas" class="form-check-input">
+                                    <label for="select_all_plazas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
+                                </div>
+                                @foreach($plazas as $p)
+                                <div class="form-check">
+                                    <input type="checkbox" name="plaza[]" value="{{ $p }}" id="plaza_{{ $p }}" class="form-check-input plaza-checkbox"
+                                           {{ is_array($plaza) && in_array($p, $plaza) ? 'checked' : '' }}>
+                                    <label for="plaza_{{ $p }}" class="form-check-label">{{ $p }}</label>
+                                </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label>Tienda</label>
-                            <input type="text" name="tienda" class="form-control form-control-sm" 
-                                   value="{{ $tienda }}" placeholder="Todas">
+                            <label>Tiendas</label>
+                            <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
+                                <div class="form-check">
+                                    <input type="checkbox" id="select_all_tiendas" class="form-check-input">
+                                    <label for="select_all_tiendas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
+                                </div>
+                                @foreach($tiendas as $t)
+                                <div class="form-check">
+                                    <input type="checkbox" name="tienda[]" value="{{ $t }}" id="tienda_{{ $t }}" class="form-check-input tienda-checkbox"
+                                           {{ is_array($tienda) && in_array($t, $tienda) ? 'checked' : '' }}>
+                                    <label for="tienda_{{ $t }}" class="form-check-label">{{ $t }}</label>
+                                </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -99,6 +125,24 @@
             </form>
         </div>
     </div>
+
+    <script>
+    $(function() {
+        $('#select_all_plazas').on('change', function() {
+            $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        $('#select_all_tiendas').on('change', function() {
+            $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        // Verificar si todas están seleccionadas
+        const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
+        const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
+        $('#select_all_plazas').prop('checked', todasPlazas);
+        $('#select_all_tiendas').prop('checked', todasTiendas);
+    });
+    </script>
 
     @if(!empty($error_msg))
         <div class="alert alert-danger alert-dismissible">
@@ -269,6 +313,25 @@
             color: #212529;
             background-color: #e0a800;
             border-color: #d39e00;
+        }
+        #tabla-reportes {
+            min-width: 1200px;
+            table-layout: auto;
+        }
+        #tabla-reportes th,
+        #tabla-reportes td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        #tabla-reportes th:hover,
+        #tabla-reportes td:hover {
+            overflow: visible;
+            white-space: normal;
+            z-index: 1;
+            position: relative;
+            background-color: inherit;
         }
     </style>
 @stop

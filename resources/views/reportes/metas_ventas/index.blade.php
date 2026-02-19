@@ -6,6 +6,7 @@
     <div class="d-flex justify-content-between align-items-center">
         <h1><i class="fas fa-chart-line text-primary"></i> Reporte de Metas de Ventas</h1>
         <div>
+            @hasPermission('reportes.metas_ventas.exportar')
             <form method="POST" action="{{ route('reportes.metas-ventas.export') }}" style="display: inline;" id="export-excel-form">
                 @csrf
                 <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
@@ -39,9 +40,12 @@
                     <i class="fas fa-file-csv"></i> CSV
                 </button>
             </form>
+            @endhasPermission
+            @hasPermission('reportes.metas_ventas.ver')
             <a href="{{ url()->current() }}" class="btn btn-primary ml-2">
                 <i class="fas fa-sync-alt"></i> Recargar
             </a>
+            @endhasPermission
         </div>
     </div>
 @stop
@@ -71,23 +75,56 @@
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label>Plaza</label>
-                            <input type="text" name="plaza" class="form-control form-control-sm" 
-                                   value="{{ $plaza }}" placeholder="Todas">
+                            <label>Plazas</label>
+                            <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
+                                <div class="form-check">
+                                    <input type="checkbox" id="select_all_plazas" class="form-check-input">
+                                    <label for="select_all_plazas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
+                                </div>
+                                @foreach($plazas as $p)
+                                <div class="form-check">
+                                    <input type="checkbox" name="plaza[]" value="{{ $p }}" id="plaza_{{ $p }}" class="form-check-input plaza-checkbox"
+                                           {{ is_array($plaza) && in_array($p, $plaza) ? 'checked' : '' }}>
+                                    <label for="plaza_{{ $p }}" class="form-check-label">{{ $p }}</label>
+                                </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label>Tienda</label>
-                            <input type="text" name="tienda" class="form-control form-control-sm" 
-                                   value="{{ $tienda }}" placeholder="Todas">
+                            <label>Tiendas</label>
+                            <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
+                                <div class="form-check">
+                                    <input type="checkbox" id="select_all_tiendas" class="form-check-input">
+                                    <label for="select_all_tiendas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
+                                </div>
+                                @foreach($tiendas as $t)
+                                <div class="form-check">
+                                    <input type="checkbox" name="tienda[]" value="{{ $t }}" id="tienda_{{ $t }}" class="form-check-input tienda-checkbox"
+                                           {{ is_array($tienda) && in_array($t, $tienda) ? 'checked' : '' }}>
+                                    <label for="tienda_{{ $t }}" class="form-check-label">{{ $t }}</label>
+                                </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label>Zona</label>
-                            <input type="text" name="zona" class="form-control form-control-sm" 
-                                   value="{{ $zona }}" placeholder="Todas">
+                            <label>Zonas</label>
+                            <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
+                                <div class="form-check">
+                                    <input type="checkbox" id="select_all_zonas" class="form-check-input">
+                                    <label for="select_all_zonas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
+                                </div>
+                                @foreach($zonas as $z)
+                                <div class="form-check">
+                                    <input type="checkbox" name="zona[]" value="{{ $z }}" id="zona_{{ $z }}" class="form-check-input zona-checkbox"
+                                           {{ is_array($zona) && in_array($z, $zona) ? 'checked' : '' }}>
+                                    <label for="zona_{{ $z }}" class="form-check-label">{{ $z }}</label>
+                                </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-2 align-self-end">
@@ -99,6 +136,29 @@
             </form>
         </div>
     </div>
+
+    <script>
+    $(function() {
+        $('#select_all_plazas').on('change', function() {
+            $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        $('#select_all_tiendas').on('change', function() {
+            $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        $('#select_all_zonas').on('change', function() {
+            $('.zona-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
+        const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
+        const todasZonas = $('.zona-checkbox').length > 0 && $('.zona-checkbox:checked').length === $('.zona-checkbox').length;
+        $('#select_all_plazas').prop('checked', todasPlazas);
+        $('#select_all_tiendas').prop('checked', todasTiendas);
+        $('#select_all_zonas').prop('checked', todasZonas);
+    });
+    </script>
 
     @if(!empty($error_msg))
         <div class="alert alert-danger alert-dismissible">

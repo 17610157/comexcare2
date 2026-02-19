@@ -19,10 +19,18 @@
           <input type="text" id="tienda" class="form-control form-control-sm" placeholder="Ej: B001" maxlength="10" pattern="[A-Z0-9]{1,10}" title="Hasta 10 caracteres: letras mayúsculas y números">
         </div>
         <div class="col-md-4 align-self-end d-flex align-items-end">
+          @hasPermission('reportes.cartera_abonos.filtrar')
           <button id="btn_search" class="btn btn-success btn-sm ml-auto">Buscar</button>
+          @endhasPermission
+          @hasPermission('reportes.cartera_abonos.ver')
           <button id="btn_refresh" class="btn btn-primary btn-sm ml-2">Actualizar</button>
+          @endhasPermission
+          @hasPermission('reportes.cartera_abonos.filtrar')
           <button id="btn_reset_filters" class="btn btn-secondary btn-sm ml-2">Limpiar filtros</button>
+          @endhasPermission
+          @hasPermission('reportes.cartera_abonos.exportar')
           <button id="btn_pdf" class="btn btn-info btn-sm ml-2">Exportar PDF</button>
+          @endhasPermission
         </div>
       </div>
     </div>

@@ -127,12 +127,17 @@
             </div>
           </div>
           <div class="col-md-6 d-flex align-items-end justify-content-end">
+            @hasPermission('reportes.cartera_abonos.filtrar')
             <button id="btn_search" class="btn btn-success btn-sm me-2" disabled>
               <i class="fas fa-search"></i> Buscar
             </button>
+            @endhasPermission
+            @hasPermission('reportes.cartera_abonos.filtrar')
             <button id="btn_reset_filters" class="btn btn-secondary btn-sm me-2" disabled>
               <i class="fas fa-undo"></i> Limpiar
             </button>
+            @endhasPermission
+            @hasPermission('reportes.cartera_abonos.exportar')
             <div id="export-controls" class="btn-group btn-group-sm" role="group">
               <button id="btn_export_excel" class="btn btn-success btn-sm" title="Exportar Excel" disabled>
                 <i class="fas fa-file-excel"></i>
@@ -144,6 +149,7 @@
                 <i class="fas fa-file-pdf"></i>
               </button>
             </div>
+            @endhasPermission
           </div>
         </div>
       </div>

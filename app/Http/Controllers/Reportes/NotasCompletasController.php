@@ -2,27 +2,51 @@
 
 namespace App\Http\Controllers\Reportes;
 
+use App\Exports\NotasCompletasExport;
+use App\Helpers\RoleHelper;
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
-use App\Exports\NotasCompletasExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class NotasCompletasController extends Controller
 {
     public function index()
     {
-        return view('reportes.notas_completas.index');
+        $startDefault = Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = Carbon::parse('last day of previous month')->toDateString();
+
+        $plazas = DB::table('notas_completas_cache')
+            ->distinct()
+            ->orderBy('plaza_ajustada')
+            ->pluck('plaza_ajustada')
+            ->filter()
+            ->values();
+
+        $tiendas = DB::table('notas_completas_cache')
+            ->distinct()
+            ->orderBy('ctienda')
+            ->pluck('ctienda')
+            ->filter()
+            ->values();
+
+        return view('reportes.notas_completas.index', compact('plazas', 'tiendas', 'startDefault', 'endDefault'));
     }
 
     public function data(Request $request)
     {
-        Log::info('NotasCompletas data request', ['url' => $request->fullUrl(), 'params' => $request->all()]);
-        
+        $userFilter = RoleHelper::getUserFilter();
+
+        if (! $userFilter['allowed']) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        Log::info('NotasCompletas data request', ['url' => $request->fullUrl(), 'params' => $request->all(), 'filter' => $userFilter]);
+
         $start = Carbon::parse('first day of previous month')->toDateString();
-        $end   = Carbon::parse('last day of previous month')->toDateString();
+        $end = Carbon::parse('last day of previous month')->toDateString();
         if ($request->filled('period_start')) {
             $start = $request->input('period_start');
         }
@@ -40,28 +64,62 @@ class NotasCompletasController extends Controller
         try {
             $query = DB::table('notas_completas_cache');
 
-            if (!empty($search)) {
-                $query->where(function($q) use ($search) {
+            // Filtros según el rol del usuario
+            if (! empty($userFilter['plaza'])) {
+                $plazaUserFilter = $userFilter['plaza'];
+                if (is_array($plazaUserFilter)) {
+                    $query->whereIn('plaza_ajustada', $plazaUserFilter);
+                } else {
+                    $query->where('plaza_ajustada', $plazaUserFilter);
+                }
+            }
+
+            if (! empty($userFilter['tienda'])) {
+                $tiendaUserFilter = $userFilter['tienda'];
+                if (is_array($tiendaUserFilter)) {
+                    $query->whereIn('ctienda', $tiendaUserFilter);
+                } else {
+                    $query->where('ctienda', $tiendaUserFilter);
+                }
+            }
+
+            if (! empty($search)) {
+                $query->where(function ($q) use ($search) {
                     $q->where('plaza_ajustada', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('ctienda', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('num_referencia', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('vend_clave', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('factura', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('producto', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('descripcion', 'ILIKE', '%'.$search.'%');
+                        ->orWhere('ctienda', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('num_referencia', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('vend_clave', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('factura', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('producto', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('descripcion', 'ILIKE', '%'.$search.'%');
                 });
             }
 
             if ($request->filled('plaza') && $request->input('plaza') !== '') {
-                $query->where('plaza_ajustada', trim($request->input('plaza')));
+                $plazaFilter = $request->input('plaza');
+                if (is_array($plazaFilter) && count($plazaFilter) > 0) {
+                    $query->whereIn('plaza_ajustada', $plazaFilter);
+                } elseif (! is_array($plazaFilter)) {
+                    $query->where('plaza_ajustada', trim($plazaFilter));
+                }
             }
 
             if ($request->filled('tienda') && $request->input('tienda') !== '') {
-                $query->where('ctienda', trim($request->input('tienda')));
+                $tiendaFilter = $request->input('tienda');
+                if (is_array($tiendaFilter) && count($tiendaFilter) > 0) {
+                    $query->whereIn('ctienda', $tiendaFilter);
+                } elseif (! is_array($tiendaFilter)) {
+                    $query->where('ctienda', trim($tiendaFilter));
+                }
             }
 
             if ($request->filled('vendedor') && $request->input('vendedor') !== '') {
-                $query->where('vend_clave', trim($request->input('vendedor')));
+                $vendedorFilter = $request->input('vendedor');
+                if (is_array($vendedorFilter) && count($vendedorFilter) > 0) {
+                    $query->whereIn('vend_clave', $vendedorFilter);
+                } else {
+                    $query->where('vend_clave', trim($vendedorFilter));
+                }
             }
 
             $query->whereBetween('fecha_vta', [$start, $end]);
@@ -75,13 +133,14 @@ class NotasCompletasController extends Controller
 
             return response()->json([
                 'draw' => $draw,
-                'recordsTotal' => (int)$total,
-                'recordsFiltered' => (int)$total,
-                'data' => $data
+                'recordsTotal' => (int) $total,
+                'recordsFiltered' => (int) $total,
+                'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('NotasCompletas data error: ' . $e->getMessage());
-            return response()->json(['draw' => (int)$request->input('draw', 1), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
+            Log::error('NotasCompletas data error: '.$e->getMessage());
+
+            return response()->json(['draw' => (int) $request->input('draw', 1), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
         }
     }
 
@@ -94,11 +153,12 @@ class NotasCompletasController extends Controller
         $vendedor = $request->input('vendedor', '');
 
         try {
-            $filename = 'notas_completas_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.xlsx';
+            $filename = 'notas_completas_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.xlsx';
 
             return Excel::download(new NotasCompletasExport($start, $end, $plaza, $tienda, $vendedor), $filename);
         } catch (\Exception $e) {
-            Log::error('NotasCompletas Excel error: ' . $e->getMessage());
+            Log::error('NotasCompletas Excel error: '.$e->getMessage());
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -124,23 +184,23 @@ class NotasCompletasController extends Controller
                 $query->where('vend_clave', trim($request->input('vendedor')));
             }
 
-            $filename = 'notas_completas_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.csv';
-            
+            $filename = 'notas_completas_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.csv';
+
             $headers = [
                 'Content-Type' => 'text/csv',
                 'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ];
 
-            $callback = function() use ($query) {
+            $callback = function () use ($query) {
                 $file = fopen('php://output', 'w');
-                
+
                 fputcsv($file, [
                     'Plaza', 'Tienda', 'Num Referencia', 'Vendedor', 'Factura',
                     'Nota Club', 'Club TR', 'Club ID', 'Fecha Vta', 'Producto',
                     'Descripcion', 'Piezas', 'Descuento', 'Precio Venta', 'Costo',
-                    'Total con IVA', 'Total sin IVA'
+                    'Total con IVA', 'Total sin IVA',
                 ]);
-                
+
                 $query->orderBy('fecha_vta')->orderBy('ctienda')->orderBy('num_referencia')
                     ->chunk(1000, function ($rows) use ($file) {
                         foreach ($rows as $row) {
@@ -161,17 +221,18 @@ class NotasCompletasController extends Controller
                                 $row->precio_venta ?? 0,
                                 $row->costo ?? 0,
                                 $row->total_con_iva ?? 0,
-                                $row->total_sin_iva ?? 0
+                                $row->total_sin_iva ?? 0,
                             ]);
                         }
                     });
-                
+
                 fclose($file);
             };
 
             return response()->stream($callback, 200, $headers);
         } catch (\Exception $e) {
-            Log::error('NotasCompletas CSV error: ' . $e->getMessage());
+            Log::error('NotasCompletas CSV error: '.$e->getMessage());
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -179,7 +240,7 @@ class NotasCompletasController extends Controller
     public function sync(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:lastMonth,lastDays,day,period,full'
+            'type' => 'required|in:lastMonth,lastDays,day,period,full',
         ]);
 
         $type = $request->input('type');
@@ -215,7 +276,7 @@ class NotasCompletasController extends Controller
 
         try {
             // Si es full o no append, truncamos la tabla
-            if (!$append || $type === 'full') {
+            if (! $append || $type === 'full') {
                 DB::statement('TRUNCATE TABLE notas_completas_cache RESTART IDENTITY CASCADE');
             } else {
                 // Solo eliminar los registros del período seleccionado
@@ -269,13 +330,14 @@ class NotasCompletasController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Sincronización completada. Registros: {$count} (Período: {$start} - {$end})"
+                'message' => "Sincronización completada. Registros: {$count} (Período: {$start} - {$end})",
             ]);
         } catch (\Exception $e) {
-            Log::error('NotasCompletas sync error: ' . $e->getMessage());
+            Log::error('NotasCompletas sync error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

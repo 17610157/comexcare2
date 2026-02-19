@@ -30,36 +30,68 @@
           <input type="date" id="period_end" class="form-control form-control-sm" value="{{ $endDefault }}">
         </div>
         <div class="col-6 col-md-3">
-          <label for="plaza" class="form-label small mb-1">Código Plaza</label>
-          <input type="text" id="plaza" class="form-control form-control-sm border-secondary" placeholder="Ej: A001" maxlength="5" style="text-transform: uppercase;">
+          <label class="form-label small mb-1">Plazas</label>
+          <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+            <div class="form-check">
+              <input type="checkbox" id="select_all_plazas" class="form-check-input">
+              <label for="select_all_plazas" class="form-check-label font-weight-bold"><strong>Seleccionar Todas</strong></label>
+            </div>
+            @foreach($plazas as $plaza)
+            <div class="form-check">
+              <input type="checkbox" name="plaza[]" value="{{ $plaza }}" id="plaza_{{ $plaza }}" class="form-check-input plaza-checkbox">
+              <label for="plaza_{{ $plaza }}" class="form-check-label">{{ $plaza }}</label>
+            </div>
+            @endforeach
+          </div>
         </div>
         <div class="col-6 col-md-3">
-          <label for="tienda" class="form-label small mb-1">Código Tienda</label>
-          <input type="text" id="tienda" class="form-control form-control-sm border-secondary" placeholder="Ej: B001" maxlength="10" style="text-transform: uppercase;">
+          <label class="form-label small mb-1">Tiendas</label>
+          <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+            <div class="form-check">
+              <input type="checkbox" id="select_all_tiendas" class="form-check-input">
+              <label for="select_all_tiendas" class="form-check-label font-weight-bold"><strong>Seleccionar Todas</strong></label>
+            </div>
+            @foreach($tiendas as $tienda)
+            <div class="form-check">
+              <input type="checkbox" name="tienda[]" value="{{ $tienda }}" id="tienda_{{ $tienda }}" class="form-check-input tienda-checkbox">
+              <label for="tienda_{{ $tienda }}" class="form-check-label">{{ $tienda }}</label>
+            </div>
+            @endforeach
+          </div>
         </div>
       </div>
       
       <div class="row mt-3">
         <div class="col-12 d-flex flex-wrap gap-2 align-items-center justify-content-between">
           <div class="d-flex gap-2 flex-wrap">
+            @hasPermission('reportes.cartera_abonos.sincronizar')
             <button id="btn_sync" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#syncModal">
               <i class="fas fa-database"></i> <span class="d-none d-sm-inline">Sincronizar Datos</span>
             </button>
+            @endhasPermission
             <span id="sync_status" class="badge bg-secondary align-self-center"></span>
           </div>
           <div class="d-flex gap-1 flex-wrap">
+            @hasPermission('reportes.cartera_abonos.filtrar')
             <button id="btn_search" class="btn btn-success btn-sm">
               <i class="fas fa-search"></i> <span class="d-none d-sm-inline">Buscar</span>
             </button>
+            @endhasPermission
+            @hasPermission('reportes.cartera_abonos.ver')
             <button id="btn_refresh" class="btn btn-primary btn-sm">
               <i class="fas fa-sync-alt"></i> <span class="d-none d-sm-inline">Actualizar</span>
             </button>
+            @endhasPermission
+            @hasPermission('reportes.cartera_abonos.filtrar')
             <button id="btn_reset_filters" class="btn btn-secondary btn-sm">
               <i class="fas fa-undo"></i> <span class="d-none d-sm-inline">Limpiar</span>
             </button>
+            @endhasPermission
+            @hasPermission('reportes.cartera_abonos.exportar')
             <button id="btn_csv" class="btn btn-info btn-sm">
               <i class="fas fa-file-csv"></i> <span class="d-none d-sm-inline">CSV</span>
             </button>
+            @endhasPermission
           </div>
         </div>
       </div>
@@ -280,9 +312,17 @@ $(function() {
     ajax: {
       url: "{{ url('/reportes/cartera-abonos/data') }}",
       data: function (d) {
-        // Enviar valores ya convertidos a mayúsculas por el frontend
-        d.plaza = $('#plaza').val();
-        d.tienda = $('#tienda').val();
+        // Obtener valores de checkboxes seleccionados
+        const plazasSeleccionadas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
+        const tiendasSeleccionadas = $('.tienda-checkbox:checked').map(function() { return $(this).val(); }).get();
+        
+        if (plazasSeleccionadas.length > 0) {
+          d.plaza = plazasSeleccionadas;
+        }
+        if (tiendasSeleccionadas.length > 0) {
+          d.tienda = tiendasSeleccionadas;
+        }
+        
         if ($('#period_start').length && $('#period_start').val()) {
           d.period_start = $('#period_start').val();
         }
@@ -323,17 +363,29 @@ $(function() {
   $('#btn_reset_filters').on('click', function() {
     $('#period_start').val("{{ $startDefault }}");
     $('#period_end').val("{{ $endDefault }}");
-    $('#plaza').val('').removeClass('border-primary').addClass('border-secondary');
-    $('#tienda').val('').removeClass('border-primary').addClass('border-secondary');
+    $('.plaza-checkbox').prop('checked', false);
+    $('.tienda-checkbox').prop('checked', false);
+    $('#select_all_plazas').prop('checked', false);
+    $('#select_all_tiendas').prop('checked', false);
     updateCurrentPeriodDisplay();
+  });
+
+  // Seleccionar todas las plazas
+  $('#select_all_plazas').on('change', function() {
+    $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+  });
+
+  // Seleccionar todas las tiendas
+  $('#select_all_tiendas').on('change', function() {
+    $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
   });
 
   // Export Excel
   $('#btn_excel').on('click', function() {
     const start = $('#period_start').val();
     const end = $('#period_end').val();
-    const plaza = $('#plaza').val();
-    const tienda = $('#tienda').val();
+    const plazasSeleccionadas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
+    const tiendasSeleccionadas = $('.tienda-checkbox:checked').map(function() { return $(this).val(); }).get();
     
     let form = $('<form>', {
       'method': 'POST',
@@ -344,8 +396,12 @@ $(function() {
     form.append($('<input>', { 'type': 'hidden', 'name': '_token', 'value': "{{ csrf_token() }}" }));
     form.append($('<input>', { 'type': 'hidden', 'name': 'period_start', 'value': start }));
     form.append($('<input>', { 'type': 'hidden', 'name': 'period_end', 'value': end }));
-    if (plaza) form.append($('<input>', { 'type': 'hidden', 'name': 'plaza', 'value': plaza }));
-    if (tienda) form.append($('<input>', { 'type': 'hidden', 'name': 'tienda', 'value': tienda }));
+    plazasSeleccionadas.forEach(function(val) {
+      form.append($('<input>', { 'type': 'hidden', 'name': 'plaza[]', 'value': val }));
+    });
+    tiendasSeleccionadas.forEach(function(val) {
+      form.append($('<input>', { 'type': 'hidden', 'name': 'tienda[]', 'value': val }));
+    });
     
     $('body').append(form);
     form.submit();
@@ -356,8 +412,8 @@ $(function() {
   $('#btn_csv').on('click', function() {
     const start = $('#period_start').val();
     const end = $('#period_end').val();
-    const plaza = $('#plaza').val();
-    const tienda = $('#tienda').val();
+    const plazasSeleccionadas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
+    const tiendasSeleccionadas = $('.tienda-checkbox:checked').map(function() { return $(this).val(); }).get();
     
     let form = $('<form>', {
       'method': 'POST',
@@ -368,8 +424,12 @@ $(function() {
     form.append($('<input>', { 'type': 'hidden', 'name': '_token', 'value': "{{ csrf_token() }}" }));
     form.append($('<input>', { 'type': 'hidden', 'name': 'period_start', 'value': start }));
     form.append($('<input>', { 'type': 'hidden', 'name': 'period_end', 'value': end }));
-    if (plaza) form.append($('<input>', { 'type': 'hidden', 'name': 'plaza', 'value': plaza }));
-    if (tienda) form.append($('<input>', { 'type': 'hidden', 'name': 'tienda', 'value': tienda }));
+    plazasSeleccionadas.forEach(function(val) {
+      form.append($('<input>', { 'type': 'hidden', 'name': 'plaza[]', 'value': val }));
+    });
+    tiendasSeleccionadas.forEach(function(val) {
+      form.append($('<input>', { 'type': 'hidden', 'name': 'tienda[]', 'value': val }));
+    });
     
     $('body').append(form);
     form.submit();
@@ -379,13 +439,18 @@ $(function() {
   $('#btn_pdf').on('click', function() {
     const start = $('#period_start').val();
     const end = $('#period_end').val();
-    const plaza = $('#plaza').val();
-    const tienda = $('#tienda').val();
+    const plazasSeleccionadas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
+    const tiendasSeleccionadas = $('.tienda-checkbox:checked').map(function() { return $(this).val(); }).get();
+    
     let url = "{{ url('/reportes/cartera-abonos/pdf') }}";
     url += '?period_start=' + encodeURIComponent(start);
     url += '&period_end=' + encodeURIComponent(end);
-    if (plaza) url += '&plaza=' + encodeURIComponent(plaza);
-    if (tienda) url += '&tienda=' + encodeURIComponent(tienda);
+    plazasSeleccionadas.forEach(function(val) {
+      url += '&plaza[]=' + encodeURIComponent(val);
+    });
+    tiendasSeleccionadas.forEach(function(val) {
+      url += '&tienda[]=' + encodeURIComponent(val);
+    });
     window.open(url, '_blank');
   });
 
@@ -403,78 +468,17 @@ $(function() {
   // Initialize
   updateCurrentPeriodDisplay();
 
-  // Load plazas (placeholder - implement actual loading logic)
-  // This would typically load from an API endpoint
-  setTimeout(function() {
-    $('#plaza').html('<option value="">Todas</option><option value="01">Plaza 01</option><option value="02">Plaza 02</option>');
-  }, 500);
-
-  // Validación en tiempo real cuando se pierde el foco
-  $('#plaza, #tienda').on('blur', function() {
-    const inputElement = this;
-    const filterName = $(this).attr('id');
-    const filterValue = $(this).val().trim();
-    
-    let isValid = true;
-    let errorMessage = '';
-    
-    if (filterValue) {
-      if (filterName === 'plaza') {
-        // Plaza: 5 caracteres, mayúsculas y números
-        const plazaRegex = /^[A-Z0-9]{5}$/;
-        isValid = plazaRegex.test(filterValue);
-        if (!isValid) {
-          errorMessage = 'Formato inválido. Plaza: 5 caracteres, solo mayúsculas y números (Ej: A001)';
-        }
-      } else if (filterName === 'tienda') {
-        // Tienda: hasta 10 caracteres, mayúculas y números
-        const tiendaRegex = /^[A-Z0-9]{1,10}$/;
-        isValid = tiendaRegex.test(filterValue);
-        if (!isValid) {
-          errorMessage = 'Formato inválido. Tienda: hasta 10 caracteres, mayúsculas y números (Ej: B001)';
-        }
-      }
-    }
-    
-    if (!isValid && filterValue) {
-      $(this).addClass('border-danger');
-      $(this).removeClass('border-primary border-secondary');
-      $(this).attr('title', errorMessage);
-      setTimeout(() => {
-        $(this).attr('title', 'Ingrese código ' + filterName + ' (Ej: A001 para plaza, B001 para tienda)');
-        if ($(this).val().trim()) {
-          if ($(this)[0].checkValidity()) {
-            $(this).removeClass('border-danger');
-            $(this).addClass($(this).val().trim() ? 'border-primary' : 'border-secondary');
-          }
-        }
-      }, 3000);
-    } else {
-      $(this).removeClass('border-danger');
-      $(this).addClass(filterValue ? 'border-primary' : 'border-secondary');
-      $(this).attr('title', 'Ingrese código ' + filterName + ' (Ej: A001 para plaza, B001 para tienda)');
-    }
+  // Recargar DataTable cuando cambia cualquier checkbox
+  $('.plaza-checkbox, .tienda-checkbox').on('change', function() {
+    dataTable.ajax.reload();
   });
 
-  // Mantener funcionalidad de actualización cuando se pierde el foco
-  $('#plaza, #tienda').on('change', function() {
-    // Convertir a mayúsculas y validar
-    $(this).val($(this).val().toUpperCase());
-    
-    if ($(this)[0].checkValidity()) {
-      $(this).removeClass('border-danger');
-      $(this).addClass('border-primary');
-      $(this).removeClass('border-secondary');
-    } else {
-      $(this).addClass('border-danger');
-      $(this).removeClass('border-primary border-secondary');
-    }
-    
+  $('#period_start, #period_end').on('change', function() {
     dataTable.ajax.reload();
     updateCurrentPeriodDisplay();
   });
 
-  // Permitir búsqueda rápida con Enter en cualquier campo
+  // Sincronización Modal
   $('#plaza, #tienda').on('keypress', function(e) {
     if (e.which === 13) { // Enter key
       e.preventDefault();
