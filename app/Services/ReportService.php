@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReportService
 {
@@ -15,18 +15,18 @@ class ReportService
     public static function getVendedoresReport(array $filtros): Collection
     {
         // Crear clave de cache única basada en los filtros
-        $cacheKey = 'vendedores_report_' . md5(serialize($filtros));
+        $cacheKey = 'vendedores_report_'.md5(serialize($filtros));
 
         try {
             return Cache::remember($cacheKey, 3600, function () use ($filtros) { // Cache por 1 hora
-            $fecha_inicio = str_replace('-', '', $filtros['fecha_inicio']);
-            $fecha_fin = str_replace('-', '', $filtros['fecha_fin']);
-            $plaza = $filtros['plaza'] ?? '';
-            $tienda = $filtros['tienda'] ?? '';
-            $vendedor = $filtros['vendedor'] ?? '';
+                $fecha_inicio = str_replace('-', '', $filtros['fecha_inicio']);
+                $fecha_fin = str_replace('-', '', $filtros['fecha_fin']);
+                $plaza = $filtros['plaza'] ?? '';
+                $tienda = $filtros['tienda'] ?? '';
+                $vendedor = $filtros['vendedor'] ?? '';
 
-            // Query ULTRA OPTIMIZADA: Subquery correlacionada más eficiente que CTE para PostgreSQL
-            $sql = "
+                // Query ULTRA OPTIMIZADA: Subquery correlacionada más eficiente que CTE para PostgreSQL
+                $sql = "
             SELECT
                 c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
                 c.vend_clave || '-' || EXTRACT(DAY FROM TO_DATE(c.nota_fecha::text, 'YYYYMMDD')) AS vendedor_dia,
@@ -65,65 +65,65 @@ class ReportService
               AND c.ctienda NOT LIKE '%CEDI%'
             ";
 
-            $params = [$fecha_inicio, $fecha_fin];
+                $params = [$fecha_inicio, $fecha_fin];
 
-            // Aplicar filtros
-            if (!empty($plaza)) {
-                $sql .= " AND c.cplaza = ?";
-                $params[] = $plaza;
-            }
-            if (!empty($tienda)) {
-                $sql .= " AND c.ctienda = ?";
-                $params[] = $tienda;
-            }
-            if (!empty($vendedor)) {
-                $sql .= " AND c.vend_clave = ?";
-                $params[] = $vendedor;
-            }
+                // Aplicar filtros
+                if (! empty($plaza)) {
+                    $sql .= ' AND c.cplaza = ?';
+                    $params[] = $plaza;
+                }
+                if (! empty($tienda)) {
+                    $sql .= ' AND c.ctienda = ?';
+                    $params[] = $tienda;
+                }
+                if (! empty($vendedor)) {
+                    $sql .= ' AND c.vend_clave = ?';
+                    $params[] = $vendedor;
+                }
 
-            $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave
+                $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave
                       ORDER BY c.ctienda || '-' || c.vend_clave,
                                c.vend_clave || '-' || TO_CHAR(TO_DATE(c.nota_fecha::text, 'YYYYMMDD'), 'DD')";
 
-            $resultados_raw = DB::select($sql, $params);
+                $resultados_raw = DB::select($sql, $params);
 
-            // Procesar resultados usando collections para mejor rendimiento
-            return collect($resultados_raw)->map(function ($row) {
-                $fecha_str = (string)$row->nota_fecha;
-                $fecha = strlen($fecha_str) == 8 ?
-                    substr($fecha_str, 0, 4) . '-' . substr($fecha_str, 4, 2) . '-' . substr($fecha_str, 6, 2) :
-                    $fecha_str;
+                // Procesar resultados usando collections para mejor rendimiento
+                return collect($resultados_raw)->map(function ($row) {
+                    $fecha_str = (string) $row->nota_fecha;
+                    $fecha = strlen($fecha_str) == 8 ?
+                        substr($fecha_str, 0, 4).'-'.substr($fecha_str, 4, 2).'-'.substr($fecha_str, 6, 2) :
+                        $fecha_str;
 
-                $venta_total = floatval($row->venta_total);
-                $devolucion = floatval($row->devolucion);
-                $venta_neta = $venta_total - $devolucion;
+                    $venta_total = floatval($row->venta_total);
+                    $devolucion = floatval($row->devolucion);
+                    $venta_neta = $venta_total - $devolucion;
 
-                // Ajustar vendedor_dia
-                $vendedor_dia = $row->vendedor_dia;
-                if (!empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
-                    $partes = explode('-', $vendedor_dia);
-                    if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
-                        $dia = substr($fecha_str, 6, 2);
-                        $vendedor_dia = $partes[0] . '-' . $dia;
+                    // Ajustar vendedor_dia
+                    $vendedor_dia = $row->vendedor_dia;
+                    if (! empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
+                        $partes = explode('-', $vendedor_dia);
+                        if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
+                            $dia = substr($fecha_str, 6, 2);
+                            $vendedor_dia = $partes[0].'-'.$dia;
+                        }
                     }
-                }
 
-                return [
-                    'tienda_vendedor' => $row->tienda_vendedor,
-                    'vendedor_dia' => $vendedor_dia,
-                    'plaza_ajustada' => $row->plaza_ajustada,
-                    'ctienda' => $row->ctienda,
-                    'vend_clave' => $row->vend_clave,
-                    'fecha' => $fecha,
-                    'venta_total' => $venta_total,
-                    'devolucion' => $devolucion,
-                    'venta_neta' => $venta_neta
-                ];
+                    return [
+                        'tienda_vendedor' => $row->tienda_vendedor,
+                        'vendedor_dia' => $vendedor_dia,
+                        'plaza_ajustada' => $row->plaza_ajustada,
+                        'ctienda' => $row->ctienda,
+                        'vend_clave' => $row->vend_clave,
+                        'fecha' => $fecha,
+                        'venta_total' => $venta_total,
+                        'devolucion' => $devolucion,
+                        'venta_neta' => $venta_neta,
+                    ];
+                });
             });
-        });
         } catch (\Exception $e) {
             // Si hay error de cache (ej: tabla no existe), ejecutar sin cache
-            Log::warning('Error de cache en getVendedoresReport, ejecutando sin cache: ' . $e->getMessage());
+            Log::warning('Error de cache en getVendedoresReport, ejecutando sin cache: '.$e->getMessage());
 
             // Ejecutar la consulta sin cache
             $fecha_inicio = str_replace('-', '', $filtros['fecha_inicio']);
@@ -155,16 +155,16 @@ class ReportService
             $params = [$fecha_inicio, $fecha_fin];
 
             // Aplicar filtros a la CTE para reducir el conjunto de datos desde el inicio
-            if (!empty($plaza)) {
-                $sql .= " AND v.cplaza = ?";
+            if (! empty($plaza)) {
+                $sql .= ' AND v.cplaza = ?';
                 $params[] = $plaza;
             }
-            if (!empty($tienda)) {
-                $sql .= " AND v.ctienda = ?";
+            if (! empty($tienda)) {
+                $sql .= ' AND v.ctienda = ?';
                 $params[] = $tienda;
             }
-            if (!empty($vendedor)) {
-                $sql .= " AND v.clave_vend = ?";
+            if (! empty($vendedor)) {
+                $sql .= ' AND v.clave_vend = ?';
                 $params[] = $vendedor;
             }
 
@@ -200,16 +200,16 @@ class ReportService
             $params = array_merge($params, [$fecha_inicio, $fecha_fin]);
 
             // Aplicar filtros adicionales a la consulta principal
-            if (!empty($plaza)) {
-                $sql .= " AND c.cplaza = ?";
+            if (! empty($plaza)) {
+                $sql .= ' AND c.cplaza = ?';
                 $params[] = $plaza;
             }
-            if (!empty($tienda)) {
-                $sql .= " AND c.ctienda = ?";
+            if (! empty($tienda)) {
+                $sql .= ' AND c.ctienda = ?';
                 $params[] = $tienda;
             }
-            if (!empty($vendedor)) {
-                $sql .= " AND c.vend_clave = ?";
+            if (! empty($vendedor)) {
+                $sql .= ' AND c.vend_clave = ?';
                 $params[] = $vendedor;
             }
 
@@ -221,9 +221,9 @@ class ReportService
 
             // Procesar resultados usando collections para mejor rendimiento
             return collect($resultados_raw)->map(function ($row) {
-                $fecha_str = (string)$row->nota_fecha;
+                $fecha_str = (string) $row->nota_fecha;
                 $fecha = strlen($fecha_str) == 8 ?
-                    substr($fecha_str, 0, 4) . '-' . substr($fecha_str, 4, 2) . '-' . substr($fecha_str, 6, 2) :
+                    substr($fecha_str, 0, 4).'-'.substr($fecha_str, 4, 2).'-'.substr($fecha_str, 6, 2) :
                     $fecha_str;
 
                 $venta_total = floatval($row->venta_total);
@@ -232,11 +232,11 @@ class ReportService
 
                 // Ajustar vendedor_dia
                 $vendedor_dia = $row->vendedor_dia;
-                if (!empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
+                if (! empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
                     $partes = explode('-', $vendedor_dia);
                     if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
                         $dia = substr($fecha_str, 6, 2);
-                        $vendedor_dia = $partes[0] . '-' . $dia;
+                        $vendedor_dia = $partes[0].'-'.$dia;
                     }
                 }
 
@@ -249,7 +249,7 @@ class ReportService
                     'fecha' => $fecha,
                     'venta_total' => $venta_total,
                     'devolucion' => $devolucion,
-                    'venta_neta' => $venta_neta
+                    'venta_neta' => $venta_neta,
                 ];
             });
         }
@@ -261,18 +261,18 @@ class ReportService
     public static function getVendedoresMatricialReport(array $filtros): array
     {
         // Crear clave de cache para reportes matriciales
-        $cacheKey = 'vendedores_matricial_report_' . md5(serialize($filtros));
+        $cacheKey = 'vendedores_matricial_report_'.md5(serialize($filtros));
 
         try {
             return Cache::remember($cacheKey, 3600, function () use ($filtros) {
-            $fecha_inicio = $filtros['fecha_inicio'];
-            $fecha_fin = $filtros['fecha_fin'];
-            $plaza = $filtros['plaza'] ?? '';
-            $tienda = $filtros['tienda'] ?? '';
-            $vendedor = $filtros['vendedor'] ?? '';
+                $fecha_inicio = $filtros['fecha_inicio'];
+                $fecha_fin = $filtros['fecha_fin'];
+                $plaza = $filtros['plaza'] ?? '';
+                $tienda = $filtros['tienda'] ?? '';
+                $vendedor = $filtros['vendedor'] ?? '';
 
-            // Query ULTRA OPTIMIZADA: Subquery correlacionada para evitar problemas de GROUP BY
-            $sql = "
+                // Query ULTRA OPTIMIZADA: Subquery correlacionada para evitar problemas de GROUP BY
+                $sql = "
             SELECT
                 c.vend_clave,
                 a.nombre,
@@ -308,33 +308,33 @@ class ReportService
               AND c.ctienda NOT LIKE '%CEDI%'
             ";
 
-            $params = [$fecha_inicio, $fecha_fin];
+                $params = [$fecha_inicio, $fecha_fin];
 
-            // Aplicar filtros
-            if (!empty($plaza)) {
-                $sql .= " AND c.cplaza = ?";
-                $params[] = $plaza;
-            }
-            if (!empty($tienda)) {
-                $sql .= " AND c.ctienda = ?";
-                $params[] = $tienda;
-            }
-            if (!empty($vendedor)) {
-                $sql .= " AND c.vend_clave = ?";
-                $params[] = $vendedor;
-            }
+                // Aplicar filtros
+                if (! empty($plaza)) {
+                    $sql .= ' AND c.cplaza = ?';
+                    $params[] = $plaza;
+                }
+                if (! empty($tienda)) {
+                    $sql .= ' AND c.ctienda = ?';
+                    $params[] = $tienda;
+                }
+                if (! empty($vendedor)) {
+                    $sql .= ' AND c.vend_clave = ?';
+                    $params[] = $vendedor;
+                }
 
-            $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave, a.nombre, a.tipo
-                      ORDER BY c.vend_clave, c.nota_fecha";
+                $sql .= ' GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave, a.nombre, a.tipo
+                      ORDER BY c.vend_clave, c.nota_fecha';
 
-            $resultados_raw = DB::select($sql, $params);
+                $resultados_raw = DB::select($sql, $params);
 
-            // Procesar datos matriciales
-            return self::procesarDatosMatriciales($resultados_raw, $fecha_inicio, $fecha_fin);
-        });
+                // Procesar datos matriciales
+                return self::procesarDatosMatriciales($resultados_raw, $fecha_inicio, $fecha_fin);
+            });
         } catch (\Exception $e) {
             // Si hay error de cache, ejecutar sin cache
-            Log::warning('Error de cache en getVendedoresMatricialReport, ejecutando sin cache: ' . $e->getMessage());
+            Log::warning('Error de cache en getVendedoresMatricialReport, ejecutando sin cache: '.$e->getMessage());
 
             // Ejecutar la consulta sin cache
             $fecha_inicio = $filtros['fecha_inicio'];
@@ -383,21 +383,21 @@ class ReportService
             $params = [$fecha_inicio, $fecha_fin];
 
             // Aplicar filtros
-            if (!empty($plaza)) {
-                $sql .= " AND c.cplaza = ?";
+            if (! empty($plaza)) {
+                $sql .= ' AND c.cplaza = ?';
                 $params[] = $plaza;
             }
-            if (!empty($tienda)) {
-                $sql .= " AND c.ctienda = ?";
+            if (! empty($tienda)) {
+                $sql .= ' AND c.ctienda = ?';
                 $params[] = $tienda;
             }
-            if (!empty($vendedor)) {
-                $sql .= " AND c.vend_clave = ?";
+            if (! empty($vendedor)) {
+                $sql .= ' AND c.vend_clave = ?';
                 $params[] = $vendedor;
             }
 
-            $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave, a.nombre, a.tipo
-                      ORDER BY c.vend_clave, c.nota_fecha";
+            $sql .= ' GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave, a.nombre, a.tipo
+                      ORDER BY c.vend_clave, c.nota_fecha';
 
             $resultados_raw = DB::select($sql, $params);
 
@@ -440,21 +440,21 @@ class ReportService
                 $fecha_key = str_replace('-', '', $fecha_key);
             }
 
-            if (!isset($vendedores_info[$vendedor_id])) {
+            if (! isset($vendedores_info[$vendedor_id])) {
                 $vendedores_info[$vendedor_id] = [
                     'nombre' => $nombre,
                     'tipo' => $tipo,
                     'tiendas' => [],
                     'plazas' => [],
-                    'ventas' => []
+                    'ventas' => [],
                 ];
             }
 
-            if (!in_array($tienda_val, $vendedores_info[$vendedor_id]['tiendas'])) {
+            if (! in_array($tienda_val, $vendedores_info[$vendedor_id]['tiendas'])) {
                 $vendedores_info[$vendedor_id]['tiendas'][] = $tienda_val;
             }
 
-            if (!in_array($plaza_val, $vendedores_info[$vendedor_id]['plazas'])) {
+            if (! in_array($plaza_val, $vendedores_info[$vendedor_id]['plazas'])) {
                 $vendedores_info[$vendedor_id]['plazas'][] = $plaza_val;
             }
 
@@ -462,7 +462,7 @@ class ReportService
             $devolucion = floatval($row->devolucion);
             $venta_neta = $venta_total - $devolucion;
 
-            if (!isset($vendedores_info[$vendedor_id]['ventas'][$fecha_key])) {
+            if (! isset($vendedores_info[$vendedor_id]['ventas'][$fecha_key])) {
                 $vendedores_info[$vendedor_id]['ventas'][$fecha_key] = 0;
             }
             $vendedores_info[$vendedor_id]['ventas'][$fecha_key] += $venta_neta;
@@ -470,7 +470,7 @@ class ReportService
 
         return [
             'vendedores_info' => $vendedores_info,
-            'dias' => $dias
+            'dias' => $dias,
         ];
     }
 
@@ -484,7 +484,7 @@ class ReportService
             'total_ventas' => 0,
             'total_devoluciones' => 0,
             'total_neto' => 0,
-            'total_registros' => $resultados->count()
+            'total_registros' => $resultados->count(),
         ];
 
         // Procesar en chunks de 1000 registros para evitar memory exhaustion
@@ -512,7 +512,7 @@ class ReportService
      */
     public static function getMetasVentasReport(array $filtros): array
     {
-        $cacheKey = 'metas_ventas_report_' . md5(serialize($filtros));
+        $cacheKey = 'metas_ventas_report_'.md5(serialize($filtros));
 
         try {
             return Cache::remember($cacheKey, 3600, function () use ($filtros) {
@@ -522,11 +522,11 @@ class ReportService
 
                 return [
                     'resultados' => $resultados,
-                    'estadisticas' => $estadisticas
+                    'estadisticas' => $estadisticas,
                 ];
             });
         } catch (\Exception $e) {
-            Log::warning('Error de cache en getMetasVentasReport, ejecutando sin cache: ' . $e->getMessage());
+            Log::warning('Error de cache en getMetasVentasReport, ejecutando sin cache: '.$e->getMessage());
 
             // Ejecutar sin cache
             $resultados = \App\Models\ReporteMetasVentas::obtenerReporte($filtros);
@@ -534,7 +534,7 @@ class ReportService
 
             return [
                 'resultados' => $resultados,
-                'estadisticas' => $estadisticas
+                'estadisticas' => $estadisticas,
             ];
         }
     }
@@ -544,14 +544,14 @@ class ReportService
      */
     public static function getVentaAcumulada(string $fecha, string $plaza = '', string $tienda = ''): array
     {
-        $cacheKey = 'venta_acumulada_' . md5($fecha . $plaza . $tienda);
+        $cacheKey = 'venta_acumulada_'.md5($fecha.$plaza.$tienda);
 
         try {
             return Cache::remember($cacheKey, 1800, function () use ($fecha, $plaza, $tienda) {
                 // Obtener el primer día del mes
                 $primer_dia_mes = date('Y-m-01', strtotime($fecha));
 
-                $sql = "
+                $sql = '
                     SELECT
                         cplaza,
                         tienda,
@@ -561,21 +561,21 @@ class ReportService
                         ) AS venta_acumulada_mes
                     FROM xcorte
                     WHERE fecha BETWEEN ? AND ?
-                ";
+                ';
 
                 $params = [$primer_dia_mes, $fecha];
 
-                if (!empty($plaza)) {
-                    $sql .= " AND cplaza = ?";
+                if (! empty($plaza)) {
+                    $sql .= ' AND cplaza = ?';
                     $params[] = $plaza;
                 }
 
-                if (!empty($tienda)) {
-                    $sql .= " AND tienda = ?";
+                if (! empty($tienda)) {
+                    $sql .= ' AND tienda = ?';
                     $params[] = $tienda;
                 }
 
-                $sql .= " GROUP BY cplaza, tienda";
+                $sql .= ' GROUP BY cplaza, tienda';
 
                 $resultados = DB::select($sql, $params);
 
@@ -584,16 +584,16 @@ class ReportService
                     'fecha' => $fecha,
                     'primer_dia_mes' => $primer_dia_mes,
                     'data' => $resultados,
-                    'total_acumulado' => array_sum(array_column($resultados, 'venta_acumulada_mes'))
+                    'total_acumulado' => array_sum(array_column($resultados, 'venta_acumulada_mes')),
                 ];
             });
         } catch (\Exception $e) {
-            Log::warning('Error de cache en getVentaAcumulada, ejecutando sin cache: ' . $e->getMessage());
+            Log::warning('Error de cache en getVentaAcumulada, ejecutando sin cache: '.$e->getMessage());
 
             // Ejecutar sin cache
             $primer_dia_mes = date('Y-m-01', strtotime($fecha));
 
-            $sql = "
+            $sql = '
                 SELECT
                     cplaza,
                     tienda,
@@ -603,21 +603,21 @@ class ReportService
                     ) AS venta_acumulada_mes
                 FROM xcorte
                 WHERE fecha BETWEEN ? AND ?
-            ";
+            ';
 
             $params = [$primer_dia_mes, $fecha];
 
-            if (!empty($plaza)) {
-                $sql .= " AND cplaza = ?";
+            if (! empty($plaza)) {
+                $sql .= ' AND cplaza = ?';
                 $params[] = $plaza;
             }
 
-            if (!empty($tienda)) {
-                $sql .= " AND tienda = ?";
+            if (! empty($tienda)) {
+                $sql .= ' AND tienda = ?';
                 $params[] = $tienda;
             }
 
-            $sql .= " GROUP BY cplaza, tienda";
+            $sql .= ' GROUP BY cplaza, tienda';
 
             $resultados = DB::select($sql, $params);
 
@@ -626,7 +626,7 @@ class ReportService
                 'fecha' => $fecha,
                 'primer_dia_mes' => $primer_dia_mes,
                 'data' => $resultados,
-                'total_acumulado' => array_sum(array_column($resultados, 'venta_acumulada_mes'))
+                'total_acumulado' => array_sum(array_column($resultados, 'venta_acumulada_mes')),
             ];
         }
     }
@@ -639,7 +639,7 @@ class ReportService
         try {
             Cache::flush(); // Limpiar toda la cache (o usar tags específicos)
         } catch (\Exception $e) {
-            Log::warning('Error al limpiar cache: ' . $e->getMessage());
+            Log::warning('Error al limpiar cache: '.$e->getMessage());
             // Continuar sin cache si hay error
         }
     }
@@ -649,14 +649,15 @@ class ReportService
      */
     public static function getMetasMatricialReport(array $filtros): array
     {
-        $cacheKey = 'metas_matricial_report_' . md5(serialize($filtros));
+        $cacheKey = 'metas_matricial_report_'.md5(serialize($filtros));
 
         try {
             return Cache::remember($cacheKey, 3600, function () use ($filtros) {
                 return self::procesarMetasMatricial($filtros);
             });
         } catch (\Exception $e) {
-            Log::warning('Error de cache en getMetasMatricialReport, ejecutando sin cache: ' . $e->getMessage());
+            Log::warning('Error de cache en getMetasMatricialReport, ejecutando sin cache: '.$e->getMessage());
+
             return self::procesarMetasMatricial($filtros);
         }
     }
@@ -701,12 +702,12 @@ class ReportService
         ";
 
         // Obtener suma_valor_dia por tienda para el rango completo
-        $sumaValorDiaQuery = "
+        $sumaValorDiaQuery = '
         SELECT tienda, SUM(valor_dia) as suma_valor_dia
         FROM metas
         WHERE fecha BETWEEN ? AND ?
         GROUP BY tienda
-        ";
+        ';
         $sumaValorDiaData = DB::select($sumaValorDiaQuery, [$fecha_inicio, $fecha_fin]);
         $sumasValorDia = [];
         foreach ($sumaValorDiaData as $row) {
@@ -716,20 +717,20 @@ class ReportService
         $params = [$fecha_inicio, $fecha_fin];
 
         // Aplicar filtros
-        if (!empty($plaza)) {
-            $sql .= " AND xc.cplaza = ?";
+        if (! empty($plaza)) {
+            $sql .= ' AND xc.cplaza = ?';
             $params[] = $plaza;
         }
-        if (!empty($tienda)) {
-            $sql .= " AND xc.tienda = ?";
+        if (! empty($tienda)) {
+            $sql .= ' AND xc.tienda = ?';
             $params[] = $tienda;
         }
-        if (!empty($zona)) {
-            $sql .= " AND bst.zona = ?";
+        if (! empty($zona)) {
+            $sql .= ' AND bst.zona = ?';
             $params[] = $zona;
         }
 
-        $sql .= " ORDER BY xc.cplaza, bst.zona, xc.ctienda, xc.fecha";
+        $sql .= ' ORDER BY xc.cplaza, bst.zona, xc.ctienda, xc.fecha';
 
         $rawData = DB::select($sql, $params);
 
@@ -747,7 +748,7 @@ class ReportService
         foreach ($rawData as $row) {
             $tienda = $row->tienda;
 
-            if (!in_array($tienda, $tiendas)) {
+            if (! in_array($tienda, $tiendas)) {
                 $tiendas[] = $tienda;
 
                 // Información básica de la tienda
@@ -761,7 +762,7 @@ class ReportService
                     'tienda' => $tienda,
                     'meta_total' => $row->meta_total,
                     'dias_totales' => $row->dias_total,
-                    'suma_valor_dia' => $sumasValorDia[$row->clave_tienda ?? $tienda] ?? 0
+                    'suma_valor_dia' => $sumasValorDia[$row->clave_tienda ?? $tienda] ?? 0,
                 ];
 
                 // Debug: si suma_valor_dia es 0, intentar con clave alternativa
@@ -779,9 +780,20 @@ class ReportService
                     'venta_contado' => $row->venta_contado,
                     'venta_credito' => $row->venta_credito,
                     'meta_dia' => $row->meta_dia,
-                    'porcentaje' => $row->porcentaje
+                    'porcentaje' => $row->porcentaje,
                 ];
             }
+        }
+
+        // Asegurar que matriz['info'] y matriz['datos'] existan aunque no haya datos
+        if (! isset($matriz['info'])) {
+            $matriz['info'] = [];
+        }
+        if (! isset($matriz['datos'])) {
+            $matriz['datos'] = [];
+        }
+        if (! isset($matriz['totales'])) {
+            $matriz['totales'] = [];
         }
 
         // Calcular totales por tienda
@@ -798,7 +810,7 @@ class ReportService
                 'total' => $totalVentas,
                 'objetivo' => $objetivo,
                 'porcentaje_total' => $objetivo > 0 ? ($totalVentas / $objetivo) * 100 : 0,
-                'meta_total' => $meta_total
+                'meta_total' => $meta_total,
             ];
         }
 
@@ -813,36 +825,38 @@ class ReportService
         }
 
         // Calcular totales por zona
-        $zonas = array_unique(array_column($matriz['info'], 'zona'));
         $totales_zona = [];
-        foreach ($zonas as $zona) {
-            $tiendas_zona = array_filter($tiendas, fn($t) => $matriz['info'][$t]['zona'] === $zona);
-            $total = 0;
-            $objetivo = 0;
-            $meta_total = 0;
-            $suma_valor_dia = 0;
-            foreach ($tiendas_zona as $tienda) {
-                $total += $matriz['totales'][$tienda]['total'] ?? 0;
-                $objetivo += $matriz['totales'][$tienda]['objetivo'] ?? 0;
-                $meta_total += $matriz['info'][$tienda]['meta_total'] ?? 0;
-                $suma_valor_dia += $matriz['info'][$tienda]['suma_valor_dia'] ?? 0;
-            }
-            $totales_zona[$zona] = [
-                'total' => $total,
-                'objetivo' => $objetivo,
-                'porcentaje_total' => $objetivo > 0 ? ($total / $objetivo) * 100 : 0,
-                'meta_total' => $meta_total,
-                'suma_valor_dia' => $suma_valor_dia,
-                'dias_totales' => $matriz['info'][reset($tiendas_zona)]['dias_totales'] ?? count($fechas),
-                'datos_diarios' => []
-            ];
-            // Datos diarios por zona
-            foreach ($fechas as $fecha) {
-                $suma_zona_fecha = 0;
+        if (! empty($tiendas) && ! empty($matriz['info'])) {
+            $zonas = array_unique(array_column($matriz['info'], 'zona'));
+            foreach ($zonas as $zona) {
+                $tiendas_zona = array_filter($tiendas, fn ($t) => $matriz['info'][$t]['zona'] === $zona);
+                $total = 0;
+                $objetivo = 0;
+                $meta_total = 0;
+                $suma_valor_dia = 0;
                 foreach ($tiendas_zona as $tienda) {
-                    $suma_zona_fecha += $matriz['datos'][$tienda][$fecha]['total'] ?? 0;
+                    $total += $matriz['totales'][$tienda]['total'] ?? 0;
+                    $objetivo += $matriz['totales'][$tienda]['objetivo'] ?? 0;
+                    $meta_total += $matriz['info'][$tienda]['meta_total'] ?? 0;
+                    $suma_valor_dia += $matriz['info'][$tienda]['suma_valor_dia'] ?? 0;
                 }
-                $totales_zona[$zona]['datos_diarios'][$fecha] = $suma_zona_fecha;
+                $totales_zona[$zona] = [
+                    'total' => $total,
+                    'objetivo' => $objetivo,
+                    'porcentaje_total' => $objetivo > 0 ? ($total / $objetivo) * 100 : 0,
+                    'meta_total' => $meta_total,
+                    'suma_valor_dia' => $suma_valor_dia,
+                    'dias_totales' => $matriz['info'][reset($tiendas_zona)]['dias_totales'] ?? count($fechas),
+                    'datos_diarios' => [],
+                ];
+                // Datos diarios por zona
+                foreach ($fechas as $fecha) {
+                    $suma_zona_fecha = 0;
+                    foreach ($tiendas_zona as $tienda) {
+                        $suma_zona_fecha += $matriz['datos'][$tienda][$fecha]['total'] ?? 0;
+                    }
+                    $totales_zona[$zona]['datos_diarios'][$fecha] = $suma_zona_fecha;
+                }
             }
         }
 
@@ -850,7 +864,7 @@ class ReportService
         $plazas = array_unique(array_column($matriz['info'], 'plaza'));
         $totales_plaza = [];
         foreach ($plazas as $plaza) {
-            $zonas_plaza = array_unique(array_column(array_filter($matriz['info'], fn($info) => $info['plaza'] === $plaza), 'zona'));
+            $zonas_plaza = array_unique(array_column(array_filter($matriz['info'], fn ($info) => $info['plaza'] === $plaza), 'zona'));
             $total = 0;
             $objetivo = 0;
             $meta_total = 0;
@@ -868,7 +882,7 @@ class ReportService
                 'meta_total' => $meta_total,
                 'suma_valor_dia' => $suma_valor_dia,
                 'dias_totales' => $totales_zona[reset($zonas_plaza)]['dias_totales'] ?? count($fechas),
-                'datos_diarios' => []
+                'datos_diarios' => [],
             ];
             // Datos diarios por plaza
             foreach ($fechas as $fecha) {
@@ -887,7 +901,7 @@ class ReportService
             'suma_diaria' => $suma_diaria,
             'dias_totales' => count($fechas),
             'totales_zona' => $totales_zona,
-            'totales_plaza' => $totales_plaza
+            'totales_plaza' => $totales_plaza,
         ];
     }
 

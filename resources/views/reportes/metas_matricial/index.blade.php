@@ -6,6 +6,7 @@
 <div class="d-flex justify-content-between align-items-center">
     <h1><i class="fas fa-chart-bar text-success"></i> Metas de Ventas - Matricial</h1>
     <div>
+        @hasPermission('reportes.metas_matricial.exportar')
         <form id="export-excel-form" method="POST" action="{{ route('reportes.metas-matricial.export') }}" style="display: inline;">
             @csrf
             <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
@@ -28,9 +29,12 @@
                 </button>
             </form>
         </form>
+        @endhasPermission
+        @hasPermission('reportes.metas_matricial.ver')
         <a href="{{ url()->current() }}" class="btn btn-primary ml-2">
             <i class="fas fa-sync-alt"></i> Recargar
         </a>
+        @endhasPermission
     </div>
 </div>
 @stop
@@ -53,16 +57,40 @@
                     <input type="date" name="fecha_fin" value="{{ $fecha_fin }}" class="form-control">
                 </div>
                 <div class="col-md-2">
-                    <label>Plaza</label>
-                    <input type="text" name="plaza" value="{{ $plaza }}" class="form-control" placeholder="Opcional">
+                    <label>Plazas</label>
+                    <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
+                        <div class="form-check">
+                            <input type="checkbox" id="select_all_plazas" class="form-check-input">
+                            <label for="select_all_plazas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
+                        </div>
+                        @foreach($plazas as $p)
+                        <div class="form-check">
+                            <input type="checkbox" name="plaza[]" value="{{ $p }}" id="plaza_{{ $p }}" class="form-check-input plaza-checkbox"
+                                   {{ is_array($plaza) && in_array($p, $plaza) ? 'checked' : '' }}>
+                            <label for="plaza_{{ $p }}" class="form-check-label">{{ $p }}</label>
+                        </div>
+                        @endforeach
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <label>Tienda</label>
-                    <input type="text" name="tienda" value="{{ $tienda }}" class="form-control" placeholder="Opcional">
+                    <label>Tiendas</label>
+                    <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
+                        <div class="form-check">
+                            <input type="checkbox" id="select_all_tiendas" class="form-check-input">
+                            <label for="select_all_tiendas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
+                        </div>
+                        @foreach($tiendas as $t)
+                        <div class="form-check">
+                            <input type="checkbox" name="tienda[]" value="{{ $t }}" id="tienda_{{ $t }}" class="form-check-input tienda-checkbox"
+                                   {{ is_array($tienda) && in_array($t, $tienda) ? 'checked' : '' }}>
+                            <label for="tienda_{{ $t }}" class="form-check-label">{{ $t }}</label>
+                        </div>
+                        @endforeach
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label>Zona</label>
-                    <input type="text" name="zona" value="{{ $zona }}" class="form-control" placeholder="Opcional">
+                    <input type="text" name="zona" value="{{ $zona ?? '' }}" class="form-control" placeholder="Opcional">
                 </div>
                 <div class="col-md-2">
                     <label>&nbsp;</label>
@@ -74,6 +102,23 @@
         </div>
     </form>
 </div>
+
+<script>
+$(function() {
+    $('#select_all_plazas').on('change', function() {
+        $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+    });
+    
+    $('#select_all_tiendas').on('change', function() {
+        $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
+    });
+    
+    const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
+    const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
+    $('#select_all_plazas').prop('checked', todasPlazas);
+    $('#select_all_tiendas').prop('checked', todasTiendas);
+});
+</script>
 
 @if(isset($datos) && !empty($datos['tiendas']))
 <!-- Tabla Matricial Jerárquica -->

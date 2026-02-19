@@ -1,19 +1,18 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\ReporteVendedoresController;
-use App\Http\Controllers\ReporteVendedoresMatricialController;
-use App\Http\Controllers\ReporteMetasVentasController;
-use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteComprasDirectoController;
+use App\Http\Controllers\ReporteMetasMatricialController;
+use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
 use App\Http\Controllers\Reportes\NotasCompletasController;
+use App\Http\Controllers\ReporteVendedoresController;
+use App\Http\Controllers\ReporteVendedoresMatricialController;
 use App\Http\Controllers\UserController;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check() ? redirect()->route('home') : redirect()->route('login');
 });
 
 Route::get('/home', function () {
@@ -25,7 +24,7 @@ Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login'
 Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
 
 // Rutas de usuarios (protegidas por auth)
-Route::middleware('auth')->prefix('admin/usuarios')->group(function () {
+Route::middleware(['auth', 'web'])->prefix('admin/usuarios')->group(function () {
     Route::get('/', [UserController::class, 'index'])->name('usuarios.index');
     Route::get('/data', [UserController::class, 'data'])->name('usuarios.data');
     Route::post('/', [UserController::class, 'store'])->name('usuarios.store');
@@ -34,33 +33,34 @@ Route::middleware('auth')->prefix('admin/usuarios')->group(function () {
     Route::delete('/{user}', [UserController::class, 'destroy'])->name('usuarios.destroy');
 });
 
-Route::middleware('web')->prefix('reportes')->group(function () {
+// Rutas de reportes
+Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
     Route::get('vendedores', [ReporteVendedoresController::class, 'index'])
         ->name('reportes.vendedores');
-    
+
     Route::post('vendedores/export', [ReporteVendedoresController::class, 'export'])
         ->name('reportes.vendedores.export');
-    
+
     Route::post('vendedores/export-csv', [ReporteVendedoresController::class, 'exportCsv'])
         ->name('reportes.vendedores.export.csv');
-    
+
     Route::post('vendedores/export-pdf', [ReporteVendedoresController::class, 'exportPdf'])
         ->name('reportes.vendedores.export.pdf');
     Route::get('vendedores-matricial', [ReporteVendedoresMatricialController::class, 'index'])
         ->name('reportes.vendedores.matricial');
-    
+
     // Exportar Excel
     Route::post('vendedores-matricial/export-excel', [ReporteVendedoresMatricialController::class, 'exportExcel'])
         ->name('reportes.vendedores.matricial.export.excel');
-    
+
     // Exportar PDF
     Route::post('vendedores-matricial/export-pdf', [ReporteVendedoresMatricialController::class, 'exportPdf'])
         ->name('reportes.vendedores.matricial.export.pdf');
-    
+
     // Exportar CSV
     Route::post('vendedores-matricial/export-csv', [ReporteVendedoresMatricialController::class, 'exportCsv'])
         ->name('reportes.vendedores.matricial.export.csv');
-     
+
     Route::get('metas-ventas', [ReporteMetasVentasController::class, 'index'])->name('reportes.metas-ventas');
     Route::post('metas-ventas/export', [ReporteMetasVentasController::class, 'export'])->name('reportes.metas-ventas.export');
     Route::post('metas-ventas/export/pdf', [ReporteMetasVentasController::class, 'exportPdf'])->name('reportes.metas-ventas.export.pdf');
@@ -69,7 +69,7 @@ Route::middleware('web')->prefix('reportes')->group(function () {
     // NUEVO REPORTE: Metas Matricial (sin permisos)
     Route::get('metas-matricial', [ReporteMetasMatricialController::class, 'index'])
         ->name('reportes.metas-matricial.index');
-    
+
     // API REST para consulta personalizada de metas
     Route::post('metas/consultar-datos', [ReporteMetasVentasController::class, 'consultarDatosPersonalizados'])
         ->name('reportes.metas.consultar_datos');
@@ -96,6 +96,7 @@ Route::middleware('web')->prefix('reportes')->group(function () {
         ->name('reportes.cartera-abonos.export.csv');
     // Sync Cartera Abonos Cache
     Route::post('cartera-abonos/sync', [CarteraAbonosController::class, 'sync'])
+        ->middleware('can:reportes.cartera_abonos.sincronizar')
         ->name('reportes.cartera-abonos.sync');
 
     // Notas Completas - Reporte
@@ -108,6 +109,7 @@ Route::middleware('web')->prefix('reportes')->group(function () {
     Route::post('notas-completas/export-csv', [NotasCompletasController::class, 'exportCsv'])
         ->name('reportes.notas-completas.export.csv');
     Route::post('notas-completas/sync', [NotasCompletasController::class, 'sync'])
+        ->middleware('can:reportes.notas_completas.sincronizar')
         ->name('reportes.notas-completas.sync');
 
     // Listas dinámicas para filtros (removidas: no se usan patrones de listas externas)
@@ -126,19 +128,57 @@ Route::middleware('web')->prefix('reportes')->group(function () {
     Route::post('compras-directo/export-pdf', [ReporteComprasDirectoController::class, 'exportPdf'])
         ->name('reportes.compras-directo.export.pdf');
     Route::post('compras-directo/sync', [ReporteComprasDirectoController::class, 'sync'])
+        ->middleware('can:reportes.compras_directo.sincronizar')
         ->name('reportes.compras-directo.sync');
 
-
-
 });
-
-
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('distributions', \App\Http\Controllers\DistributionsController::class);
     Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update']);
     Route::resource('groups', \App\Http\Controllers\GroupsController::class);
     Route::resource('agent-versions', \App\Http\Controllers\AgentVersionsController::class);
+
+    // User Plaza Tienda - Solo super_admin
+    Route::middleware('can:admin.usuarios.ver')->group(function () {
+        Route::get('user-plaza-tienda', [\App\Http\Controllers\UserPlazaTiendaController::class, 'index'])->name('user-plaza-tienda.index');
+        Route::get('user-plaza-tienda/{user}/edit', [\App\Http\Controllers\UserPlazaTiendaController::class, 'edit'])->name('user-plaza-tienda.edit');
+    });
+
+    Route::middleware('can:admin.usuarios.editar')->group(function () {
+        Route::put('user-plaza-tienda/{user}', [\App\Http\Controllers\UserPlazaTiendaController::class, 'update'])->name('user-plaza-tienda.update');
+    });
+
+    // Tiendas - Solo super_admin
+    Route::middleware('can:tiendas.ver')->group(function () {
+        Route::get('tiendas', [\App\Http\Controllers\TiendasController::class, 'index'])->name('tiendas.index');
+        Route::get('tiendas/data', [\App\Http\Controllers\TiendasController::class, 'data'])->name('tiendas.data');
+        Route::get('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'show'])->name('tiendas.show');
+    });
+
+    Route::middleware('can:tiendas.crear')->group(function () {
+        Route::post('tiendas', [\App\Http\Controllers\TiendasController::class, 'store'])->name('tiendas.store');
+    });
+
+    Route::middleware('can:tiendas.editar')->group(function () {
+        Route::put('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'update'])->name('tiendas.update');
+    });
+
+    Route::middleware('can:tiendas.eliminar')->group(function () {
+        Route::delete('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'destroy'])->name('tiendas.destroy');
+    });
+
+    Route::middleware('can:tiendas.crear')->group(function () {
+        Route::post('tiendas', [\App\Http\Controllers\TiendasController::class, 'store'])->name('tiendas.store');
+    });
+
+    Route::middleware('can:tiendas.editar')->group(function () {
+        Route::put('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'update'])->name('tiendas.update');
+    });
+
+    Route::middleware('can:tiendas.eliminar')->group(function () {
+        Route::delete('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'destroy'])->name('tiendas.destroy');
+    });
 });
 
 // Agent API routes (no auth, no CSRF for agents)

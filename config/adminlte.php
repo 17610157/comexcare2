@@ -298,8 +298,8 @@ return [
     |
     */
 
-        'menu' => [
-    
+    'menu' => [
+
         ['header' => 'account_settings'],
         [
             'text' => 'Usuarios',
@@ -307,9 +307,24 @@ return [
             'icon' => 'fas fa-users',
         ],
         [
-            'text' => 'profile',
-            'url' => 'admin/settings',
-            'icon' => 'fas fa-fw fa-user',
+            'text' => 'Roles',
+            'url' => 'admin/roles',
+            'icon' => 'fas fa-user-tag',
+        ],
+        [
+            'text' => 'Permisos',
+            'url' => 'admin/permissions',
+            'icon' => 'fas fa-shield-alt',
+        ],
+        [
+            'text' => 'Tiendas',
+            'url' => 'admin/tiendas',
+            'icon' => 'fas fa-store',
+        ],
+        [
+            'text' => 'Asignación de Usuarios a Plaza/Tienda',
+            'url' => 'admin/user-plaza-tienda',
+            'icon' => 'fas fa-user-friends',
         ],
         [
             'text' => 'Metas',
@@ -376,7 +391,7 @@ return [
                     'text' => 'Reporte Notas completas',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/notas-completas',
-                ]
+                ],
             ],
         ],
     ],

@@ -155,15 +155,22 @@
       
       <div class="row mt-3">
         <div class="col-md-12 d-flex align-items-end justify-content-end">
+          @hasPermission('reportes.cartera_abonos.filtrar')
           <button id="btn_search" class="btn btn-success btn-sm me-2">
             <i class="fas fa-search"></i> Buscar
           </button>
+          @endhasPermission
+          @hasPermission('reportes.cartera_abonos.ver')
           <button id="btn_refresh" class="btn btn-primary btn-sm me-2" title="Recargar datos">
             <i class="fas fa-sync-alt"></i> Actualizar
           </button>
+          @endhasPermission
+          @hasPermission('reportes.cartera_abonos.filtrar')
           <button id="btn_reset_filters" class="btn btn-secondary btn-sm me-2" title="Limpiar filtros">
             <i class="fas fa-undo"></i> Limpiar
           </button>
+          @endhasPermission
+          @hasPermission('reportes.cartera_abonos.exportar')
           <div class="btn-group me-2" role="group">
             <button id="btn_excel" class="btn btn-success btn-sm" title="Exportar Excel">
               <i class="fas fa-file-excel"></i>
@@ -175,6 +182,7 @@
               <i class="fas fa-file-pdf"></i>
             </button>
           </div>
+          @endhasPermission
           <button id="btn_streaming" class="btn btn-outline-primary btn-sm" title="Activar streaming en tiempo real">
             <i class="fas fa-broadcast-tower"></i> Streaming
           </button>
