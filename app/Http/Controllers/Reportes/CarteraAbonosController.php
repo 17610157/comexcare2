@@ -2,27 +2,51 @@
 
 namespace App\Http\Controllers\Reportes;
 
+use App\Exports\CarteraAbonosExport;
+use App\Helpers\RoleHelper;
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
-use App\Exports\CarteraAbonosExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class CarteraAbonosController extends Controller
 {
     public function index()
     {
-        return view('reportes.cartera_abonos.index');
+        $startDefault = Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = Carbon::parse('last day of previous month')->toDateString();
+
+        $plazas = DB::table('cartera_abonos_cache')
+            ->distinct()
+            ->orderBy('plaza')
+            ->pluck('plaza')
+            ->filter()
+            ->values();
+
+        $tiendas = DB::table('cartera_abonos_cache')
+            ->distinct()
+            ->orderBy('tienda')
+            ->pluck('tienda')
+            ->filter()
+            ->values();
+
+        return view('reportes.cartera_abonos.index', compact('plazas', 'tiendas', 'startDefault', 'endDefault'));
     }
 
     public function data(Request $request)
     {
-        Log::info('CarteraAbonos data request', ['url' => $request->fullUrl(), 'params' => $request->all()]);
-        
+        $userFilter = RoleHelper::getUserFilter();
+
+        if (! $userFilter['allowed']) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        Log::info('CarteraAbonos data request', ['url' => $request->fullUrl(), 'params' => $request->all(), 'filter' => $userFilter]);
+
         $start = Carbon::parse('first day of previous month')->toDateString();
-        $end   = Carbon::parse('last day of previous month')->toDateString();
+        $end = Carbon::parse('last day of previous month')->toDateString();
         if ($request->filled('period_start')) {
             $start = $request->input('period_start');
         }
@@ -40,24 +64,53 @@ class CarteraAbonosController extends Controller
         try {
             $query = DB::table('cartera_abonos_cache');
 
-            if (!empty($search)) {
-                $query->where(function($q) use ($search) {
+            // Filtros según el rol del usuario
+            if (! empty($userFilter['plaza'])) {
+                $plazaUserFilter = $userFilter['plaza'];
+                if (is_array($plazaUserFilter)) {
+                    $query->whereIn('plaza', $plazaUserFilter);
+                } else {
+                    $query->where('plaza', $plazaUserFilter);
+                }
+            }
+
+            if (! empty($userFilter['tienda'])) {
+                $tiendaUserFilter = $userFilter['tienda'];
+                if (is_array($tiendaUserFilter)) {
+                    $query->whereIn('tienda', $tiendaUserFilter);
+                } else {
+                    $query->where('tienda', $tiendaUserFilter);
+                }
+            }
+
+            if (! empty($search)) {
+                $query->where(function ($q) use ($search) {
                     $q->where('plaza', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('tienda', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('nombre', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('rfc', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('factura', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('clave', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('vend_clave', 'ILIKE', '%'.$search.'%');
+                        ->orWhere('tienda', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('nombre', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('rfc', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('factura', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('clave', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('vend_clave', 'ILIKE', '%'.$search.'%');
                 });
             }
 
             if ($request->filled('plaza') && $request->input('plaza') !== '') {
-                $query->where('plaza', trim($request->input('plaza')));
+                $plazaFilter = $request->input('plaza');
+                if (is_array($plazaFilter) && count($plazaFilter) > 0) {
+                    $query->whereIn('plaza', $plazaFilter);
+                } elseif (! is_array($plazaFilter)) {
+                    $query->where('plaza', trim($plazaFilter));
+                }
             }
 
             if ($request->filled('tienda') && $request->input('tienda') !== '') {
-                $query->where('tienda', trim($request->input('tienda')));
+                $tiendaFilter = $request->input('tienda');
+                if (is_array($tiendaFilter) && count($tiendaFilter) > 0) {
+                    $query->whereIn('tienda', $tiendaFilter);
+                } elseif (! is_array($tiendaFilter)) {
+                    $query->where('tienda', trim($tiendaFilter));
+                }
             }
 
             $query->whereBetween('fecha', [$start, $end]);
@@ -71,13 +124,14 @@ class CarteraAbonosController extends Controller
 
             return response()->json([
                 'draw' => $draw,
-                'recordsTotal' => (int)$total,
-                'recordsFiltered' => (int)$total,
-                'data' => $data
+                'recordsTotal' => (int) $total,
+                'recordsFiltered' => (int) $total,
+                'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('CarteraAbonos data error: ' . $e->getMessage());
-            return response()->json(['draw' => (int)$request->input('draw', 1), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
+            Log::error('CarteraAbonos data error: '.$e->getMessage());
+
+            return response()->json(['draw' => (int) $request->input('draw', 1), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
         }
     }
 
@@ -85,7 +139,7 @@ class CarteraAbonosController extends Controller
     public function pdf(Request $request)
     {
         $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
-        $end   = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
+        $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
 
         try {
             $query = DB::table('cartera_abonos_cache')
@@ -101,14 +155,17 @@ class CarteraAbonosController extends Controller
 
             $data = $query->orderBy('plaza')->orderBy('tienda')->orderBy('fecha')->get();
 
-            $filename = 'cartera_abonos_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.pdf';
+            $filename = 'cartera_abonos_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.pdf';
             if (class_exists('\Barryvdh\DomPDF\Facade\Pdf')) {
                 $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reportes.cartera_abonos.cartera_abonos_pdf', ['data' => $data, 'start' => $start, 'end' => $end]);
+
                 return $pdf->download($filename);
             }
+
             return view('reportes.cartera_abonos.cartera_abonos_pdf', ['data' => $data, 'start' => $start, 'end' => $end]);
         } catch (\Exception $e) {
-            Log::error('CarteraAbonos PDF error: ' . $e->getMessage());
+            Log::error('CarteraAbonos PDF error: '.$e->getMessage());
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -121,11 +178,12 @@ class CarteraAbonosController extends Controller
         $tienda = $request->input('tienda', '');
 
         try {
-            $filename = 'cartera_abonos_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.xlsx';
+            $filename = 'cartera_abonos_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.xlsx';
 
             return Excel::download(new CarteraAbonosExport($start, $end, $plaza, $tienda), $filename);
         } catch (\Exception $e) {
-            Log::error('CarteraAbonos Excel error: ' . $e->getMessage());
+            Log::error('CarteraAbonos Excel error: '.$e->getMessage());
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -149,22 +207,22 @@ class CarteraAbonosController extends Controller
 
             $count = $query->count();
 
-            $filename = 'cartera_abonos_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.csv';
-            
+            $filename = 'cartera_abonos_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.csv';
+
             $headers = [
                 'Content-Type' => 'text/csv',
                 'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ];
 
-            $callback = function() use ($query, $count) {
+            $callback = function () use ($query) {
                 $file = fopen('php://output', 'w');
-                
+
                 fputcsv($file, [
                     'Plaza', 'Tienda', 'Fecha', 'Fecha Vta', 'Concepto', 'Tipo', 'Factura',
                     'Clave', 'RFC', 'Nombre', 'Vendedor', 'Monto FA', 'Monto DV', 'Monto CD',
-                    'Días Crédito', 'Días Vencidos'
+                    'Días Crédito', 'Días Vencidos',
                 ]);
-                
+
                 $query->orderBy('plaza')->orderBy('tienda')->orderBy('fecha')
                     ->chunk(1000, function ($rows) use ($file) {
                         foreach ($rows as $row) {
@@ -184,17 +242,18 @@ class CarteraAbonosController extends Controller
                                 $row->monto_dv ?? 0,
                                 $row->monto_cd ?? 0,
                                 $row->dias_cred ?? 0,
-                                $row->dias_vencidos ?? 0
+                                $row->dias_vencidos ?? 0,
                             ]);
                         }
                     });
-                
+
                 fclose($file);
             };
 
             return response()->stream($callback, 200, $headers);
         } catch (\Exception $e) {
-            Log::error('CarteraAbonos CSV error: ' . $e->getMessage());
+            Log::error('CarteraAbonos CSV error: '.$e->getMessage());
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -202,7 +261,7 @@ class CarteraAbonosController extends Controller
     public function sync(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:lastMonth,lastDays,day,period,full'
+            'type' => 'required|in:lastMonth,lastDays,day,period,full',
         ]);
 
         $type = $request->input('type');
@@ -238,7 +297,7 @@ class CarteraAbonosController extends Controller
 
         try {
             // Si es full o no append, truncamos la tabla
-            if (!$append || $type === 'full') {
+            if (! $append || $type === 'full') {
                 DB::statement('TRUNCATE TABLE cartera_abonos_cache RESTART IDENTITY CASCADE');
             } else {
                 // Solo eliminar los registros del período seleccionado
@@ -286,13 +345,14 @@ class CarteraAbonosController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Sincronización completada. Registros: {$count} (Período: {$start} - {$end})"
+                'message' => "Sincronización completada. Registros: {$count} (Período: {$start} - {$end})",
             ]);
         } catch (\Exception $e) {
-            Log::error('CarteraAbonos sync error: ' . $e->getMessage());
+            Log::error('CarteraAbonos sync error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

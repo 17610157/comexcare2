@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ComprasDirectoExport;
+use App\Helpers\RoleHelper;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Exports\ComprasDirectoExport;
-use Carbon\Carbon;
 
 class ReporteComprasDirectoController extends Controller
 {
@@ -17,7 +18,24 @@ class ReporteComprasDirectoController extends Controller
      */
     public function index(Request $request)
     {
-        return view('reportes.compras.directo.index');
+        $startDefault = Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = Carbon::parse('last day of previous month')->toDateString();
+
+        $plazas = DB::table('compras_directo_cache')
+            ->distinct()
+            ->orderBy('cplaza')
+            ->pluck('cplaza')
+            ->filter()
+            ->values();
+
+        $tiendas = DB::table('compras_directo_cache')
+            ->distinct()
+            ->orderBy('ctienda')
+            ->pluck('ctienda')
+            ->filter()
+            ->values();
+
+        return view('reportes.compras.directo.index', compact('plazas', 'tiendas', 'startDefault', 'endDefault'));
     }
 
     /**
@@ -25,10 +43,16 @@ class ReporteComprasDirectoController extends Controller
      */
     public function data(Request $request)
     {
-        Log::info('ComprasDirecto data request', ['url' => $request->fullUrl(), 'params' => $request->all()]);
-        
+        $userFilter = RoleHelper::getUserFilter();
+
+        if (! $userFilter['allowed']) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        Log::info('ComprasDirecto data request', ['url' => $request->fullUrl(), 'params' => $request->all(), 'filter' => $userFilter]);
+
         $start = Carbon::parse('first day of previous month')->toDateString();
-        $end   = Carbon::parse('last day of previous month')->toDateString();
+        $end = Carbon::parse('last day of previous month')->toDateString();
         if ($request->filled('period_start')) {
             $start = $request->input('period_start');
         }
@@ -46,29 +70,63 @@ class ReporteComprasDirectoController extends Controller
         try {
             $query = DB::table('compras_directo_cache');
 
-            if (!empty($search)) {
-                $query->where(function($q) use ($search) {
+            // Filtros según el rol del usuario
+            if (! empty($userFilter['plaza'])) {
+                $plazaUserFilter = $userFilter['plaza'];
+                if (is_array($plazaUserFilter)) {
+                    $query->whereIn('cplaza', $plazaUserFilter);
+                } else {
+                    $query->where('cplaza', $plazaUserFilter);
+                }
+            }
+
+            if (! empty($userFilter['tienda'])) {
+                $tiendaUserFilter = $userFilter['tienda'];
+                if (is_array($tiendaUserFilter)) {
+                    $query->whereIn('ctienda', $tiendaUserFilter);
+                } else {
+                    $query->where('ctienda', $tiendaUserFilter);
+                }
+            }
+
+            if (! empty($search)) {
+                $query->where(function ($q) use ($search) {
                     $q->where('cplaza', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('ctienda', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('clave_pro', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('nombre_proveedor', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('clave_art', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('descripcion', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('no_referen', 'ILIKE', '%'.$search.'%')
-                      ->orWhere('no_fact_pr', 'ILIKE', '%'.$search.'%');
+                        ->orWhere('ctienda', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('clave_pro', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('nombre_proveedor', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('clave_art', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('descripcion', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('no_referen', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('no_fact_pr', 'ILIKE', '%'.$search.'%');
                 });
             }
 
             if ($request->filled('plaza') && $request->input('plaza') !== '') {
-                $query->where('cplaza', trim($request->input('plaza')));
+                $plazaFilter = $request->input('plaza');
+                if (is_array($plazaFilter) && count($plazaFilter) > 0) {
+                    $query->whereIn('cplaza', $plazaFilter);
+                } elseif (! is_array($plazaFilter)) {
+                    $query->where('cplaza', trim($plazaFilter));
+                }
             }
 
             if ($request->filled('tienda') && $request->input('tienda') !== '') {
-                $query->where('ctienda', trim($request->input('tienda')));
+                $tiendaFilter = $request->input('tienda');
+                if (is_array($tiendaFilter) && count($tiendaFilter) > 0) {
+                    $query->whereIn('ctienda', $tiendaFilter);
+                } elseif (! is_array($tiendaFilter)) {
+                    $query->where('ctienda', trim($tiendaFilter));
+                }
             }
 
             if ($request->filled('proveedor') && $request->input('proveedor') !== '') {
-                $query->where('clave_pro', trim($request->input('proveedor')));
+                $proveedorFilter = $request->input('proveedor');
+                if (is_array($proveedorFilter) && count($proveedorFilter) > 0) {
+                    $query->whereIn('clave_pro', $proveedorFilter);
+                } elseif (! is_array($proveedorFilter)) {
+                    $query->where('clave_pro', trim($proveedorFilter));
+                }
             }
 
             $query->whereBetween('f_emision', [$start, $end]);
@@ -82,13 +140,14 @@ class ReporteComprasDirectoController extends Controller
 
             return response()->json([
                 'draw' => $draw,
-                'recordsTotal' => (int)$total,
-                'recordsFiltered' => (int)$total,
-                'data' => $data
+                'recordsTotal' => (int) $total,
+                'recordsFiltered' => (int) $total,
+                'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('ComprasDirecto data error: ' . $e->getMessage());
-            return response()->json(['draw' => (int)$request->input('draw', 1), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
+            Log::error('ComprasDirecto data error: '.$e->getMessage());
+
+            return response()->json(['draw' => (int) $request->input('draw', 1), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
         }
     }
 
@@ -105,31 +164,30 @@ class ReporteComprasDirectoController extends Controller
             $proveedor = $request->input('proveedor', '');
 
             $format = $request->input('format', 'xlsx');
-            $filename = 'Reporte_Compras_Directo_' . date('Ymd_His');
+            $filename = 'Reporte_Compras_Directo_'.date('Ymd_His');
 
             if ($format === 'csv') {
-                return Excel::download(new ComprasDirectoExport($start, $end, $plaza, $tienda, $proveedor), 
-                    $filename . '.csv', 
+                return Excel::download(new ComprasDirectoExport($start, $end, $plaza, $tienda, $proveedor),
+                    $filename.'.csv',
                     \Maatwebsite\Excel\Excel::CSV,
                     [
                         'Content-Type' => 'text/csv',
-                        'Content-Disposition' => 'attachment; filename="' . $filename . '.csv"',
+                        'Content-Disposition' => 'attachment; filename="'.$filename.'.csv"',
                     ]
                 );
             } else {
-                return Excel::download(new ComprasDirectoExport($start, $end, $plaza, $tienda, $proveedor), 
-                    $filename . '.xlsx'
+                return Excel::download(new ComprasDirectoExport($start, $end, $plaza, $tienda, $proveedor),
+                    $filename.'.xlsx'
                 );
             }
-            
+
         } catch (\Exception $e) {
-            Log::error('Error en export: ' . $e->getMessage());
+            Log::error('Error en export: '.$e->getMessage());
+
             return redirect()->route('reportes.compras-directo', $request->all())
-                ->with('error', 'Error al exportar: ' . $e->getMessage());
+                ->with('error', 'Error al exportar: '.$e->getMessage());
         }
     }
-
-
 
     /**
      * Exportar a PDF
@@ -148,7 +206,7 @@ class ReporteComprasDirectoController extends Controller
                 'fecha_fin' => $fecha_fin,
                 'plaza' => $plaza,
                 'tienda' => $tienda,
-                'proveedor' => $proveedor
+                'proveedor' => $proveedor,
             ];
 
             // Usar la misma consulta del index
@@ -187,27 +245,27 @@ class ReporteComprasDirectoController extends Controller
 
             $params = [$fecha_inicio, $fecha_fin];
 
-            if (!empty($plaza)) {
-                $sql .= " AND c.cplaza = ?";
+            if (! empty($plaza)) {
+                $sql .= ' AND c.cplaza = ?';
                 $params[] = $plaza;
             }
-            if (!empty($tienda)) {
-                $sql .= " AND c.ctienda = ?";
-                    $params[] = $tienda;
+            if (! empty($tienda)) {
+                $sql .= ' AND c.ctienda = ?';
+                $params[] = $tienda;
             }
-            if (!empty($proveedor)) {
-                $sql .= " AND c.clave_pro = ?";
-                    $params[] = $proveedor;
+            if (! empty($proveedor)) {
+                $sql .= ' AND c.clave_pro = ?';
+                $params[] = $proveedor;
             }
 
-            $sql .= " ORDER BY c.cplaza, c.ctienda, c.f_emision";
+            $sql .= ' ORDER BY c.cplaza, c.ctienda, c.f_emision';
 
             $resultados = DB::select($sql, $params);
 
             // Preparar datos para PDF
             $datos_con_numeracion = [];
             foreach ($resultados as $index => $item) {
-                $datos_con_numeracion[] = array_merge(['no' => $index + 1], (array)$item);
+                $datos_con_numeracion[] = array_merge(['no' => $index + 1], (array) $item);
             }
 
             // Calcular estadísticas
@@ -225,17 +283,18 @@ class ReporteComprasDirectoController extends Controller
                 'total_cantidad' => $total_cantidad,
                 'total_registros' => count($datos_con_numeracion),
                 'promedio_precio' => $total_cantidad > 0 ? $total_compras / $total_cantidad : 0,
-                'fecha_reporte' => date('d/m/Y H:i:s')
+                'fecha_reporte' => date('d/m/Y H:i:s'),
             ];
 
             $pdf = Pdf::loadView('reportes.compras.directo.pdf', $data);
 
-            return $pdf->download('Reporte_Compras_Directo_' . date('Ymd_His') . '.pdf');
+            return $pdf->download('Reporte_Compras_Directo_'.date('Ymd_His').'.pdf');
 
         } catch (\Exception $e) {
-            Log::error('Error al generar PDF en ReporteComprasDirectoController: ' . $e->getMessage());
+            Log::error('Error al generar PDF en ReporteComprasDirectoController: '.$e->getMessage());
+
             return redirect()->route('reportes.compras.directo', $request->all())
-                ->with('error', 'Error al generar PDF: ' . $e->getMessage());
+                ->with('error', 'Error al generar PDF: '.$e->getMessage());
         }
     }
 
@@ -250,7 +309,7 @@ class ReporteComprasDirectoController extends Controller
                 'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
                 'plaza' => $request->input('plaza', ''),
                 'tienda' => $request->input('tienda', ''),
-                'proveedor' => $request->input('proveedor', '')
+                'proveedor' => $request->input('proveedor', ''),
             ];
 
             // Usar la misma consulta del index
@@ -289,20 +348,20 @@ class ReporteComprasDirectoController extends Controller
 
             $params = [$fecha_inicio, $fecha_fin];
 
-            if (!empty($plaza)) {
-                $sql .= " AND c.cplaza = ?";
+            if (! empty($plaza)) {
+                $sql .= ' AND c.cplaza = ?';
                 $params[] = $plaza;
             }
-            if (!empty($tienda)) {
-                $sql .= " AND c.ctienda = ?";
-                    $params[] = $tienda;
+            if (! empty($tienda)) {
+                $sql .= ' AND c.ctienda = ?';
+                $params[] = $tienda;
             }
-            if (!empty($proveedor)) {
-                $sql .= " AND c.clave_pro = ?";
-                    $params[] = $proveedor;
+            if (! empty($proveedor)) {
+                $sql .= ' AND c.clave_pro = ?';
+                $params[] = $proveedor;
             }
 
-            $sql .= " ORDER BY c.cplaza, c.ctienda, c.f_emision";
+            $sql .= ' ORDER BY c.cplaza, c.ctienda, c.f_emision';
 
             $resultados = DB::select($sql, $params);
 
@@ -328,7 +387,7 @@ class ReporteComprasDirectoController extends Controller
                     'k_agrupa' => $item->k_agrupa,
                     'k_familia' => $item->k_familia,
                     'k_subfam' => $item->k_subfam,
-                    'total' => floatval($item->total)
+                    'total' => floatval($item->total),
                 ];
             }
 
@@ -343,15 +402,16 @@ class ReporteComprasDirectoController extends Controller
                     'total_compras' => $total_compras,
                     'total_cantidad' => $total_cantidad,
                     'total_registros' => count($resultados_array),
-                    'promedio_precio' => $total_cantidad > 0 ? $total_compras / $total_cantidad : 0
-                ]
+                    'promedio_precio' => $total_cantidad > 0 ? $total_compras / $total_cantidad : 0,
+                ],
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error en API ReporteComprasDirectoController: ' . $e->getMessage());
+            Log::error('Error en API ReporteComprasDirectoController: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -367,29 +427,30 @@ class ReporteComprasDirectoController extends Controller
         $tienda = $filtros['tienda'] ?? '';
         $proveedor = $filtros['proveedor'] ?? '';
 
-        $sql = "SELECT COUNT(*) as total
+        $sql = 'SELECT COUNT(*) as total
                 FROM compras c
                 JOIN partcomp p ON c.ctienda=p.ctienda AND c.cplaza=p.cplaza AND c.tipo_doc=p.tipo_doc AND c.no_referen=p.no_referen
                 JOIN proveed por ON por.clave_pro = c.clave_pro AND c.ctienda=por.ctienda AND c.cplaza=por.cplaza
                 JOIN grupos pr ON p.clave_art=pr.clave 
-                WHERE c.f_emision BETWEEN ? AND ?";
+                WHERE c.f_emision BETWEEN ? AND ?';
 
         $params = [$fecha_inicio, $fecha_fin];
 
-        if (!empty($plaza)) {
-            $sql .= " AND c.cplaza = ?";
+        if (! empty($plaza)) {
+            $sql .= ' AND c.cplaza = ?';
             $params[] = $plaza;
         }
-        if (!empty($tienda)) {
-            $sql .= " AND c.ctienda = ?";
+        if (! empty($tienda)) {
+            $sql .= ' AND c.ctienda = ?';
             $params[] = $tienda;
         }
-        if (!empty($proveedor)) {
-            $sql .= " AND c.clave_pro = ?";
+        if (! empty($proveedor)) {
+            $sql .= ' AND c.clave_pro = ?';
             $params[] = $proveedor;
         }
 
         $result = DB::select($sql, $params);
+
         return $result[0]->total ?? 0;
     }
 
@@ -399,7 +460,7 @@ class ReporteComprasDirectoController extends Controller
     public function sync(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:lastMonth,lastDays,day,period,full'
+            'type' => 'required|in:lastMonth,lastDays,day,period,full',
         ]);
 
         $type = $request->input('type');
@@ -435,7 +496,7 @@ class ReporteComprasDirectoController extends Controller
 
         try {
             // Si es full o no append, truncamos la tabla
-            if (!$append || $type === 'full') {
+            if (! $append || $type === 'full') {
                 DB::statement('TRUNCATE TABLE compras_directo_cache RESTART IDENTITY CASCADE');
             } else {
                 // Solo eliminar los registros del período seleccionado
@@ -481,13 +542,14 @@ class ReporteComprasDirectoController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Sincronización completada. Registros: {$count} (Período: {$start} - {$end})"
+                'message' => "Sincronización completada. Registros: {$count} (Período: {$start} - {$end})",
             ]);
         } catch (\Exception $e) {
-            Log::error('ComprasDirecto sync error: ' . $e->getMessage());
+            Log::error('ComprasDirecto sync error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -501,11 +563,12 @@ class ReporteComprasDirectoController extends Controller
         $proveedor = $request->input('proveedor', '');
 
         try {
-            $filename = 'compras_directo_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.xlsx';
+            $filename = 'compras_directo_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.xlsx';
 
             return Excel::download(new ComprasDirectoExport($start, $end, $plaza, $tienda, $proveedor), $filename);
         } catch (\Exception $e) {
-            Log::error('ComprasDirecto Excel error: ' . $e->getMessage());
+            Log::error('ComprasDirecto Excel error: '.$e->getMessage());
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -531,23 +594,23 @@ class ReporteComprasDirectoController extends Controller
                 $query->where('clave_pro', trim($request->input('proveedor')));
             }
 
-            $filename = 'compras_directo_'.str_replace('-','',$start).'_to_'.str_replace('-','',$end).'.csv';
-            
+            $filename = 'compras_directo_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.csv';
+
             $headers = [
                 'Content-Type' => 'text/csv',
                 'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ];
 
-            $callback = function() use ($query) {
+            $callback = function () use ($query) {
                 $file = fopen('php://output', 'w');
-                
+
                 fputcsv($file, [
                     'Plaza', 'Tienda', 'Tipo Doc', 'No Referencia', 'Tipo Doc A',
                     'No Factura', 'Clave Proveedor', 'Nombre Proveedor', 'Cuenta',
                     'Fecha Emisión', 'Clave Artículo', 'Descripción', 'Cantidad',
-                    'Precio Unitario', 'Agrupa', 'Familia', 'Subfamilia', 'Total'
+                    'Precio Unitario', 'Agrupa', 'Familia', 'Subfamilia', 'Total',
                 ]);
-                
+
                 $query->orderBy('f_emision')->orderBy('ctienda')->orderBy('no_referen')
                     ->chunk(1000, function ($rows) use ($file) {
                         foreach ($rows as $row) {
@@ -569,17 +632,18 @@ class ReporteComprasDirectoController extends Controller
                                 $row->k_agrupa ?? '',
                                 $row->k_familia ?? '',
                                 $row->k_subfam ?? '',
-                                $row->total ?? 0
+                                $row->total ?? 0,
                             ]);
                         }
                     });
-                
+
                 fclose($file);
             };
 
             return response()->stream($callback, 200, $headers);
         } catch (\Exception $e) {
-            Log::error('ComprasDirecto CSV error: ' . $e->getMessage());
+            Log::error('ComprasDirecto CSV error: '.$e->getMessage());
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

@@ -19,13 +19,15 @@
             <div class="row g-2">
                 <div class="col-6 col-md-3">
                     <label for="filter_rol" class="form-label small mb-1">Rol</label>
-                    <select id="filter_rol" class="form-control form-control-sm">
-                        <option value="">Todos</option>
-                        <option value="admin">Admin</option>
-                        <option value="vendedor">Vendedor</option>
-                        <option value="gerente">Gerente</option>
-                        <option value="encargado">Encargado</option>
-                    </select>
+                        <select id="filter_rol" class="form-control form-control-sm">
+                            <option value="">Todos</option>
+                            <option value="vendedor">Vendedor</option>
+                            <option value="gerente_tienda">Gerente de Tienda</option>
+                            <option value="gerente_plaza">Gerente de Plaza</option>
+                            <option value="coordinador">Coordinador</option>
+                            <option value="administrativo">Administrativo</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
                 </div>
                 <div class="col-6 col-md-3">
                     <label for="filter_activo" class="form-label small mb-1">Estado</label>
@@ -49,9 +51,11 @@
                             <i class="fas fa-undo"></i> Limpiar
                         </button>
                     </div>
+                    @hasPermission('admin.usuarios.crear')
                     <button id="btn_create" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#userModal">
                         <i class="fas fa-plus"></i> Nuevo Usuario
                     </button>
+                    @endhasPermission
                 </div>
             </div>
         </div>
@@ -137,9 +141,11 @@
                             <label for="rol" class="form-label">Rol *</label>
                             <select class="form-select" id="rol" name="rol" required>
                                 <option value="vendedor">Vendedor</option>
-                                <option value="gerente">Gerente</option>
-                                <option value="encargado">Encargado</option>
-                                <option value="admin">Admin</option>
+                                <option value="gerente_tienda">Gerente de Tienda</option>
+                                <option value="gerente_plaza">Gerente de Plaza</option>
+                                <option value="coordinador">Coordinador</option>
+                                <option value="administrativo">Administrativo</option>
+                                <option value="super_admin">Super Admin</option>
                             </select>
                         </div>
                     </div>
@@ -258,10 +264,12 @@ $(function() {
             { data: 'tienda', className: 'text-center' },
             { data: 'rol', className: 'text-center', render: function(data) {
                 const roles = {
-                    'admin': '<span class="badge bg-danger">Admin</span>',
                     'vendedor': '<span class="badge bg-primary">Vendedor</span>',
-                    'gerente': '<span class="badge bg-success">Gerente</span>',
-                    'encargado': '<span class="badge bg-warning text-dark">Encargado</span>'
+                    'gerente_tienda': '<span class="badge bg-info">Gerente Tienda</span>',
+                    'gerente_plaza': '<span class="badge bg-success">Gerente Plaza</span>',
+                    'coordinador': '<span class="badge bg-warning text-dark">Coordinador</span>',
+                    'administrativo': '<span class="badge bg-secondary">Administrativo</span>',
+                    'super_admin': '<span class="badge bg-danger">Super Admin</span>'
                 };
                 return roles[data] || data;
             }},
