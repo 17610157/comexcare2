@@ -32,32 +32,12 @@ class ReporteMetasVentasController extends Controller
         // Vista dinámica según el tipo de visualización
         $vista_tipo = $request->input('vista_tipo', 'card'); // 'card' por defecto, 'tabla' para tabla
 
-        // Listas para filtros (limitadas por el filtro del usuario)
-        $plazasQuery = DB::table('bi_sys_tiendas')
-            ->distinct()
-            ->whereNotNull('id_plaza')
-            ->orderBy('id_plaza');
-
-        $tiendasQuery = DB::table('bi_sys_tiendas')
-            ->distinct()
-            ->whereNotNull('clave_tienda')
-            ->orderBy('clave_tienda');
-
-        // Aplicar filtro de plazas asignadas al usuario
-        $plazasAsignadas = $userFilter['plazas_asignadas'] ?? [];
-        $tiendasAsignadas = $userFilter['tiendas_asignadas'] ?? [];
-
-        if (! empty($plazasAsignadas)) {
-            $plazasQuery->whereIn('id_plaza', $plazasAsignadas);
-            $tiendasQuery->whereIn('id_plaza', $plazasAsignadas);
-        }
-
-        if (! empty($tiendasAsignadas)) {
-            $tiendasQuery->whereIn('clave_tienda', $tiendasAsignadas);
-        }
-
-        $plazas = $plazasQuery->pluck('id_plaza')->filter()->values();
-        $tiendas = $tiendasQuery->pluck('clave_tienda')->filter()->values();
+        // Obtener listas para filtros usando el helper
+        $listas = RoleHelper::getListasParaFiltros();
+        $plazas = $listas['plazas'];
+        $tiendas = $listas['tiendas'];
+        $plazasAsignadas = $listas['plazas_asignadas'];
+        $tiendasAsignadas = $listas['tiendas_asignadas'];
 
         $zonas = DB::table('bi_sys_tiendas')
             ->distinct()
@@ -172,6 +152,58 @@ class ReporteMetasVentasController extends Controller
         return Excel::download(new MetasVentasExport($filtros),
             'Reporte_Metas_Ventas_'.date('Ymd_His').'.xlsx'
         );
+    }
+
+    /**
+     * Exportar a CSV
+     */
+    public function exportCsv(Request $request)
+    {
+        $plazaInput = $request->input('plaza', '');
+        $tiendaInput = $request->input('tienda', '');
+        $zonaInput = $request->input('zona', '');
+
+        $filtros = [
+            'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
+            'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
+            'plaza' => is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput,
+            'tienda' => is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput,
+            'zona' => is_array($zonaInput) ? implode(',', $zonaInput) : $zonaInput,
+        ];
+
+        $datos = ReportService::getMetasVentasReport($filtros);
+        $resultados = $datos['resultados'];
+
+        $filename = 'Reporte_Metas_Ventas_'.date('Ymd_His').'.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ];
+
+        $callback = function () use ($resultados) {
+            $file = fopen('php://output', 'w');
+
+            fputcsv($file, [
+                'Plaza', 'Tienda', 'Zona', 'Meta Total', 'Venta Total', 'Porcentaje', 'Días Trabajados'
+            ]);
+
+            foreach ($resultados as $row) {
+                fputcsv($file, [
+                    $row['plaza'] ?? '',
+                    $row['tienda'] ?? '',
+                    $row['zona'] ?? '',
+                    $row['meta_total'] ?? 0,
+                    $row['venta_total'] ?? 0,
+                    $row['porcentaje'] ?? 0,
+                    $row['dias_trabajados'] ?? 0,
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**

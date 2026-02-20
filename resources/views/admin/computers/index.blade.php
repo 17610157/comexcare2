@@ -32,7 +32,9 @@
                             <td>{{ $computer->last_seen ? $computer->last_seen->diffForHumans() : 'Never' }}</td>
                             <td>
                                 <a href="{{ route('admin.computers.show', $computer) }}" class="btn btn-info btn-sm">View</a>
+                                @can('distribution.editar')
                                 <a href="{{ route('admin.computers.edit', $computer) }}" class="btn btn-warning btn-sm">Edit</a>
+                                @endcan
                             </td>
                         </tr>
                     @endforeach

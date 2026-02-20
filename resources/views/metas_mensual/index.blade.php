@@ -663,19 +663,22 @@
                             <input type="file" class="custom-file-input" id="excel" name="excel" aria-label="Archivo Excel" required>
                             <label class="custom-file-label" for="excel">Archivo Excel</label>
                         </div>
+                @can('metas.importar')
                 <button class="btn btn-primary" type="submit" aria-label="Importar" data-toggle="tooltip" title="Importar"><i class="fas fa-upload"></i></button>
+                @endcan
                         </form>       
             </div>
             
         <div class="btn-group" role="group" aria-label="Metas actions">
+            @can('metas.crear')
             <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalCreateMain" aria-label="Nueva Meta" title="Nueva Meta"><i class="fas fa-plus"></i></button>
+            @endcan
             <button class="btn btn-secondary btn-sm ml-2" data-toggle="modal" data-target="#modalPeriodo" aria-label="Buscar periodo" title="Buscar periodo"><i class="fas fa-search"></i></button>
             <button class="btn btn-secondary btn-sm ml-2" onclick="location.reload()" aria-label="Recargar" title="Recargar"><i class="fas fa-sync"></i></button>
+            @can('metas.crear')
             <button id="generate-dias-btn" class="btn btn-warning btn-sm ml-2" aria-label="Generar Metas Dias" data-toggle="tooltip" title="Generar Metas Dias"><i class="fas fa-upload"></i></button>
-            <button type="button" class="btn btn-secondary btn-sm ml-2" onclick="runPerformanceTest()" title="Pruebas de Velocidad">
-                <i class="fas fa-tachometer-alt"></i> Pruebas Velocidad
-            </button>
             <button id="btnGenerarMetas" class="btn btn-info btn-sm ml-2" aria-label="Generar Metas" title="Generar Metas"><i class="fas fa-calculator"></i> Generar Metas</button>
+            @endcan
             <!-- Publicar Metas button moved to a form for reliability -->
         </div>
                     </div>

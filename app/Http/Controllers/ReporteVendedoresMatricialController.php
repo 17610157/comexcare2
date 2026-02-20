@@ -33,32 +33,12 @@ class ReporteVendedoresMatricialController extends Controller
         $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
         $vendedor = $request->input('vendedor', '');
 
-        // Listas para filtros (limitadas por el filtro del usuario)
-        $plazasQuery = DB::table('bi_sys_tiendas')
-            ->distinct()
-            ->whereNotNull('id_plaza')
-            ->orderBy('id_plaza');
-
-        $tiendasQuery = DB::table('bi_sys_tiendas')
-            ->distinct()
-            ->whereNotNull('clave_tienda')
-            ->orderBy('clave_tienda');
-
-        // Aplicar filtro de plazas asignadas al usuario
-        $plazasAsignadas = $userFilter['plazas_asignadas'] ?? [];
-        $tiendasAsignadas = $userFilter['tiendas_asignadas'] ?? [];
-
-        if (! empty($plazasAsignadas)) {
-            $plazasQuery->whereIn('id_plaza', $plazasAsignadas);
-            $tiendasQuery->whereIn('id_plaza', $plazasAsignadas);
-        }
-
-        if (! empty($tiendasAsignadas)) {
-            $tiendasQuery->whereIn('clave_tienda', $tiendasAsignadas);
-        }
-
-        $plazas = $plazasQuery->pluck('id_plaza')->filter()->values();
-        $tiendas = $tiendasQuery->pluck('clave_tienda')->filter()->values();
+        // Obtener listas para filtros usando el helper
+        $listas = RoleHelper::getListasParaFiltros();
+        $plazas = $listas['plazas'];
+        $tiendas = $listas['tiendas'];
+        $plazasAsignadas = $listas['plazas_asignadas'];
+        $tiendasAsignadas = $listas['tiendas_asignadas'];
 
         // Procesar valores del request, validando contra asignaciones del usuario
         $plazaInput = $request->input('plaza', '');

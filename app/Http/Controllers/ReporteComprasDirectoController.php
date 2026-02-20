@@ -18,22 +18,20 @@ class ReporteComprasDirectoController extends Controller
      */
     public function index(Request $request)
     {
+        $userFilter = RoleHelper::getUserFilter();
+
+        if (!$userFilter['allowed']) {
+            return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
+        }
+
         $startDefault = Carbon::parse('first day of previous month')->toDateString();
         $endDefault = Carbon::parse('last day of previous month')->toDateString();
 
-        $plazas = DB::table('compras_directo_cache')
-            ->distinct()
-            ->orderBy('cplaza')
-            ->pluck('cplaza')
-            ->filter()
-            ->values();
-
-        $tiendas = DB::table('compras_directo_cache')
-            ->distinct()
-            ->orderBy('ctienda')
-            ->pluck('ctienda')
-            ->filter()
-            ->values();
+        // Obtener listas filtradas por asignaciones del usuario
+        $listas = RoleHelper::getListasParaFiltros();
+        
+        $plazas = $listas['plazas'];
+        $tiendas = $listas['tiendas'];
 
         return view('reportes.compras.directo.index', compact('plazas', 'tiendas', 'startDefault', 'endDefault'));
     }
@@ -67,8 +65,22 @@ class ReporteComprasDirectoController extends Controller
         $lengthInt = (int) $length;
         $offsetInt = (int) $startIdx;
 
+        // Obtener tiendas permitidas usando el helper
+        $tiendasPermitidas = RoleHelper::getTiendasAcceso();
+        $plazasPermitidas = $userFilter['plazas_asignadas'] ?? [];
+
         try {
             $query = DB::table('compras_directo_cache');
+
+            // Filtros según el rol del usuario - plazas
+            if (!empty($plazasPermitidas)) {
+                $query->whereIn('cplaza', $plazasPermitidas);
+            }
+
+            // Filtros según el rol del usuario - tiendas específicas
+            if (!empty($tiendasPermitidas)) {
+                $query->whereIn('ctienda', $tiendasPermitidas);
+            }
 
             // Filtros según el rol del usuario
             if (! empty($userFilter['plaza'])) {

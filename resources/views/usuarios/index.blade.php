@@ -280,14 +280,18 @@ $(function() {
                 return data ? new Date(data).toLocaleDateString('es-MX') : '';
             }},
             { data: 'id', className: 'text-center', render: function(data, type, row) {
-                return `
-                    <button class="btn btn-sm btn-primary btn-edit" data-id="${data}" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger btn-delete" data-id="${data}" data-name="${row.name}" title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `;
+                let buttons = '';
+                @can('admin.usuarios.editar')
+                buttons += `<button class="btn btn-sm btn-primary btn-edit" data-id="${data}" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button> `;
+                @endcan
+                @can('admin.usuarios.eliminar')
+                buttons += `<button class="btn btn-sm btn-danger btn-delete" data-id="${data}" data-name="${row.name}" title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                </button>`;
+                @endcan
+                return buttons;
             }, orderable: false }
         ]
     });

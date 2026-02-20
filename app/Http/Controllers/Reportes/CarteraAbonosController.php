@@ -15,22 +15,20 @@ class CarteraAbonosController extends Controller
 {
     public function index()
     {
+        $userFilter = RoleHelper::getUserFilter();
+
+        if (!$userFilter['allowed']) {
+            return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
+        }
+
         $startDefault = Carbon::parse('first day of previous month')->toDateString();
         $endDefault = Carbon::parse('last day of previous month')->toDateString();
 
-        $plazas = DB::table('cartera_abonos_cache')
-            ->distinct()
-            ->orderBy('plaza')
-            ->pluck('plaza')
-            ->filter()
-            ->values();
-
-        $tiendas = DB::table('cartera_abonos_cache')
-            ->distinct()
-            ->orderBy('tienda')
-            ->pluck('tienda')
-            ->filter()
-            ->values();
+        // Obtener listas filtradas por asignaciones del usuario
+        $listas = RoleHelper::getListasParaFiltros();
+        
+        $plazas = $listas['plazas'];
+        $tiendas = $listas['tiendas'];
 
         return view('reportes.cartera_abonos.index', compact('plazas', 'tiendas', 'startDefault', 'endDefault'));
     }
@@ -61,26 +59,21 @@ class CarteraAbonosController extends Controller
         $lengthInt = (int) $length;
         $offsetInt = (int) $startIdx;
 
+        // Obtener tiendas permitidas usando el helper
+        $tiendasPermitidas = RoleHelper::getTiendasAcceso();
+        $plazasPermitidas = $userFilter['plazas_asignadas'] ?? [];
+
         try {
             $query = DB::table('cartera_abonos_cache');
 
-            // Filtros según el rol del usuario
-            if (! empty($userFilter['plaza'])) {
-                $plazaUserFilter = $userFilter['plaza'];
-                if (is_array($plazaUserFilter)) {
-                    $query->whereIn('plaza', $plazaUserFilter);
-                } else {
-                    $query->where('plaza', $plazaUserFilter);
-                }
+            // Filtros según el rol del usuario - plazas
+            if (!empty($plazasPermitidas)) {
+                $query->whereIn('plaza', $plazasPermitidas);
             }
 
-            if (! empty($userFilter['tienda'])) {
-                $tiendaUserFilter = $userFilter['tienda'];
-                if (is_array($tiendaUserFilter)) {
-                    $query->whereIn('tienda', $tiendaUserFilter);
-                } else {
-                    $query->where('tienda', $tiendaUserFilter);
-                }
+            // Filtros según el rol del usuario - tiendas específicas
+            if (!empty($tiendasPermitidas)) {
+                $query->whereIn('tienda', $tiendasPermitidas);
             }
 
             if (! empty($search)) {
