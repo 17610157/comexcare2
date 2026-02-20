@@ -9,7 +9,9 @@
 @section('content')
     <div class="card">
         <div class="card-header">
+            @can('distribution.crear')
             <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createDistributionModal">Create Distribution</button>
+            @endcan
         </div>
         <div class="card-body">
             <table class="table table-bordered">
@@ -33,7 +35,9 @@
                             <td>{{ $distribution->creator->name ?? 'N/A' }}</td>
                             <td>
                                 <a href="{{ route('admin.distributions.show', $distribution) }}" class="btn btn-info btn-sm">View</a>
+                                @can('distribution.eliminar')
                                 <button class="btn btn-danger btn-sm" onclick="deleteDistribution({{ $distribution->id }}, {{ json_encode($distribution->name) }})">Delete</button>
+                                @endcan
                             </td>
                         </tr>
                     @endforeach

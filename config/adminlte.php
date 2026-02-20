@@ -305,92 +305,109 @@ return [
             'text' => 'Usuarios',
             'url' => 'admin/usuarios',
             'icon' => 'fas fa-users',
+            'can' => 'admin.usuarios.ver',
         ],
         [
             'text' => 'Roles',
             'url' => 'admin/roles',
             'icon' => 'fas fa-user-tag',
+            'can' => 'admin.roles.ver',
         ],
         [
             'text' => 'Permisos',
             'url' => 'admin/permissions',
             'icon' => 'fas fa-shield-alt',
+            'can' => 'admin.permissions.ver',
         ],
         [
             'text' => 'Tiendas',
             'url' => 'admin/tiendas',
             'icon' => 'fas fa-store',
+            'can' => 'tiendas.ver',
         ],
         [
             'text' => 'Asignación de Usuarios a Plaza/Tienda',
             'url' => 'admin/user-plaza-tienda',
             'icon' => 'fas fa-user-friends',
+            'can' => 'user-plaza-tienda.ver',
         ],
         [
             'text' => 'Metas',
-            // Use named route for better routing integration with AdminLTE
             'route' => 'metas.index',
             'icon' => 'fas fa-chart-area',
+            'can' => 'metas.ver',
         ],
         ['header' => 'distribution_management'],
         [
             'text' => 'Distributions',
             'url' => 'admin/distributions',
             'icon' => 'fas fa-upload',
+            'can' => 'distribution.ver',
         ],
         [
             'text' => 'Computers',
             'url' => 'admin/computers',
             'icon' => 'fas fa-desktop',
+            'can' => 'distribution.ver',
         ],
         [
             'text' => 'Groups',
             'url' => 'admin/groups',
             'icon' => 'fas fa-users',
+            'can' => 'distribution.ver',
         ],
         [
             'text' => 'Agent Versions',
             'url' => 'admin/agent-versions',
             'icon' => 'fas fa-code-branch',
+            'can' => 'distribution.ver',
         ],
         [
             'text' => 'Reportes',
             'icon' => 'fas fa-chart-bar',
+            'can' => 'reportes.ver',
             'submenu' => [
                 [
                     'text' => 'Reporte Vendedores',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/vendedores',
+                    'can' => 'reportes.vendedores.ver',
                 ],
                 [
                     'text' => 'Reporte Vendedores Matriz',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/vendedores-matricial',
+                    'can' => 'reportes.vendedores.matricial.ver',
                 ],
                 [
                     'text' => 'Reporte Metas Diario',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-ventas',
+                    'can' => 'reportes.metas-ventas.ver',
                 ],
                 [
                     'text' => 'Reporte Metas Mensual',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-matricial',
+                    'can' => 'reportes.metas-matricial.ver',
                 ],
                 [
                     'text' => 'Reporte Compras',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/compras-directo',
+                    'can' => 'reportes.compras-directo.ver',
                 ],
                 [
                     'text' => 'Reporte Cargos y Abonos',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/cartera-abonos',
+                    'can' => 'reportes.cartera-abonos.ver',
                 ],
                 [
                     'text' => 'Reporte Notas completas',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/notas-completas',
+                    'can' => 'reportes.notas-completas.ver',
                 ],
             ],
         ],
@@ -432,7 +449,7 @@ return [
 
     'plugins' => [
         'Datatables' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',

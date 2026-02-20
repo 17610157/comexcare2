@@ -6,8 +6,10 @@ use App\Exports\VendedoresExport;
 use App\Helpers\RoleHelper;
 use App\Services\ReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ReporteVendedoresController extends Controller
@@ -19,121 +21,134 @@ class ReporteVendedoresController extends Controller
     {
         $userFilter = RoleHelper::getUserFilter();
 
-        if (! $userFilter['allowed']) {
+        if (!$userFilter['allowed']) {
             return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
         }
 
-        // Fechas por defecto
-        $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
-        $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
-        $vendedor = $request->input('vendedor', '');
+        $startDefault = Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = Carbon::parse('last day of previous month')->toDateString();
 
-        // Obtener listas para filtros (limitadas por el filtro del usuario)
-        $plazasQuery = DB::table('bi_sys_tiendas')
-            ->distinct()
-            ->whereNotNull('id_plaza')
-            ->orderBy('id_plaza');
+        $listas = RoleHelper::getListasParaFiltros();
+        
+        $plazas = $listas['plazas'];
+        $tiendas = $listas['tiendas'];
 
-        $tiendasQuery = DB::table('bi_sys_tiendas')
-            ->distinct()
-            ->whereNotNull('clave_tienda')
-            ->orderBy('clave_tienda');
+        return view('reportes.vendedores.index', compact('plazas', 'tiendas', 'startDefault', 'endDefault'));
+    }
 
-        // Aplicar filtro de plazas asignadas al usuario
-        $plazasAsignadas = $userFilter['plazas_asignadas'] ?? [];
-        $tiendasAsignadas = $userFilter['tiendas_asignadas'] ?? [];
+    /**
+     * Data para DataTable
+     */
+    public function data(Request $request)
+    {
+        $userFilter = RoleHelper::getUserFilter();
 
-        if (! empty($plazasAsignadas)) {
-            $plazasQuery->whereIn('id_plaza', $plazasAsignadas);
-            $tiendasQuery->whereIn('id_plaza', $plazasAsignadas);
+        if (!$userFilter['allowed']) {
+            return response()->json(['error' => 'No autorizado'], 403);
         }
 
-        if (! empty($tiendasAsignadas)) {
-            $tiendasQuery->whereIn('clave_tienda', $tiendasAsignadas);
+        Log::info('Vendedores data request', ['url' => $request->fullUrl(), 'params' => $request->all(), 'filter' => $userFilter]);
+
+        $start = Carbon::parse('first day of previous month')->toDateString();
+        $end = Carbon::parse('last day of previous month')->toDateString();
+        if ($request->filled('period_start')) {
+            $start = $request->input('period_start');
+        }
+        if ($request->filled('period_end')) {
+            $end = $request->input('period_end');
         }
 
-        $plazas = $plazasQuery->pluck('id_plaza')->filter()->values();
-        $tiendas = $tiendasQuery->pluck('clave_tienda')->filter()->values();
+        $draw = (int) $request->input('draw', 1);
+        $startIdx = (int) $request->input('start', 0);
+        $length = (int) $request->input('length', 10);
+        $search = $request->input('search.value', '');
+        $lengthInt = (int) $length;
+        $offsetInt = (int) $startIdx;
 
-        // Procesar valores del request, validando contra asignaciones del usuario
-        $plazaInput = $request->input('plaza', '');
-        $tiendaInput = $request->input('tienda', '');
+        $tiendasPermitidas = RoleHelper::getTiendasAcceso();
+        $plazasPermitidas = $userFilter['plazas_asignadas'] ?? [];
 
-        // Si tiene plazas/tiendas asignadas, validar que los valores estén permitidos
-        if (! empty($plazasAsignadas)) {
-            if (empty($plazaInput)) {
-                $plazaInput = $plazasAsignadas;
-            } else {
-                $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
-                $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
-                $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+        try {
+            $filtros = [
+                'fecha_inicio' => $start,
+                'fecha_fin' => $end,
+                'plaza' => '',
+                'tienda' => '',
+                'vendedor' => '',
+            ];
+
+            if (!empty($plazasPermitidas)) {
+                $filtros['plaza'] = implode(',', $plazasPermitidas);
             }
-        }
 
-        if (! empty($tiendasAsignadas)) {
-            if (empty($tiendaInput)) {
-                $tiendaInput = $tiendasAsignadas;
-            } else {
-                $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
-                $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
-                $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+            if (!empty($tiendasPermitidas)) {
+                $filtros['tienda'] = implode(',', $tiendasPermitidas);
             }
-        }
 
-        // Convertir arrays a strings para compatibilidad
-        $plaza = is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput;
-        $tienda = is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput;
+            if ($request->filled('plaza') && $request->input('plaza') !== '') {
+                $plazaFilter = $request->input('plaza');
+                if (is_array($plazaFilter) && count($plazaFilter) > 0) {
+                    $filtros['plaza'] = implode(',', $plazaFilter);
+                } elseif (!is_array($plazaFilter)) {
+                    $filtros['plaza'] = trim($plazaFilter);
+                }
+            }
 
-        // Inicializar variables
-        $resultados = [];
-        $estadisticas = [];
-        $error_msg = '';
-        $tiempo_carga = 0;
+            if ($request->filled('tienda') && $request->input('tienda') !== '') {
+                $tiendaFilter = $request->input('tienda');
+                if (is_array($tiendaFilter) && count($tiendaFilter) > 0) {
+                    $filtros['tienda'] = implode(',', $tiendaFilter);
+                } elseif (!is_array($tiendaFilter)) {
+                    $filtros['tienda'] = trim($tiendaFilter);
+                }
+            }
 
-        // Solo procesar si hay fechas
-        if ($request->has('fecha_inicio') && $request->has('fecha_fin')) {
-            $inicio_tiempo = microtime(true);
+            if ($request->filled('vendedor') && $request->input('vendedor') !== '') {
+                $filtros['vendedor'] = trim($request->input('vendedor'));
+            }
 
-            try {
-                $filtros = [
-                    'fecha_inicio' => $fecha_inicio,
-                    'fecha_fin' => $fecha_fin,
-                    'plaza' => $plaza,
-                    'tienda' => $tienda,
-                    'vendedor' => $vendedor,
+            $resultados = ReportService::getVendedoresReport($filtros);
+
+            if (!empty($search)) {
+                $resultados = $resultados->filter(function ($item) use ($search) {
+                    $searchLower = strtolower($search);
+                    return str_contains(strtolower($item['tienda_vendedor'] ?? ''), $searchLower)
+                        || str_contains(strtolower($item['vendedor_dia'] ?? ''), $searchLower)
+                        || str_contains(strtolower($item['plaza_ajustada'] ?? ''), $searchLower)
+                        || str_contains(strtolower($item['ctienda'] ?? ''), $searchLower)
+                        || str_contains(strtolower($item['vend_clave'] ?? ''), $searchLower)
+                        || str_contains(strtolower($item['fecha'] ?? ''), $searchLower);
+                });
+            }
+
+            $total = $resultados->count();
+
+            $data = $resultados->slice($offsetInt, $lengthInt)->map(function ($item, $index) use ($offsetInt) {
+                return [
+                    'no' => $offsetInt + $index + 1,
+                    'tienda_vendedor' => $item['tienda_vendedor'] ?? '',
+                    'vendedor_dia' => $item['vendedor_dia'] ?? '',
+                    'plaza_ajustada' => $item['plaza_ajustada'] ?? '',
+                    'ctienda' => $item['ctienda'] ?? '',
+                    'vend_clave' => $item['vend_clave'] ?? '',
+                    'fecha' => $item['fecha'] ?? '',
+                    'venta_total' => $item['venta_total'] ?? 0,
+                    'devolucion' => $item['devolucion'] ?? 0,
+                    'venta_neta' => $item['venta_neta'] ?? 0,
                 ];
+            })->values();
 
-                $resultados_collection = ReportService::getVendedoresReport($filtros);
-                $estadisticas = ReportService::calcularEstadisticasVendedores($resultados_collection);
+            return response()->json([
+                'draw' => $draw,
+                'recordsTotal' => (int) $total,
+                'recordsFiltered' => (int) $total,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Vendedores data error: '.$e->getMessage());
 
-                // Convertir a array con índices numéricos para compatibilidad con la vista
-                $resultados = $resultados_collection->map(function ($item, $index) {
-                    return array_merge(['no' => $index + 1], $item);
-                })->toArray();
-
-                $tiempo_carga = round((microtime(true) - $inicio_tiempo) * 1000, 2);
-
-            } catch (\Exception $e) {
-                $error_msg = 'Error en la consulta: '.$e->getMessage();
-            }
+            return response()->json(['draw' => (int) $request->input('draw', 1), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
         }
-
-        return view('reportes.vendedores.index', compact(
-            'fecha_inicio',
-            'fecha_fin',
-            'plaza',
-            'tienda',
-            'vendedor',
-            'resultados',
-            'error_msg',
-            'tiempo_carga',
-            'plazas',
-            'tiendas'
-        ) + [
-            'total_ventas' => $estadisticas['total_ventas'] ?? 0,
-            'total_devoluciones' => $estadisticas['total_devoluciones'] ?? 0,
-            'total_neto' => $estadisticas['total_neto'] ?? 0,
-        ]);
     }
 
     /**
@@ -141,20 +156,31 @@ class ReporteVendedoresController extends Controller
      */
     public function export(Request $request)
     {
-        $plazaInput = $request->input('plaza', '');
-        $tiendaInput = $request->input('tienda', '');
+        try {
+            $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
+            $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
+            $plaza = $request->input('plaza', '');
+            $tienda = $request->input('tienda', '');
+            $vendedor = $request->input('vendedor', '');
 
-        $filtros = [
-            'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
-            'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
-            'plaza' => is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput,
-            'tienda' => is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput,
-            'vendedor' => $request->input('vendedor', ''),
-        ];
+            $filtros = [
+                'fecha_inicio' => $start,
+                'fecha_fin' => $end,
+                'plaza' => is_array($plaza) ? implode(',', $plaza) : $plaza,
+                'tienda' => is_array($tienda) ? implode(',', $tienda) : $tienda,
+                'vendedor' => $vendedor,
+            ];
 
-        return Excel::download(new VendedoresExport($filtros),
-            'Reporte_Vendedores_'.date('Ymd_His').'.xlsx'
-        );
+            return Excel::download(new VendedoresExport($filtros),
+                'Reporte_Vendedores_'.date('Ymd_His').'.xlsx'
+            );
+
+        } catch (\Exception $e) {
+            Log::error('Error en export: '.$e->getMessage());
+
+            return redirect()->route('reportes.vendedores', $request->all())
+                ->with('error', 'Error al exportar: '.$e->getMessage());
+        }
     }
 
     /**
@@ -162,25 +188,62 @@ class ReporteVendedoresController extends Controller
      */
     public function exportCsv(Request $request)
     {
-        $plazaInput = $request->input('plaza', '');
-        $tiendaInput = $request->input('tienda', '');
+        try {
+            $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
+            $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
+            $plaza = $request->input('plaza', '');
+            $tienda = $request->input('tienda', '');
+            $vendedor = $request->input('vendedor', '');
 
-        $filtros = [
-            'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
-            'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
-            'plaza' => is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput,
-            'tienda' => is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput,
-            'vendedor' => $request->input('vendedor', ''),
-        ];
+            $filtros = [
+                'fecha_inicio' => $start,
+                'fecha_fin' => $end,
+                'plaza' => is_array($plaza) ? implode(',', $plaza) : $plaza,
+                'tienda' => is_array($tienda) ? implode(',', $tienda) : $tienda,
+                'vendedor' => $vendedor,
+            ];
 
-        return Excel::download(new VendedoresExport($filtros),
-            'Reporte_Vendedores_'.date('Ymd_His').'.csv',
-            \Maatwebsite\Excel\Excel::CSV,
-            [
+            $resultados = ReportService::getVendedoresReport($filtros);
+
+            $filename = 'Reporte_Vendedores_'.date('Ymd_His').'.csv';
+
+            $headers = [
                 'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="Reporte_Vendedores_'.date('Ymd_His').'.csv"',
-            ]
-        );
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            ];
+
+            $callback = function () use ($resultados) {
+                $file = fopen('php://output', 'w');
+
+                fputcsv($file, [
+                    'Tienda-Vendedor', 'Vendedor-Día', 'Plaza Ajustada', 'Tienda', 'Vendedor', 'Fecha', 'Venta Total', 'Devolución', 'Venta Neta'
+                ]);
+
+                foreach ($resultados as $row) {
+                    fputcsv($file, [
+                        $row['tienda_vendedor'] ?? '',
+                        $row['vendedor_dia'] ?? '',
+                        $row['plaza_ajustada'] ?? '',
+                        $row['ctienda'] ?? '',
+                        $row['vend_clave'] ?? '',
+                        $row['fecha'] ?? '',
+                        $row['venta_total'] ?? 0,
+                        $row['devolucion'] ?? 0,
+                        $row['venta_neta'] ?? 0,
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+
+        } catch (\Exception $e) {
+            Log::error('Error en exportCsv: '.$e->getMessage());
+
+            return redirect()->route('reportes.vendedores', $request->all())
+                ->with('error', 'Error al exportar CSV: '.$e->getMessage());
+        }
     }
 
     /**
@@ -189,48 +252,33 @@ class ReporteVendedoresController extends Controller
     public function exportPdf(Request $request)
     {
         try {
-            $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
-            $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
+            $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
+            $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
             $plaza = $request->input('plaza', '');
             $tienda = $request->input('tienda', '');
             $vendedor = $request->input('vendedor', '');
 
             $filtros = [
-                'fecha_inicio' => $fecha_inicio,
-                'fecha_fin' => $fecha_fin,
-                'plaza' => $plaza,
-                'tienda' => $tienda,
+                'fecha_inicio' => $start,
+                'fecha_fin' => $end,
+                'plaza' => is_array($plaza) ? implode(',', $plaza) : $plaza,
+                'tienda' => is_array($tienda) ? implode(',', $tienda) : $tienda,
                 'vendedor' => $vendedor,
             ];
 
-            $resultados_collection = ReportService::getVendedoresReport($filtros);
-            $estadisticas = ReportService::calcularEstadisticasVendedores($resultados_collection);
+            $resultados = ReportService::getVendedoresReport($filtros);
+            $estadisticas = ReportService::calcularEstadisticasVendedores($resultados);
 
-            $datos = $resultados_collection->map(function ($item, $index) {
-                return array_merge(['no' => $index + 1], $item);
-            })->toArray();
-
-            $data = [
-                'datos' => $datos,
-                'fecha_inicio' => $fecha_inicio,
-                'fecha_fin' => $fecha_fin,
-                'plaza' => $plaza,
-                'tienda' => $tienda,
-                'vendedor' => $vendedor,
-                'total_ventas' => $estadisticas['total_ventas'],
-                'total_devoluciones' => $estadisticas['total_devoluciones'],
-                'total_neto' => $estadisticas['total_neto'],
-                'total_registros' => $estadisticas['total_registros'],
-                'fecha_reporte' => date('d/m/Y H:i:s'),
-            ];
-
-            $pdf = Pdf::loadView('reportes.vendedores.pdf', $data);
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reportes.vendedores.pdf', compact('resultados', 'estadisticas', 'filtros'))
+                ->setPaper('a4', 'landscape');
 
             return $pdf->download('Reporte_Vendedores_'.date('Ymd_His').'.pdf');
 
         } catch (\Exception $e) {
+            Log::error('Error en exportPdf: '.$e->getMessage());
+
             return redirect()->route('reportes.vendedores', $request->all())
-                ->with('error', 'Error al generar PDF: '.$e->getMessage());
+                ->with('error', 'Error al exportar PDF: '.$e->getMessage());
         }
     }
 }
