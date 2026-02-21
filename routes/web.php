@@ -6,6 +6,7 @@ use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
 use App\Http\Controllers\Reportes\NotasCompletasController;
+use App\Http\Controllers\Reportes\ReporteRedencionesClubController;
 use App\Http\Controllers\ReporteVendedoresController;
 use App\Http\Controllers\ReporteVendedoresMatricialController;
 use App\Http\Controllers\RoleController;
@@ -160,6 +161,19 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
     Route::post('compras-directo/sync', [ReporteComprasDirectoController::class, 'sync'])
         ->middleware('can:reportes.compras-directo.sincronizar')
         ->name('reportes.compras-directo.sync');
+
+    // Redenciones Club Comex
+    Route::get('redenciones-club', [ReporteRedencionesClubController::class, 'index'])
+        ->name('reportes.redenciones_club.index')->middleware('can:reportes.redenciones_club.ver');
+    Route::post('redenciones-club/data', [ReporteRedencionesClubController::class, 'data'])
+        ->name('reportes.redenciones_club.data')->middleware('can:reportes.redenciones_club.ver');
+    Route::post('redenciones-club/export-excel', [ReporteRedencionesClubController::class, 'exportExcel'])
+        ->name('reportes.redenciones_club.export.excel')->middleware('can:reportes.redenciones_club.editar');
+    Route::post('redenciones-club/export-csv', [ReporteRedencionesClubController::class, 'exportCsv'])
+        ->name('reportes.redenciones_club.export.csv')->middleware('can:reportes.redenciones_club.editar');
+    Route::post('redenciones-club/sync', [ReporteRedencionesClubController::class, 'sync'])
+        ->middleware('can:reportes.redenciones_club.sincronizar')
+        ->name('reportes.redenciones_club.sync');
 
 });
 
