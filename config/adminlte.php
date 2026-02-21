@@ -409,6 +409,12 @@ return [
                     'url' => 'reportes/notas-completas',
                     'can' => 'reportes.notas-completas.ver',
                 ],
+                             [
+                    'text' => 'Reporte Redenciones Club',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/redenciones-club',
+                    'can' => 'reportes.redenciones_club.ver',
+                ],
             ],
         ],
     ],
