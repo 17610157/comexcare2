@@ -281,4 +281,83 @@ class ReporteVendedoresController extends Controller
                 ->with('error', 'Error al exportar PDF: '.$e->getMessage());
         }
     }
+
+    /**
+     * Sincronizar datos de vendedores desde las tablas originales
+     */
+    public function sync(Request $request)
+    {
+        try {
+            $type = $request->input('type', 'lastMonth');
+            $append = $request->input('append', false);
+            
+            $start = '';
+            $end = date('Y-m-d');
+            
+            if ($type === 'lastMonth') {
+                $start = Carbon::parse('first day of previous month')->toDateString();
+                $end = Carbon::parse('last day of previous month')->toDateString();
+            } elseif ($type === 'lastDays') {
+                $days = $request->input('lastDays', 60);
+                $start = date('Y-m-d', strtotime("-{$days} days"));
+            } elseif ($type === 'day') {
+                $start = $request->input('day', date('Y-m-d'));
+                $end = $start;
+            } elseif ($type === 'period') {
+                $start = $request->input('periodStart');
+                $end = $request->input('periodEnd');
+            } elseif ($type === 'full') {
+                $start = '2000-01-01';
+            }
+
+            if (!$append) {
+                DB::statement('TRUNCATE TABLE vendedores_cache RESTART IDENTITY CASCADE');
+            }
+
+            $sql = "INSERT INTO vendedores_cache (
+                        cplaza, ctienda, vend_clave, nota_fecha, plaza_ajustada,
+                        tienda_vendedor, vendedor_dia, venta_total, devolucion, venta_neta, created_at, updated_at
+                    )
+                    SELECT
+                        c.cplaza,
+                        c.ctienda,
+                        c.vend_clave,
+                        c.nota_fecha::date AS nota_fecha,
+                        CASE 
+                            WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA' 
+                            WHEN c.vend_clave = '14379' THEN 'MANZA' 
+                            ELSE c.cplaza 
+                        END AS plaza_ajustada,
+                        c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
+                        c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha::date)::text AS vendedor_dia,
+                        SUM(c.nota_impor) AS venta_total,
+                        0 AS devolucion,
+                        SUM(c.nota_impor) AS venta_neta,
+                        NOW() AS created_at,
+                        NOW() AS updated_at
+                    FROM canota c
+                    WHERE c.nota_fecha >= :start AND c.nota_fecha <= :end
+                    AND c.ban_status <> 'C'
+                    AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
+                    AND c.ctienda NOT LIKE '%DESC%'
+                    AND c.ctienda NOT LIKE '%CEDI%'
+                    GROUP BY c.cplaza, c.ctienda, c.vend_clave, c.nota_fecha";
+
+            DB::insert($sql, ['start' => $start, 'end' => $end]);
+
+            $count = DB::table('vendedores_cache')->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sincronización completada. Total de registros: {$count}"
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error sincronizando vendedores_cache: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al sincronizar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

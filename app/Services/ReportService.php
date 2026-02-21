@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 class ReportService
 {
     /**
-     * Obtener datos del reporte de vendedores con filtros - VERSIÓN ULTRA OPTIMIZADA CON CACHE
+     * Obtener datos del reporte de vendedores con filtros - USANDO TABLA CACHE
      */
     public static function getVendedoresReport(array $filtros): Collection
     {
@@ -19,98 +19,55 @@ class ReportService
 
         try {
             return Cache::remember($cacheKey, 3600, function () use ($filtros) { // Cache por 1 hora
-                $fecha_inicio = str_replace('-', '', $filtros['fecha_inicio']);
-                $fecha_fin = str_replace('-', '', $filtros['fecha_fin']);
+                $fecha_inicio = $filtros['fecha_inicio'];
+                $fecha_fin = $filtros['fecha_fin'];
                 $plaza = $filtros['plaza'] ?? '';
                 $tienda = $filtros['tienda'] ?? '';
                 $vendedor = $filtros['vendedor'] ?? '';
 
-                // Query ULTRA OPTIMIZADA: Subquery correlacionada más eficiente que CTE para PostgreSQL
-                $sql = "
-            SELECT
-                c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
-                c.vend_clave || '-' || EXTRACT(DAY FROM TO_DATE(c.nota_fecha::text, 'YYYYMMDD')) AS vendedor_dia,
-                CASE
-                    WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA'
-                    WHEN c.vend_clave = '14379' THEN 'MANZA'
-                    ELSE c.cplaza
-                END AS plaza_ajustada,
-                c.ctienda,
-                c.vend_clave,
-                c.nota_fecha,
-                SUM(c.nota_impor) AS venta_total,
-                COALESCE((
-                    SELECT SUM(v.total_brut + v.impuesto)
-                    FROM venta v
-                    WHERE v.f_emision = c.nota_fecha
-                      AND v.clave_vend = c.vend_clave
-                      AND v.cplaza = c.cplaza
-                      AND v.ctienda = c.ctienda
-                      AND v.tipo_doc = 'DV'
-                      AND v.estado NOT LIKE '%C%'
-                      AND EXISTS (
-                          SELECT 1 FROM partvta p
-                          WHERE v.no_referen = p.no_referen
-                            AND v.cplaza = p.cplaza
-                            AND v.ctienda = p.ctienda
-                            AND p.clave_art NOT LIKE '%CAMBIODOC%'
-                            AND p.totxpart IS NOT NULL
-                      )
-                ), 0) AS devolucion
-            FROM canota c
-            WHERE c.ban_status <> 'C'
-              AND c.nota_fecha BETWEEN ? AND ?
-              AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
-              AND c.ctienda NOT LIKE '%DESC%'
-              AND c.ctienda NOT LIKE '%CEDI%'
-            ";
-
-                $params = [$fecha_inicio, $fecha_fin];
+                $query = DB::table('vendedores_cache')
+                    ->select([
+                        'ctienda',
+                        'vend_clave',
+                        'nota_fecha',
+                        'plaza_ajustada',
+                        'tienda_vendedor',
+                        'vendedor_dia',
+                        'venta_total',
+                        'devolucion',
+                        'venta_neta'
+                    ])
+                    ->whereBetween('nota_fecha', [$fecha_inicio, $fecha_fin]);
 
                 // Aplicar filtros
                 if (! empty($plaza)) {
-                    $sql .= ' AND c.cplaza = ?';
-                    $params[] = $plaza;
+                    $plazasArray = explode(',', $plaza);
+                    $query->whereIn('cplaza', $plazasArray);
                 }
                 if (! empty($tienda)) {
-                    $sql .= ' AND c.ctienda = ?';
-                    $params[] = $tienda;
+                    $tiendasArray = explode(',', $tienda);
+                    $query->whereIn('ctienda', $tiendasArray);
                 }
                 if (! empty($vendedor)) {
-                    $sql .= ' AND c.vend_clave = ?';
-                    $params[] = $vendedor;
+                    $query->where('vend_clave', $vendedor);
                 }
 
-                $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave
-                      ORDER BY c.ctienda || '-' || c.vend_clave,
-                               c.vend_clave || '-' || TO_CHAR(TO_DATE(c.nota_fecha::text, 'YYYYMMDD'), 'DD')";
+                $query->orderBy('ctienda')
+                    ->orderBy('vend_clave')
+                    ->orderBy('nota_fecha');
 
-                $resultados_raw = DB::select($sql, $params);
+                $resultados_raw = $query->get();
 
-                // Procesar resultados usando collections para mejor rendimiento
+                // Procesar resultados
                 return collect($resultados_raw)->map(function ($row) {
-                    $fecha_str = (string) $row->nota_fecha;
-                    $fecha = strlen($fecha_str) == 8 ?
-                        substr($fecha_str, 0, 4).'-'.substr($fecha_str, 4, 2).'-'.substr($fecha_str, 6, 2) :
-                        $fecha_str;
-
+                    $fecha = $row->nota_fecha;
                     $venta_total = floatval($row->venta_total);
                     $devolucion = floatval($row->devolucion);
-                    $venta_neta = $venta_total - $devolucion;
-
-                    // Ajustar vendedor_dia
-                    $vendedor_dia = $row->vendedor_dia;
-                    if (! empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
-                        $partes = explode('-', $vendedor_dia);
-                        if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
-                            $dia = substr($fecha_str, 6, 2);
-                            $vendedor_dia = $partes[0].'-'.$dia;
-                        }
-                    }
+                    $venta_neta = floatval($row->venta_neta);
 
                     return [
                         'tienda_vendedor' => $row->tienda_vendedor,
-                        'vendedor_dia' => $vendedor_dia,
+                        'vendedor_dia' => $row->vendedor_dia,
                         'plaza_ajustada' => $row->plaza_ajustada,
                         'ctienda' => $row->ctienda,
                         'vend_clave' => $row->vend_clave,
@@ -122,145 +79,16 @@ class ReportService
                 });
             });
         } catch (\Exception $e) {
-            // Si hay error de cache (ej: tabla no existe), ejecutar sin cache
-            Log::warning('Error de cache en getVendedoresReport, ejecutando sin cache: '.$e->getMessage());
-
-            // Ejecutar la consulta sin cache
-            $fecha_inicio = str_replace('-', '', $filtros['fecha_inicio']);
-            $fecha_fin = str_replace('-', '', $filtros['fecha_fin']);
-            $plaza = $filtros['plaza'] ?? '';
-            $tienda = $filtros['tienda'] ?? '';
-            $vendedor = $filtros['vendedor'] ?? '';
-
-            // Query completamente optimizada usando CTE para pre-calcular devoluciones
-            $sql = "
-            WITH devoluciones_precalculadas AS (
-                SELECT
-                    v.f_emision,
-                    v.clave_vend,
-                    v.cplaza,
-                    v.ctienda,
-                    SUM(v.total_brut + v.impuesto) as devolucion_total
-                FROM venta v
-                INNER JOIN partvta p ON v.no_referen = p.no_referen
-                    AND v.cplaza = p.cplaza
-                    AND v.ctienda = p.ctienda
-                WHERE v.tipo_doc = 'DV'
-                  AND v.estado NOT LIKE '%C%'
-                  AND p.clave_art NOT LIKE '%CAMBIODOC%'
-                  AND p.totxpart IS NOT NULL
-                  AND v.f_emision BETWEEN ? AND ?
-            ";
-
-            $params = [$fecha_inicio, $fecha_fin];
-
-            // Aplicar filtros a la CTE para reducir el conjunto de datos desde el inicio
-            if (! empty($plaza)) {
-                $sql .= ' AND v.cplaza = ?';
-                $params[] = $plaza;
-            }
-            if (! empty($tienda)) {
-                $sql .= ' AND v.ctienda = ?';
-                $params[] = $tienda;
-            }
-            if (! empty($vendedor)) {
-                $sql .= ' AND v.clave_vend = ?';
-                $params[] = $vendedor;
-            }
-
-            $sql .= "
-                GROUP BY v.f_emision, v.clave_vend, v.cplaza, v.ctienda
-            )
-            SELECT
-                c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
-                c.vend_clave || '-' || EXTRACT(DAY FROM TO_DATE(c.nota_fecha::text, 'YYYYMMDD')) AS vendedor_dia,
-                CASE
-                    WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA'
-                    WHEN c.vend_clave = '14379' THEN 'MANZA'
-                    ELSE c.cplaza
-                END AS plaza_ajustada,
-                c.ctienda,
-                c.vend_clave,
-                c.nota_fecha,
-                SUM(c.nota_impor) AS venta_total,
-                COALESCE(d.devolucion_total, 0) AS devolucion
-            FROM canota c
-            LEFT JOIN devoluciones_precalculadas d ON d.f_emision = c.nota_fecha
-                AND d.clave_vend = c.vend_clave
-                AND d.cplaza = c.cplaza
-                AND d.ctienda = c.ctienda
-            WHERE c.ban_status <> 'C'
-              AND c.nota_fecha BETWEEN ? AND ?
-              AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
-              AND c.ctienda NOT LIKE '%DESC%'
-              AND c.ctienda NOT LIKE '%CEDI%'
-            ";
-
-            // Agregar los mismos parámetros para el rango de fechas en la consulta principal
-            $params = array_merge($params, [$fecha_inicio, $fecha_fin]);
-
-            // Aplicar filtros adicionales a la consulta principal
-            if (! empty($plaza)) {
-                $sql .= ' AND c.cplaza = ?';
-                $params[] = $plaza;
-            }
-            if (! empty($tienda)) {
-                $sql .= ' AND c.ctienda = ?';
-                $params[] = $tienda;
-            }
-            if (! empty($vendedor)) {
-                $sql .= ' AND c.vend_clave = ?';
-                $params[] = $vendedor;
-            }
-
-            $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave, d.devolucion_total
-                      ORDER BY c.ctienda || '-' || c.vend_clave,
-                               c.vend_clave || '-' || TO_CHAR(TO_DATE(c.nota_fecha::text, 'YYYYMMDD'), 'DD')";
-
-            $resultados_raw = DB::select($sql, $params);
-
-            // Procesar resultados usando collections para mejor rendimiento
-            return collect($resultados_raw)->map(function ($row) {
-                $fecha_str = (string) $row->nota_fecha;
-                $fecha = strlen($fecha_str) == 8 ?
-                    substr($fecha_str, 0, 4).'-'.substr($fecha_str, 4, 2).'-'.substr($fecha_str, 6, 2) :
-                    $fecha_str;
-
-                $venta_total = floatval($row->venta_total);
-                $devolucion = floatval($row->devolucion);
-                $venta_neta = $venta_total - $devolucion;
-
-                // Ajustar vendedor_dia
-                $vendedor_dia = $row->vendedor_dia;
-                if (! empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
-                    $partes = explode('-', $vendedor_dia);
-                    if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
-                        $dia = substr($fecha_str, 6, 2);
-                        $vendedor_dia = $partes[0].'-'.$dia;
-                    }
-                }
-
-                return [
-                    'tienda_vendedor' => $row->tienda_vendedor,
-                    'vendedor_dia' => $vendedor_dia,
-                    'plaza_ajustada' => $row->plaza_ajustada,
-                    'ctienda' => $row->ctienda,
-                    'vend_clave' => $row->vend_clave,
-                    'fecha' => $fecha,
-                    'venta_total' => $venta_total,
-                    'devolucion' => $devolucion,
-                    'venta_neta' => $venta_neta,
-                ];
-            });
+            Log::error('Error en getVendedoresReport con cache: '.$e->getMessage());
+            return collect([]);
         }
     }
 
     /**
-     * Obtener datos del reporte matricial de vendedores - VERSIÓN OPTIMIZADA
+     * Obtener datos del reporte matricial de vendedores - USANDO TABLA CACHE
      */
     public static function getVendedoresMatricialReport(array $filtros): array
     {
-        // Crear clave de cache para reportes matriciales
         $cacheKey = 'vendedores_matricial_report_'.md5(serialize($filtros));
 
         try {
@@ -271,118 +99,104 @@ class ReportService
                 $tienda = $filtros['tienda'] ?? '';
                 $vendedor = $filtros['vendedor'] ?? '';
 
-                // Query ULTRA OPTIMIZADA: Subquery correlacionada para evitar problemas de GROUP BY
-                $sql = "
-            SELECT
-                c.vend_clave,
-                a.nombre,
-                a.tipo,
-                c.ctienda,
-                c.cplaza,
-                c.nota_fecha,
-                SUM(c.nota_impor) AS venta_total,
-                COALESCE((
-                    SELECT SUM(v.total_brut + v.impuesto)
-                    FROM venta v
-                    WHERE v.f_emision = c.nota_fecha
-                      AND v.clave_vend = c.vend_clave
-                      AND v.cplaza = c.cplaza
-                      AND v.ctienda = c.ctienda
-                      AND v.tipo_doc = 'DV'
-                      AND v.estado NOT LIKE '%C%'
-                      AND EXISTS (
-                          SELECT 1 FROM partvta p
-                          WHERE v.no_referen = p.no_referen
-                            AND v.cplaza = p.cplaza
-                            AND v.ctienda = p.ctienda
-                            AND p.clave_art NOT LIKE '%CAMBIODOC%'
-                            AND p.totxpart IS NOT NULL
-                      )
-                ), 0) AS devolucion
-            FROM canota c
-            JOIN asesores_vvt a ON (a.plaza = c.cplaza AND a.asesor = c.vend_clave)
-            WHERE c.ban_status <> 'C'
-              AND c.nota_fecha BETWEEN ? AND ?
-              AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
-              AND c.ctienda NOT LIKE '%DESC%'
-              AND c.ctienda NOT LIKE '%CEDI%'
-            ";
+                $query = DB::table('vendedores_cache')
+                    ->select([
+                        'cplaza',
+                        'ctienda',
+                        'vend_clave',
+                        'nota_fecha',
+                        'plaza_ajustada',
+                        'tienda_vendedor',
+                        'vendedor_dia',
+                        'venta_total',
+                        'devolucion',
+                        'venta_neta'
+                    ])
+                    ->whereBetween('nota_fecha', [$fecha_inicio, $fecha_fin]);
 
-                $params = [$fecha_inicio, $fecha_fin];
-
-                // Aplicar filtros
                 if (! empty($plaza)) {
-                    $sql .= ' AND c.cplaza = ?';
-                    $params[] = $plaza;
+                    $plazasArray = explode(',', $plaza);
+                    $query->whereIn('cplaza', $plazasArray);
                 }
                 if (! empty($tienda)) {
-                    $sql .= ' AND c.ctienda = ?';
-                    $params[] = $tienda;
+                    $tiendasArray = explode(',', $tienda);
+                    $query->whereIn('ctienda', $tiendasArray);
                 }
                 if (! empty($vendedor)) {
-                    $sql .= ' AND c.vend_clave = ?';
-                    $params[] = $vendedor;
+                    $query->where('vend_clave', $vendedor);
                 }
 
-                $sql .= ' GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave, a.nombre, a.tipo
-                      ORDER BY c.vend_clave, c.nota_fecha';
+                $resultados = $query->get();
 
-                $resultados_raw = DB::select($sql, $params);
-
-                // Procesar datos matriciales
-                return self::procesarDatosMatriciales($resultados_raw, $fecha_inicio, $fecha_fin);
+                return self::procesarDatosMatricialesDesdeCache($resultados, $fecha_inicio, $fecha_fin);
             });
         } catch (\Exception $e) {
-            // Si hay error de cache, ejecutar sin cache
-            Log::warning('Error de cache en getVendedoresMatricialReport, ejecutando sin cache: '.$e->getMessage());
+            Log::error('Error en getVendedoresMatricialReport: '.$e->getMessage());
+            return [];
+        }
+    }
 
-            // Ejecutar la consulta sin cache
-            $fecha_inicio = $filtros['fecha_inicio'];
-            $fecha_fin = $filtros['fecha_fin'];
-            $plaza = $filtros['plaza'] ?? '';
-            $tienda = $filtros['tienda'] ?? '';
-            $vendedor = $filtros['vendedor'] ?? '';
+    /**
+     * Procesar datos para vista matricial desde cache
+     */
+    private static function procesarDatosMatricialesDesdeCache($resultados_raw, $fecha_inicio, $fecha_fin): array
+    {
+        $vendedores_info = [];
+        $dias = [];
 
-            // Query ULTRA OPTIMIZADA: Subquery correlacionada para evitar problemas de GROUP BY
-            $sql = "
-            SELECT
-                c.vend_clave,
-                a.nombre,
-                a.tipo,
-                c.ctienda,
-                c.cplaza,
-                c.nota_fecha,
-                SUM(c.nota_impor) AS venta_total,
-                COALESCE((
-                    SELECT SUM(v.total_brut + v.impuesto)
-                    FROM venta v
-                    WHERE v.f_emision = c.nota_fecha
-                      AND v.clave_vend = c.vend_clave
-                      AND v.cplaza = c.cplaza
-                      AND v.ctienda = c.ctienda
-                      AND v.tipo_doc = 'DV'
-                      AND v.estado NOT LIKE '%C%'
-                      AND EXISTS (
-                          SELECT 1 FROM partvta p
-                          WHERE v.no_referen = p.no_referen
-                            AND v.cplaza = p.cplaza
-                            AND v.ctienda = p.ctienda
-                            AND p.clave_art NOT LIKE '%CAMBIODOC%'
-                            AND p.totxpart IS NOT NULL
-                      )
-                ), 0) AS devolucion
-            FROM canota c
-            JOIN asesores_vvt a ON (a.plaza = c.cplaza AND a.asesor = c.vend_clave)
-            WHERE c.ban_status <> 'C'
-              AND c.nota_fecha BETWEEN ? AND ?
-              AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
-              AND c.ctienda NOT LIKE '%DESC%'
-              AND c.ctienda NOT LIKE '%CEDI%'
-            ";
+        // Crear array de días
+        $start = new \DateTime($fecha_inicio);
+        $end = new \DateTime($fecha_fin);
+        $end->modify('+1 day');
+        $interval = new \DateInterval('P1D');
+        $dateRange = new \DatePeriod($start, $interval, $end);
 
-            $params = [$fecha_inicio, $fecha_fin];
+        foreach ($dateRange as $date) {
+            $dia_key = $date->format('Y-m-d');
+            $dias[$dia_key] = $dia_key;
+        }
 
-            // Aplicar filtros
+        foreach ($resultados_raw as $row) {
+            $vendedor_id = $row->vend_clave;
+            $tienda_val = $row->ctienda;
+            $plaza_val = $row->cplaza;
+            $fecha_key = $row->nota_fecha;
+
+            if (! isset($vendedores_info[$vendedor_id])) {
+                $vendedores_info[$vendedor_id] = [
+                    'nombre' => '',
+                    'tipo' => '',
+                    'tiendas' => [],
+                    'plazas' => [],
+                    'ventas' => [],
+                ];
+            }
+
+            if (! in_array($tienda_val, $vendedores_info[$vendedor_id]['tiendas'])) {
+                $vendedores_info[$vendedor_id]['tiendas'][] = $tienda_val;
+            }
+
+            if (! in_array($plaza_val, $vendedores_info[$vendedor_id]['plazas'])) {
+                $vendedores_info[$vendedor_id]['plazas'][] = $plaza_val;
+            }
+
+            $venta_total = floatval($row->venta_total);
+            $devolucion = floatval($row->devolucion);
+            $venta_neta = $venta_total - $devolucion;
+
+            if (! isset($vendedores_info[$vendedor_id]['ventas'][$fecha_key])) {
+                $vendedores_info[$vendedor_id]['ventas'][$fecha_key] = 0;
+            }
+            $vendedores_info[$vendedor_id]['ventas'][$fecha_key] += $venta_neta;
+        }
+
+        return [
+            'vendedores_info' => $vendedores_info,
+            'dias' => $dias,
+        ];
+    }
+
+    /**
             if (! empty($plaza)) {
                 $sql .= ' AND c.cplaza = ?';
                 $params[] = $plaza;

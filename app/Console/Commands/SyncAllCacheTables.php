@@ -49,6 +49,8 @@ class SyncAllCacheTables extends Command
         $results[] = $this->syncNotasCompletas($start, $end, $append);
         $results[] = $this->syncComprasDirecto($start, $end, $append);
         $results[] = $this->syncRedencionesClub($start, $end, $append);
+        $results[] = $this->syncVendedores($start, $end, $append);
+        $results[] = $this->syncMetas($start, $end, $append);
 
         $this->newLine();
         $this->info('========================================');
@@ -286,6 +288,106 @@ class SyncAllCacheTables extends Command
             Log::error('Error sincronizando redenciones_club_cache: ' . $e->getMessage());
             $this->error("Error: {$e->getMessage()}");
             return ['name' => 'Redenciones Club', 'success' => false, 'count' => 0];
+        }
+    }
+
+    private function syncVendedores(string $start, string $end, bool $append): array
+    {
+        $this->info('Sincronizando vendedores_cache...');
+
+        try {
+            if (!$append) {
+                DB::statement('TRUNCATE TABLE vendedores_cache RESTART IDENTITY CASCADE');
+            }
+
+            $sql = "INSERT INTO vendedores_cache (
+                        cplaza, ctienda, vend_clave, nota_fecha, plaza_ajustada,
+                        tienda_vendedor, vendedor_dia, venta_total, devolucion, venta_neta, created_at, updated_at
+                    )
+                    SELECT
+                        c.cplaza,
+                        c.ctienda,
+                        c.vend_clave,
+                        c.nota_fecha::date AS nota_fecha,
+                        CASE 
+                            WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA' 
+                            WHEN c.vend_clave = '14379' THEN 'MANZA' 
+                            ELSE c.cplaza 
+                        END AS plaza_ajustada,
+                        c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
+                        c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha::date)::text AS vendedor_dia,
+                        SUM(c.nota_impor) AS venta_total,
+                        0 AS devolucion,
+                        SUM(c.nota_impor) AS venta_neta,
+                        NOW() AS created_at,
+                        NOW() AS updated_at
+                    FROM canota c
+                    WHERE c.nota_fecha >= :start AND c.nota_fecha <= :end
+                    AND c.ban_status <> 'C'
+                    AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
+                    AND c.ctienda NOT LIKE '%DESC%'
+                    AND c.ctienda NOT LIKE '%CEDI%'
+                    GROUP BY c.cplaza, c.ctienda, c.vend_clave, c.nota_fecha";
+
+            DB::insert($sql, ['start' => $start, 'end' => $end]);
+
+            $count = DB::table('vendedores_cache')->count();
+
+            return ['name' => 'Vendedores', 'success' => true, 'count' => $count];
+        } catch (\Exception $e) {
+            Log::error('Error sincronizando vendedores_cache: ' . $e->getMessage());
+            $this->error("Error: {$e->getMessage()}");
+            return ['name' => 'Vendedores', 'success' => false, 'count' => 0];
+        }
+    }
+
+    private function syncMetas(string $start, string $end, bool $append): array
+    {
+        $this->info('Sincronizando metas_cache...');
+
+        try {
+            if (!$append) {
+                DB::statement('TRUNCATE TABLE metas_cache RESTART IDENTITY CASCADE');
+            }
+
+            $sql = "INSERT INTO metas_cache (
+                        cplaza, ctienda, vend_clave, fecha, plaza_ajustada,
+                        tienda_vendedor, meta_dia, venta, diferencia, porcentaje, created_at, updated_at
+                    )
+                    SELECT
+                        c.cplaza,
+                        c.ctienda,
+                        c.vend_clave,
+                        c.nota_fecha::date AS fecha,
+                        CASE 
+                            WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA' 
+                            WHEN c.vend_clave = '14379' THEN 'MANZA' 
+                            ELSE c.cplaza 
+                        END AS plaza_ajustada,
+                        c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
+                        0 AS meta_dia,
+                        SUM(c.nota_impor) AS venta,
+                        0 AS diferencia,
+                        0 AS porcentaje,
+                        NOW() AS created_at,
+                        NOW() AS updated_at
+                    FROM canota c
+                    WHERE c.nota_fecha >= :start AND c.nota_fecha <= :end
+                    AND c.ban_status <> 'C'
+                    AND c.ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
+                    AND c.ctienda NOT LIKE '%DESC%'
+                    AND c.ctienda NOT LIKE '%CEDI%'
+                    GROUP BY c.cplaza, c.ctienda, c.vend_clave, c.nota_fecha";
+
+            DB::insert($sql, ['start' => $start, 'end' => $end]);
+
+            $count = DB::table('metas_cache')->count();
+
+            return ['name' => 'Metas', 'success' => true, 'count' => $count];
+        } catch (\Exception $e) {
+            Log::error('Error sincronizando metas_cache: ' . $e->getMessage());
+            $this->error("Error: {$e->getMessage()}");
+            return ['name' => 'Metas', 'success' => false, 'count' => 0];
         }
     }
 }

@@ -77,6 +77,10 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
 
     Route::post('vendedores/export-pdf', [ReporteVendedoresController::class, 'exportPdf'])
         ->name('reportes.vendedores.export.pdf')->middleware('can:reportes.vendedores.editar');
+
+    Route::post('vendedores/sync', [ReporteVendedoresController::class, 'sync'])
+        ->name('reportes.vendedores.sync')->middleware('can:reportes.vendedores.editar');
+
     Route::get('vendedores-matricial', [ReporteVendedoresMatricialController::class, 'index'])
         ->name('reportes.vendedores.matricial')->middleware('can:reportes.vendedores.matricial.ver');
 
