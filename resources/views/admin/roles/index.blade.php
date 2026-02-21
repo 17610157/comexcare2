@@ -36,7 +36,7 @@
 
     <!-- Modal para crear/editar rol -->
     <div class="modal fade" id="roleModal" tabindex="-1" role="dialog" aria-labelledby="roleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <form id="roleForm">
                     @csrf
@@ -75,7 +75,7 @@
 
     <!-- Modal para confirmar eliminación -->
     <div class="modal fade" id="deleteRoleModal" tabindex="-1" role="dialog" aria-labelledby="deleteRoleModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deleteRoleModalLabel">Confirmar Eliminación</h5>

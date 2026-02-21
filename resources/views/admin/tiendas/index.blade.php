@@ -51,7 +51,7 @@
 
     <!-- Modal para crear/editar tienda -->
     <div class="modal fade" id="tiendaModal" tabindex="-1" role="dialog" aria-labelledby="tiendaModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <form id="tiendaForm">
                     @csrf
@@ -97,7 +97,7 @@
 
     <!-- Modal para confirmar eliminación -->
     <div class="modal fade" id="deleteTiendaModal" tabindex="-1" role="dialog" aria-labelledby="deleteTiendaModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deleteTiendaModalLabel">Confirmar Eliminación</h5>

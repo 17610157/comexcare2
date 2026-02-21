@@ -244,7 +244,7 @@
 
 <!-- Modal de Health Check -->
 <div class="modal fade" id="healthModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Health Check - Sistema Cartera Abonos</h5>
