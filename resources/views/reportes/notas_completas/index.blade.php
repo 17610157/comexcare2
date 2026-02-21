@@ -146,7 +146,7 @@
 
 <!-- Modal de Sincronización -->
 <div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
     <div class="modal-content">
       <div class="modal-header bg-warning">
         <h5 class="modal-title" id="syncModalLabel">

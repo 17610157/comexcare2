@@ -48,7 +48,7 @@
 
     <!-- Create Modal -->
     <div class="modal fade" id="createDistributionModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <form action="{{ route('admin.distributions.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf

@@ -232,7 +232,7 @@
                 </div>
             @elseif(count($vendedores_data) > 0)
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered mb-0" style="min-width: 1000px;">
+                    <table class="table table-sm table-bordered mb-0" style="min-width: 800px;">
                         <thead class="thead-dark" style="position: sticky; top: 0; z-index: 10;">
                             <tr>
                                 <th class="fixed-column" width="120">Descripción</th>
@@ -362,9 +362,24 @@
             max-height: none;
         }
         .table-responsive table {
-            min-width: 1500px;
+            min-width: 800px;
         }
-        .monetary { 
+        @media (max-width: 768px) {
+            .table-responsive {
+                font-size: 0.75rem;
+            }
+            .table-responsive table {
+                min-width: 600px;
+            }
+            .table-responsive .table-sm {
+                font-size: 0.7rem;
+            }
+            .monetary {
+                padding: 2px 4px !important;
+                font-size: 0.7rem;
+            }
+        }
+        .monoidal { 
             text-align: right !important;
             font-family: 'Courier New', monospace;
             font-weight: bold;

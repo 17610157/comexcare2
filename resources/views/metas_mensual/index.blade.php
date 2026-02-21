@@ -7,7 +7,7 @@
 
 <!-- Modal: Periodo search (opened from Nueva Meta button) -->
 <div class="modal fade" id="modalPeriodo" tabindex="-1" role="dialog" aria-labelledby="modalPeriodoLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
+  <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
     <div class="modal-content">
       <form method="GET" action="{{ route('metas.index') }}">
         <div class="modal-header">
@@ -34,7 +34,7 @@
 <!-- Modal Edit eliminado: reemplazado por la versión única con modalCreateMain -->
 <!-- Modal para Días Feriados -->
 <div class="modal fade" id="modalFeriados" tabindex="-1" role="dialog" aria-labelledby="modalFeriadosLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modalFeriadosLabel">¿Existen días feriados en el período?</h5>
@@ -68,7 +68,7 @@
 </div>
 <!-- Nueva Meta modal (nuevo id para robustez) -->
 <div class="modal fade" id="modalCreateMain" tabindex="-1" role="dialog" aria-labelledby="modalCreateMainLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
+  <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
     <div class="modal-content">
       <form method="POST" action="{{ route('metas.store') }}">
         @csrf
@@ -104,7 +104,7 @@
 </div>
 <!-- Edit Meta Modal (robust) -->
 <div class="modal fade" id="modalEdit" tabindex="-1" role="dialog" aria-labelledby="modalEditLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
+  <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
     <div class="modal-content">
       <form method="POST" action="{{ route('metas.update') }}">
         @csrf

@@ -117,7 +117,7 @@
     </div>
     <div class="card-body p-0">
       <div class="table-responsive" style="overflow-x: auto;">
-        <table id="report-table" class="table table-bordered table-hover table-striped mb-0" style="min-width: 2000px;">
+        <table id="report-table" class="table table-bordered table-hover table-striped mb-0" style="width: 100%; min-width: 800px;">
           <thead class="thead-light">
             <tr>
               <th>Plaza</th>
@@ -154,7 +154,7 @@
 
 <!-- Modal de Sincronización -->
 <div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
     <div class="modal-content">
       <div class="modal-header bg-warning">
         <h5 class="modal-title" id="syncModalLabel">
@@ -235,6 +235,50 @@
 @section('css')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap4.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+@media (max-width: 768px) {
+  .modal-fullscreen-md-down {
+    width: 100vw;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+  }
+  .modal-fullscreen-md-down .modal-content {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+  .modal-fullscreen-md-down .modal-body {
+    overflow-y: auto;
+  }
+  .table-responsive {
+    font-size: 0.85rem;
+  }
+  .table-responsive .btn, 
+  .table-responsive .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+@media (max-width: 576px) {
+  .filters-container .col-6, 
+  .filters-container .col-12 {
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+  .filters-container .form-label {
+    font-size: 0.75rem;
+  }
+  .filters-container .form-control-sm {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  .btn-group-sm > .btn, .btn-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+}
+</style>
 @stop
 
 @section('js')

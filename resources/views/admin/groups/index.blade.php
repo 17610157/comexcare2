@@ -40,7 +40,7 @@
 
     <!-- Create Modal -->
     <div class="modal fade" id="createGroupModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <form action="{{ route('admin.groups.store') }}" method="POST">
                     @csrf
@@ -71,7 +71,7 @@
 
     <!-- Edit Modal -->
     <div class="modal fade" id="editGroupModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <form id="editGroupForm" method="POST">
                     @csrf

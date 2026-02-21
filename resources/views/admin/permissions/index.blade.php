@@ -42,7 +42,7 @@
 
     <!-- Modal para crear/editar permiso -->
     <div class="modal fade" id="permissionModal" tabindex="-1" role="dialog" aria-labelledby="permissionModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <form id="permissionForm">
                     @csrf
@@ -80,7 +80,7 @@
 
     <!-- Modal para confirmar eliminación -->
     <div class="modal fade" id="deletePermissionModal" tabindex="-1" role="dialog" aria-labelledby="deletePermissionModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deletePermissionModalLabel">Confirmar Eliminación</h5>
