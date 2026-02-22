@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class AssignDefaultPermissionsSeeder extends Seeder
 {
@@ -47,6 +47,8 @@ class AssignDefaultPermissionsSeeder extends Seeder
         $reportesPermissions = [
             'reportes.vendedores.ver',
             'reportes.vendedores.editar',
+            'reportes.vendedores.sincronizar',
+            'reportes.vendedores.filtrar',
             'reportes.vendedores.matricial.ver',
             'reportes.vendedores.matricial.editar',
             'reportes.metas-ventas.ver',
