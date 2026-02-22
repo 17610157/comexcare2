@@ -126,23 +126,6 @@
         </div>
     </div>
 
-    <script>
-    $(function() {
-        $('#select_all_plazas').on('change', function() {
-            $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
-        });
-        
-        $('#select_all_tiendas').on('change', function() {
-            $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
-        });
-        
-        const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
-        const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
-        $('#select_all_plazas').prop('checked', todasPlazas);
-        $('#select_all_tiendas').prop('checked', todasTiendas);
-    });
-    </script>
-
     @if(!empty($error_msg))
         <div class="alert alert-danger alert-dismissible">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
@@ -459,8 +442,25 @@
 @stop
 
 @section('js')
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>jQuery.noConflict();</script>
+    <script>
+    $(function() {
+        $('#select_all_plazas').on('change', function() {
+            $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        $('#select_all_tiendas').on('change', function() {
+            $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
+        const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
+        $('#select_all_plazas').prop('checked', todasPlazas);
+        $('#select_all_tiendas').prop('checked', todasTiendas);
+    });
+    </script>
+
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 

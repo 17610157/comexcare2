@@ -68,10 +68,15 @@
       <div class="row mt-3">
         <div class="col-12 d-flex flex-wrap gap-2 align-items-center justify-content-between">
           <div class="d-flex gap-2 flex-wrap">
-            <span id="info_status" class="badge bg-secondary align-self-center"></span>
+            @hasPermission('reportes.vendedores.sincronizar')
+            <button id="btn_sync" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#syncModal">
+              <i class="fas fa-database"></i> <span class="d-none d-sm-inline">Sincronizar Datos</span>
+            </button>
+            @endhasPermission
+            <span id="sync_status" class="badge bg-secondary align-self-center"></span>
           </div>
           <div class="d-flex gap-1 flex-wrap">
-            @hasPermission('reportes.vendedores.ver')
+            @hasPermission('reportes.vendedores.filtrar')
             <button id="btn_search" class="btn btn-success btn-sm">
               <i class="fas fa-search"></i> <span class="d-none d-sm-inline">Buscar</span>
             </button>
@@ -81,7 +86,7 @@
               <i class="fas fa-sync-alt"></i> <span class="d-none d-sm-inline">Actualizar</span>
             </button>
             @endhasPermission
-            @hasPermission('reportes.vendedores.ver')
+            @hasPermission('reportes.vendedores.filtrar')
             <button id="btn_reset_filters" class="btn btn-secondary btn-sm">
               <i class="fas fa-undo"></i> <span class="d-none d-sm-inline">Limpiar</span>
             </button>
@@ -289,6 +294,153 @@ $(function() {
   }
 
   updateCurrentPeriodDisplay();
+
+  // Sincronización Modal
+  $('input[name="syncType"]').on('change', function() {
+    const syncType = $('input[name="syncType"]:checked').val();
+    $('#syncLastDaysOptions').hide();
+    $('#syncDayOptions').hide();
+    $('#syncPeriodOptions').hide();
+    
+    if (syncType === 'lastDays') {
+      $('#syncLastDaysOptions').show();
+    } else if (syncType === 'day') {
+      $('#syncDayOptions').show();
+    } else if (syncType === 'period') {
+      $('#syncPeriodOptions').show();
+    }
+  });
+
+  $('#btnExecuteSync').on('click', function() {
+    const syncType = $('input[name="syncType"]:checked').val();
+    const append = $('#appendData').is(':checked');
+    
+    let url = "{{ url('/reportes/vendedores/sync') }}";
+    let data = {
+      _token: "{{ csrf_token() }}",
+      type: syncType,
+      append: append
+    };
+    
+    if (syncType === 'lastDays') {
+      data.lastDays = $('#lastDaysInput').val();
+    } else if (syncType === 'day') {
+      data.day = $('#dayInput').val();
+    } else if (syncType === 'period') {
+      data.periodStart = $('#periodStartInput').val();
+      data.periodEnd = $('#periodEndInput').val();
+    }
+    
+    $('#syncProgress').show();
+    $('#syncResult').hide();
+    $('#btnExecuteSync').prop('disabled', true);
+    
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: data,
+      success: function(response) {
+        $('#syncProgress').hide();
+        $('#syncResult').show();
+        if (response.success) {
+          $('#syncResult').removeClass('alert-danger').addClass('alert-success');
+          $('#syncResult').html('<i class="fas fa-check-circle"></i> ' + response.message);
+          dataTable.ajax.reload();
+        } else {
+          $('#syncResult').removeClass('alert-success').addClass('alert-danger');
+          $('#syncResult').html('<i class="fas fa-exclamation-circle"></i> ' + response.message);
+        }
+      },
+      error: function(xhr) {
+        $('#syncProgress').hide();
+        $('#syncResult').show();
+        $('#syncResult').removeClass('alert-success').addClass('alert-danger');
+        $('#syncResult').html('<i class="fas fa-exclamation-circle"></i> Error: ' + xhr.responseJSON.message);
+      },
+      complete: function() {
+        $('#btnExecuteSync').prop('disabled', false);
+      }
+    });
+  });
 });
 </script>
+
+<!-- Modal de Sincronización -->
+<div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title" id="syncModalLabel">
+          <i class="fas fa-database"></i> Sincronizar Datos
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Tipo de sincronización:</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncLastMonth" value="lastMonth" checked>
+            <label class="form-check-label" for="syncLastMonth">Mes anterior (por defecto)</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncLastDays" value="lastDays">
+            <label class="form-check-label" for="syncLastDays">Últimos días</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncDay" value="day">
+            <label class="form-check-label" for="syncDay">Un día específico</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncPeriod" value="period">
+            <label class="form-check-label" for="syncPeriod">Período específico</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="syncType" id="syncFull" value="full">
+            <label class="form-check-label" for="syncFull">Completo (desde 2000)</label>
+          </div>
+        </div>
+
+        <div id="syncLastDaysOptions" class="mb-3" style="display:none;">
+          <label for="lastDaysInput" class="form-label">Número de días:</label>
+          <input type="number" class="form-control" id="lastDaysInput" value="30" min="1" max="365">
+        </div>
+
+        <div id="syncDayOptions" class="mb-3" style="display:none;">
+          <label for="dayInput" class="form-label">Fecha:</label>
+          <input type="date" class="form-control" id="dayInput" value="{{ date('Y-m-d') }}">
+        </div>
+
+        <div id="syncPeriodOptions" class="mb-3" style="display:none;">
+          <div class="row">
+            <div class="col-6">
+              <label for="periodStartInput" class="form-label">Fecha inicio:</label>
+              <input type="date" class="form-control" id="periodStartInput" value="{{ date('Y-m-01') }}">
+            </div>
+            <div class="col-6">
+              <label for="periodEndInput" class="form-label">Fecha fin:</label>
+              <input type="date" class="form-control" id="periodEndInput" value="{{ date('Y-m-d') }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="appendData">
+          <label class="form-check-label" for="appendData">Agregar datos sin limpiar la tabla (append)</label>
+        </div>
+
+        <div id="syncProgress" class="alert alert-info" style="display:none;">
+          <i class="fas fa-spinner fa-spin"></i> Sincronizando...
+        </div>
+
+        <div id="syncResult" class="alert" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-warning" id="btnExecuteSync">
+          <i class="fas fa-sync-alt"></i> Sincronizar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 @endsection
