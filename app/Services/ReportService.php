@@ -19,8 +19,8 @@ class ReportService
 
         try {
             return Cache::remember($cacheKey, 3600, function () use ($filtros) { // Cache por 1 hora
-                $fecha_inicio = str_replace('-', '', $filtros['fecha_inicio']);
-                $fecha_fin = str_replace('-', '', $filtros['fecha_fin']);
+                $fecha_inicio = $filtros['fecha_inicio'];
+                $fecha_fin = $filtros['fecha_fin'];
                 $plaza = $filtros['plaza'] ?? '';
                 $tienda = $filtros['tienda'] ?? '';
                 $vendedor = $filtros['vendedor'] ?? '';
@@ -29,7 +29,7 @@ class ReportService
                 $sql = "
             SELECT
                 c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
-                c.vend_clave || '-' || EXTRACT(DAY FROM TO_DATE(c.nota_fecha::text, 'YYYYMMDD')) AS vendedor_dia,
+                c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha) AS vendedor_dia,
                 CASE
                     WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA'
                     WHEN c.vend_clave = '14379' THEN 'MANZA'
@@ -83,16 +83,16 @@ class ReportService
 
                 $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave
                       ORDER BY c.ctienda || '-' || c.vend_clave,
-                               c.vend_clave || '-' || TO_CHAR(TO_DATE(c.nota_fecha::text, 'YYYYMMDD'), 'DD')";
+                               c.vend_clave || '-' || TO_CHAR(c.nota_fecha, 'DD')";
 
                 $resultados_raw = DB::select($sql, $params);
 
                 // Procesar resultados usando collections para mejor rendimiento
                 return collect($resultados_raw)->map(function ($row) {
-                    $fecha_str = (string) $row->nota_fecha;
-                    $fecha = strlen($fecha_str) == 8 ?
-                        substr($fecha_str, 0, 4).'-'.substr($fecha_str, 4, 2).'-'.substr($fecha_str, 6, 2) :
-                        $fecha_str;
+                    $fecha_val = $row->nota_fecha;
+                    $fecha = $fecha_val instanceof \Carbon\Carbon
+                        ? $fecha_val->format('Y-m-d')
+                        : (is_string($fecha_val) ? $fecha_val : (string) $fecha_val);
 
                     $venta_total = floatval($row->venta_total);
                     $devolucion = floatval($row->devolucion);
@@ -100,13 +100,6 @@ class ReportService
 
                     // Ajustar vendedor_dia
                     $vendedor_dia = $row->vendedor_dia;
-                    if (! empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
-                        $partes = explode('-', $vendedor_dia);
-                        if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
-                            $dia = substr($fecha_str, 6, 2);
-                            $vendedor_dia = $partes[0].'-'.$dia;
-                        }
-                    }
 
                     return [
                         'tienda_vendedor' => $row->tienda_vendedor,
@@ -126,8 +119,8 @@ class ReportService
             Log::warning('Error de cache en getVendedoresReport, ejecutando sin cache: '.$e->getMessage());
 
             // Ejecutar la consulta sin cache
-            $fecha_inicio = str_replace('-', '', $filtros['fecha_inicio']);
-            $fecha_fin = str_replace('-', '', $filtros['fecha_fin']);
+            $fecha_inicio = $filtros['fecha_inicio'];
+            $fecha_fin = $filtros['fecha_fin'];
             $plaza = $filtros['plaza'] ?? '';
             $tienda = $filtros['tienda'] ?? '';
             $vendedor = $filtros['vendedor'] ?? '';
@@ -173,7 +166,7 @@ class ReportService
             )
             SELECT
                 c.ctienda || '-' || c.vend_clave AS tienda_vendedor,
-                c.vend_clave || '-' || EXTRACT(DAY FROM TO_DATE(c.nota_fecha::text, 'YYYYMMDD')) AS vendedor_dia,
+                c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha) AS vendedor_dia,
                 CASE
                     WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA'
                     WHEN c.vend_clave = '14379' THEN 'MANZA'
@@ -201,12 +194,26 @@ class ReportService
 
             // Aplicar filtros adicionales a la consulta principal
             if (! empty($plaza)) {
-                $sql .= ' AND c.cplaza = ?';
-                $params[] = $plaza;
+                if (strpos($plaza, ',') !== false) {
+                    $plazas = explode(',', $plaza);
+                    $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+                    $sql .= " AND c.cplaza IN ($placeholders)";
+                    $params = array_merge($params, $plazas);
+                } else {
+                    $sql .= ' AND c.cplaza = ?';
+                    $params[] = $plaza;
+                }
             }
             if (! empty($tienda)) {
-                $sql .= ' AND c.ctienda = ?';
-                $params[] = $tienda;
+                if (strpos($tienda, ',') !== false) {
+                    $tiendas = explode(',', $tienda);
+                    $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                    $sql .= " AND c.ctienda IN ($placeholders)";
+                    $params = array_merge($params, $tiendas);
+                } else {
+                    $sql .= ' AND c.ctienda = ?';
+                    $params[] = $tienda;
+                }
             }
             if (! empty($vendedor)) {
                 $sql .= ' AND c.vend_clave = ?';
@@ -215,34 +222,24 @@ class ReportService
 
             $sql .= " GROUP BY c.nota_fecha, c.cplaza, c.ctienda, c.vend_clave, d.devolucion_total
                       ORDER BY c.ctienda || '-' || c.vend_clave,
-                               c.vend_clave || '-' || TO_CHAR(TO_DATE(c.nota_fecha::text, 'YYYYMMDD'), 'DD')";
+                               c.vend_clave || '-' || TO_CHAR(c.nota_fecha, 'DD')";
 
             $resultados_raw = DB::select($sql, $params);
 
             // Procesar resultados usando collections para mejor rendimiento
             return collect($resultados_raw)->map(function ($row) {
-                $fecha_str = (string) $row->nota_fecha;
-                $fecha = strlen($fecha_str) == 8 ?
-                    substr($fecha_str, 0, 4).'-'.substr($fecha_str, 4, 2).'-'.substr($fecha_str, 6, 2) :
-                    $fecha_str;
+                $fecha_val = $row->nota_fecha;
+                $fecha = $fecha_val instanceof \Carbon\Carbon
+                    ? $fecha_val->format('Y-m-d')
+                    : (is_string($fecha_val) ? $fecha_val : (string) $fecha_val);
 
                 $venta_total = floatval($row->venta_total);
                 $devolucion = floatval($row->devolucion);
                 $venta_neta = $venta_total - $devolucion;
 
-                // Ajustar vendedor_dia
-                $vendedor_dia = $row->vendedor_dia;
-                if (! empty($vendedor_dia) && strpos($vendedor_dia, '-') !== false && strlen($fecha_str) == 8) {
-                    $partes = explode('-', $vendedor_dia);
-                    if (count($partes) == 2 && (strlen($partes[1]) == 0 || $partes[1] == '0' || $partes[1] == '1')) {
-                        $dia = substr($fecha_str, 6, 2);
-                        $vendedor_dia = $partes[0].'-'.$dia;
-                    }
-                }
-
                 return [
                     'tienda_vendedor' => $row->tienda_vendedor,
-                    'vendedor_dia' => $vendedor_dia,
+                    'vendedor_dia' => $row->vendedor_dia,
                     'plaza_ajustada' => $row->plaza_ajustada,
                     'ctienda' => $row->ctienda,
                     'vend_clave' => $row->vend_clave,
@@ -312,12 +309,26 @@ class ReportService
 
                 // Aplicar filtros
                 if (! empty($plaza)) {
-                    $sql .= ' AND c.cplaza = ?';
-                    $params[] = $plaza;
+                    if (strpos($plaza, ',') !== false) {
+                        $plazas = explode(',', $plaza);
+                        $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+                        $sql .= " AND c.cplaza IN ($placeholders)";
+                        $params = array_merge($params, $plazas);
+                    } else {
+                        $sql .= ' AND c.cplaza = ?';
+                        $params[] = $plaza;
+                    }
                 }
                 if (! empty($tienda)) {
-                    $sql .= ' AND c.ctienda = ?';
-                    $params[] = $tienda;
+                    if (strpos($tienda, ',') !== false) {
+                        $tiendas = explode(',', $tienda);
+                        $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                        $sql .= " AND c.ctienda IN ($placeholders)";
+                        $params = array_merge($params, $tiendas);
+                    } else {
+                        $sql .= ' AND c.ctienda = ?';
+                        $params[] = $tienda;
+                    }
                 }
                 if (! empty($vendedor)) {
                     $sql .= ' AND c.vend_clave = ?';
@@ -384,12 +395,26 @@ class ReportService
 
             // Aplicar filtros
             if (! empty($plaza)) {
-                $sql .= ' AND c.cplaza = ?';
-                $params[] = $plaza;
+                if (strpos($plaza, ',') !== false) {
+                    $plazas = explode(',', $plaza);
+                    $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+                    $sql .= " AND c.cplaza IN ($placeholders)";
+                    $params = array_merge($params, $plazas);
+                } else {
+                    $sql .= ' AND c.cplaza = ?';
+                    $params[] = $plaza;
+                }
             }
             if (! empty($tienda)) {
-                $sql .= ' AND c.ctienda = ?';
-                $params[] = $tienda;
+                if (strpos($tienda, ',') !== false) {
+                    $tiendas = explode(',', $tienda);
+                    $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                    $sql .= " AND c.ctienda IN ($placeholders)";
+                    $params = array_merge($params, $tiendas);
+                } else {
+                    $sql .= ' AND c.ctienda = ?';
+                    $params[] = $tienda;
+                }
             }
             if (! empty($vendedor)) {
                 $sql .= ' AND c.vend_clave = ?';
