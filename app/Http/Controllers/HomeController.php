@@ -66,16 +66,15 @@ class HomeController extends Controller
 
     private function calcularMetricas($fecha_inicio, $fecha_fin, $plaza = '', $tienda = '')
     {
-        // Ventas de canota (ventas de mostrador)
-        $ventasSql = "
-            SELECT COALESCE(SUM(nota_impor), 0) AS total_ventas
-            FROM canota 
-            WHERE ban_status <> 'C'
-            AND nota_fecha BETWEEN ? AND ?
-            AND ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027')
-            AND ctienda NOT LIKE '%DESC%'
-            AND ctienda NOT LIKE '%CEDI%'
-        ";
+        // Ventas de xcorte
+        $ventasSql = '
+            SELECT COALESCE(SUM(
+                (COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
+                (COALESCE(vtacred, 0) - COALESCE(descred, 0))
+            ), 0) AS total_ventas
+            FROM xcorte 
+            WHERE fecha BETWEEN ? AND ?
+        ';
 
         $params = [$fecha_inicio, $fecha_fin];
 
