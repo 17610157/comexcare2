@@ -103,23 +103,6 @@
     </form>
 </div>
 
-<script>
-$(function() {
-    $('#select_all_plazas').on('change', function() {
-        $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
-    });
-    
-    $('#select_all_tiendas').on('change', function() {
-        $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
-    });
-    
-    const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
-    const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
-    $('#select_all_plazas').prop('checked', todasPlazas);
-    $('#select_all_tiendas').prop('checked', todasTiendas);
-});
-</script>
-
 @if(isset($datos) && !empty($datos['tiendas']))
 <!-- Tabla Matricial Jerárquica -->
 <div class="card">
@@ -396,6 +379,20 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Checkboxes de filtros
+    $('#select_all_plazas').on('change', function() {
+        $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+    });
+    
+    $('#select_all_tiendas').on('change', function() {
+        $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
+    });
+    
+    const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
+    const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
+    $('#select_all_plazas').prop('checked', todasPlazas);
+    $('#select_all_tiendas').prop('checked', todasTiendas);
 });
 </script>
 @endsection
