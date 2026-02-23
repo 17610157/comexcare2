@@ -17,19 +17,6 @@ class HomeController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $userFilter = RoleHelper::getUserFilter();
-
-        // Si no tiene acceso, denegar
-        if (! $userFilter['allowed']) {
-            return view('home', [
-                'error' => $userFilter['message'] ?? 'No autorizado',
-                'ventas' => 0,
-                'devoluciones' => 0,
-                'alcance' => 0,
-                'neto' => 0,
-                'periodo' => date('Y-m'),
-            ]);
-        }
 
         // Obtener fechas del mes actual
         $fecha_inicio = date('Y-m-01');
@@ -38,19 +25,32 @@ class HomeController extends Controller
         // Obtener filtros del usuario
         $plaza = '';
         $tienda = '';
+        $error = null;
 
-        if (! empty($userFilter['plazas_asignadas'])) {
-            $plaza = implode(',', $userFilter['plazas_asignadas']);
+        if ($user) {
+            $userFilter = RoleHelper::getUserFilter();
+
+            // Si tiene asignaciones específicas, usarlas
+            if (! empty($userFilter['plazas_asignadas'])) {
+                $plaza = implode(',', $userFilter['plazas_asignadas']);
+            }
+
+            if (! empty($userFilter['tiendas_asignadas'])) {
+                $tienda = implode(',', $userFilter['tiendas_asignadas']);
+            }
+
+            // Verificar si tiene acceso
+            $accesoTotal = $userFilter['acceso_todas_tiendas'] ?? false;
+            if (! $userFilter['allowed'] && ! $accesoTotal) {
+                $error = $userFilter['message'] ?? 'No autorizado';
+            }
         }
 
-        if (! empty($userFilter['tiendas_asignadas'])) {
-            $tienda = implode(',', $userFilter['tiendas_asignadas']);
-        }
-
-        // Calcular métricas
+        // Calcular métricas (siempre, si es admin sin restricciones será con filtros vacíos = todos)
         $metricas = $this->calcularMetricas($fecha_inicio, $fecha_fin, $plaza, $tienda);
 
         return view('home', [
+            'error' => $error,
             'ventas' => $metricas['ventas'],
             'devoluciones' => $metricas['devoluciones'],
             'alcance' => $metricas['alcance'],
