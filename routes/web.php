@@ -20,7 +20,7 @@ Route::get('/', function () {
 
 Route::get('/home', function () {
     return view('home');
-})->middleware('auth');
+})->middleware('auth')->name('home');
 
 Route::get('/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
@@ -62,7 +62,7 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
     Route::get('/', function () {
         return redirect()->route('reportes.vendedores');
     })->name('reportes.index')->middleware('can:reportes.ver');
-    
+
     Route::get('vendedores', [ReporteVendedoresController::class, 'index'])
         ->name('reportes.vendedores')->middleware('can:reportes.vendedores.ver');
 
