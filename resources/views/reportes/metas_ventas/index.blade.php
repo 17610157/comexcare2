@@ -137,29 +137,6 @@
         </div>
     </div>
 
-    <script>
-    $(function() {
-        $('#select_all_plazas').on('change', function() {
-            $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
-        });
-        
-        $('#select_all_tiendas').on('change', function() {
-            $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
-        });
-        
-        $('#select_all_zonas').on('change', function() {
-            $('.zona-checkbox').prop('checked', $(this).prop('checked'));
-        });
-        
-        const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
-        const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
-        const todasZonas = $('.zona-checkbox').length > 0 && $('.zona-checkbox:checked').length === $('.zona-checkbox').length;
-        $('#select_all_plazas').prop('checked', todasPlazas);
-        $('#select_all_tiendas').prop('checked', todasTiendas);
-        $('#select_all_zonas').prop('checked', todasZonas);
-    });
-    </script>
-
     @if(!empty($error_msg))
         <div class="alert alert-danger alert-dismissible">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
@@ -503,6 +480,26 @@
                     }
                 });
             });
+
+            // Checkboxes de filtros
+            $('#select_all_plazas').on('change', function() {
+                $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+            });
+            
+            $('#select_all_tiendas').on('change', function() {
+                $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
+            });
+            
+            $('#select_all_zonas').on('change', function() {
+                $('.zona-checkbox').prop('checked', $(this).prop('checked'));
+            });
+            
+            const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
+            const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
+            const todasZonas = $('.zona-checkbox').length > 0 && $('.zona-checkbox:checked').length === $('.zona-checkbox').length;
+            $('#select_all_plazas').prop('checked', todasPlazas);
+            $('#select_all_tiendas').prop('checked', todasTiendas);
+            $('#select_all_zonas').prop('checked', todasZonas);
         });
     </script>
 @stop
