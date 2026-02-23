@@ -299,8 +299,12 @@ return [
     */
 
     'menu' => [
+                [
+            'text' => 'Dashboard',
+            'url' => '/home',
+            'icon' => 'fas fa-tachometer-alt',
+        ],
 
-        ['header' => 'account_settings'],
         [
             'text' => 'Usuarios',
             'url' => 'admin/usuarios',
@@ -337,7 +341,6 @@ return [
             'icon' => 'fas fa-chart-area',
             'can' => 'metas.ver',
         ],
-        ['header' => 'distribution_management'],
         [
             'text' => 'Distributions',
             'url' => 'admin/distributions',

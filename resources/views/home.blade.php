@@ -3,9 +3,17 @@
 @section('title', 'Dashboard ComexCare')
 
 @section('content_header')
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
         <h1><i class="fas fa-chart-line text-primary"></i> Dashboard ComexCare</h1>
-        <span class="badge badge-info">Periodo: {{ $periodo ?? date('Y-m') }}</span>
+        <form method="GET" action="{{ route('home') }}" class="d-flex align-items-center gap-2">
+            <label class="mb-0"><strong>Del:</strong></label>
+            <input type="date" name="fecha_inicio" value="{{ $fecha_inicio ?? date('Y-m-01') }}" class="form-control form-control-sm" style="width: 140px;">
+            <label class="mb-0"><strong>Al:</strong></label>
+            <input type="date" name="fecha_fin" value="{{ $fecha_fin ?? date('Y-m-d') }}" class="form-control form-control-sm" style="width: 140px;">
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="fas fa-calculator"></i> Calcular
+            </button>
+        </form>
     </div>
 @stop
 
@@ -19,7 +27,7 @@
         <!-- Cards de Métricas Principales -->
         <div class="row">
             <!-- Ventas -->
-            <div class="col-lg-3 col-6">
+            <div class="col-lg-2 col-6">
                 <div class="small-box bg-info">
                     <div class="inner">
                         <h3>${{ number_format($ventas ?? 0, 2) }}</h3>
@@ -32,7 +40,7 @@
             </div>
 
             <!-- Devoluciones -->
-            <div class="col-lg-3 col-6">
+            <div class="col-lg-2 col-6">
                 <div class="small-box bg-danger">
                     <div class="inner">
                         <h3>${{ number_format($devoluciones ?? 0, 2) }}</h3>
@@ -44,12 +52,12 @@
                 </div>
             </div>
 
-            <!-- Neto -->
-            <div class="col-lg-3 col-6">
+            <!-- Venta Neta -->
+            <div class="col-lg-2 col-6">
                 <div class="small-box bg-success">
                     <div class="inner">
-                        <h3>${{ number_format($neto ?? 0, 2) }}</h3>
-                        <p>Neto</p>
+                        <h3>${{ number_format(($ventas ?? 0) - ($devoluciones ?? 0), 2) }}</h3>
+                        <p>Venta Neta</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-dollar-sign"></i>
@@ -58,7 +66,7 @@
             </div>
 
             <!-- Meta -->
-            <div class="col-lg-3 col-6">
+            <div class="col-lg-2 col-6">
                 <div class="small-box bg-warning">
                     <div class="inner">
                         <h3>${{ number_format($meta ?? 0, 2) }}</h3>
@@ -69,74 +77,90 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Objetivo -->
+            <div class="col-lg-2 col-6">
+                <div class="small-box bg-primary">
+                    <div class="inner">
+                        <h3>${{ number_format($objetivo ?? 0, 2) }}</h3>
+                        <p>Objetivo</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-crosshairs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alcance -->
+            <div class="col-lg-2 col-6">
+                <div class="small-box bg-secondary">
+                    <div class="inner">
+                        <h3>{{ number_format($alcance ?? 0, 1) }}%</h3>
+                        <p>Alcance</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Alcance -->
-        <div class="row">
+        <!-- Tabla de Vendedores -->
+        @php
+            $vendedoresArray = is_array($vendedores) ? $vendedores : $vendedores->toArray();
+            $totalVendedores = count($vendedoresArray);
+        @endphp
+        @if(!empty($vendedoresArray))
+        <div class="row mt-3">
             <div class="col-12">
-                <div class="card card-primary">
+                <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-chart-pie"></i> Alcance de Meta
-                        </h3>
+                        <h3 class="card-title"><i class="fas fa-users"></i> Ventas por Vendedor</h3>
                     </div>
-                    <div class="card-body">
-                        @php
-                            $alcanceValor = $alcance ?? 0;
-                            $porcentaje = min($alcanceValor, 100);
-                            $color = 'bg-success';
-                            if ($alcanceValor < 50) $color = 'bg-danger';
-                            elseif ($alcanceValor < 80) $color = 'bg-warning';
-                        @endphp
-                        <div class="progress mb-3">
-                            <div class="progress-bar {{ $color }}" role="progressbar" 
-                                 style="width: {{ $porcentaje }}%" 
-                                 aria-valuenow="{{ $alcanceValor }}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                {{ number_format($alcanceValor, 1) }}%
-                            </div>
+                    <div class="card-body table-responsive" style="max-height: 400px;">
+                        <table class="table table-bordered table-striped table-hover" id="vendedoresTable">
+                            <thead class="thead-dark sticky-top">
+                                <tr>
+                                    <th>Clave Vendedor</th>
+                                    <th>Tiendas</th>
+                                    <th>Ventas</th>
+                                    <th>Devoluciones</th>
+                                    <th>Venta Neta</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($vendedoresArray as $index => $v)
+                                <tr class="{{ $index >= 5 ? 'vendedor-extra' : '' }}" {{ $index >= 5 ? 'style=display:none' : '' }}>
+                                    <td>{{ $v['clave_vendedor'] }}</td>
+                                    <td>{{ implode(', ', $v['tiendas']) }}</td>
+                                    <td>${{ number_format($v['ventas'], 2) }}</td>
+                                    <td>${{ number_format($v['devoluciones'], 2) }}</td>
+                                    <td><strong>${{ number_format($v['ventas_net'], 2) }}</strong></td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        @if($totalVendedores > 5)
+                        <div class="text-center mt-2">
+                            <button class="btn btn-primary btn-sm" onclick="mostrarMasVendedores()">
+                                Ver más ({{ $totalVendedores - 5 }} restantes)
+                            </button>
                         </div>
-                        <p class="text-center">
-                            <strong>Alcance: {{ number_format($alcanceValor, 2) }}%</strong>
-                            @if($alcanceValor >= 100)
-                                <span class="badge badge-success ml-2"><i class="fas fa-check"></i> Meta Cumplida</span>
-                            @elseif($alcanceValor >= 80)
-                                <span class="badge badge-warning ml-2"><i class="fas fa-exclamation"></i> Cerca de Meta</span>
-                            @else
-                                <span class="badge badge-danger ml-2"><i class="fas fa-times"></i> Por debajo de Meta</span>
-                            @endif
-                        </p>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Información del Período -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-calendar"></i> Período</h3>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Inicio:</strong> {{ $fecha_inicio ?? date('Y-m-01') }}</p>
-                        <p><strong>Fin:</strong> {{ $fecha_fin ?? date('Y-m-d') }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-filter"></i> Filtros Aplicados</h3>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Plazas:</strong> {{ !empty($plaza) ? $plaza : 'Todas' }}</p>
-                        <p><strong>Tiendas:</strong> {{ !empty($tienda) ? $tienda : 'Todas' }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <script>
+        function mostrarMasVendedores() {
+            var elementos = document.querySelectorAll('.vendedor-extra');
+            elementos.forEach(function(el) {
+                el.style.display = 'table-row';
+            });
+            event.target.style.display = 'none';
+        }
+        </script>
+        @endif
 
         <!-- Accesos Rápidos -->
         <div class="row">
