@@ -28,9 +28,6 @@
                     <div class="icon">
                         <i class="fas fa-shopping-cart"></i>
                     </div>
-                    <a href="{{ route('reportes.metas-ventas') }}" class="small-box-footer">
-                        Ver detalle <i class="fas fa-arrow-circle-right"></i>
-                    </a>
                 </div>
             </div>
 
@@ -44,9 +41,6 @@
                     <div class="icon">
                         <i class="fas fa-undo-alt"></i>
                     </div>
-                    <a href="{{ route('reportes.metas-ventas') }}" class="small-box-footer">
-                        Ver detalle <i class="fas fa-arrow-circle-right"></i>
-                    </a>
                 </div>
             </div>
 
@@ -60,9 +54,6 @@
                     <div class="icon">
                         <i class="fas fa-dollar-sign"></i>
                     </div>
-                    <a href="{{ route('reportes.metas-ventas') }}" class="small-box-footer">
-                        Ver detalle <i class="fas fa-arrow-circle-right"></i>
-                    </a>
                 </div>
             </div>
 
@@ -76,9 +67,6 @@
                     <div class="icon">
                         <i class="fas fa-bullseye"></i>
                     </div>
-                    <a href="{{ route('reportes.metas-ventas') }}" class="small-box-footer">
-                        Ver detalle <i class="fas fa-arrow-circle-right"></i>
-                    </a>
                 </div>
             </div>
         </div>
