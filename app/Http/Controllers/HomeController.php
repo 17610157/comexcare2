@@ -6,6 +6,7 @@ use App\Helpers\RoleHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class HomeController extends Controller
 {
@@ -19,8 +20,8 @@ class HomeController extends Controller
         $user = Auth::user();
 
         // Obtener fechas del mes actual
-        $fecha_inicio = date('Y-m-01');
-        $fecha_fin = date('Y-m-d');
+        $fecha_inicio = date('2026-02-01');
+        $fecha_fin = date('2026-02-28');
 
         // Obtener filtros del usuario
         $plaza = '';
@@ -29,6 +30,9 @@ class HomeController extends Controller
 
         if ($user) {
             $userFilter = RoleHelper::getUserFilter();
+
+            // Log temporal
+            \Log::info('HomeController - User filter: '.json_encode($userFilter));
 
             // Si tiene asignaciones específicas, usarlas
             if (! empty($userFilter['plazas_asignadas'])) {
@@ -46,8 +50,13 @@ class HomeController extends Controller
             }
         }
 
+        // Log de parámetros
+        \Log::info("HomeController - fecha_inicio: $fecha_inicio, fecha_fin: $fecha_fin, plaza: $plaza, tienda: $tienda");
+
         // Calcular métricas (siempre, si es admin sin restricciones será con filtros vacíos = todos)
         $metricas = $this->calcularMetricas($fecha_inicio, $fecha_fin, $plaza, $tienda);
+
+        \Log::info('HomeController - metricas: '.json_encode($metricas));
 
         return view('home', [
             'error' => $error,
