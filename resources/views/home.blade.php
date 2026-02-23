@@ -93,26 +93,27 @@
                         </h3>
                     </div>
                     <div class="card-body">
+                        @php
+                            $alcanceValor = $alcance ?? 0;
+                            $porcentaje = min($alcanceValor, 100);
+                            $color = 'bg-success';
+                            if ($alcanceValor < 50) $color = 'bg-danger';
+                            elseif ($alcanceValor < 80) $color = 'bg-warning';
+                        @endphp
                         <div class="progress mb-3">
-                            @php
-                                $porcentaje = min($alcance ?? 0, 100);
-                                $color = 'bg-success';
-                                if ($alcance < 50) $color = 'bg-danger';
-                                elseif ($alcance < 80) $color = 'bg-warning';
-                            @endphp
                             <div class="progress-bar {{ $color }}" role="progressbar" 
                                  style="width: {{ $porcentaje }}%" 
-                                 aria-valuenow="{{ $alcance ?? 0 }}" 
+                                 aria-valuenow="{{ $alcanceValor }}" 
                                  aria-valuemin="0" 
                                  aria-valuemax="100">
-                                {{ number_format($alcance ?? 0, 1) }}%
+                                {{ number_format($alcanceValor, 1) }}%
                             </div>
                         </div>
                         <p class="text-center">
-                            <strong>Alcance: {{ number_format($alcance ?? 0, 2) }}%</strong>
-                            @if(($alcance ?? 0) >= 100)
+                            <strong>Alcance: {{ number_format($alcanceValor, 2) }}%</strong>
+                            @if($alcanceValor >= 100)
                                 <span class="badge badge-success ml-2"><i class="fas fa-check"></i> Meta Cumplida</span>
-                            @elseif(($alcance ?? 0) >= 80)
+                            @elseif($alcanceValor >= 80)
                                 <span class="badge badge-warning ml-2"><i class="fas fa-exclamation"></i> Cerca de Meta</span>
                             @else
                                 <span class="badge badge-danger ml-2"><i class="fas fa-times"></i> Por debajo de Meta</span>
