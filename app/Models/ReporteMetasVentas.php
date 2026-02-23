@@ -54,13 +54,27 @@ class ReporteMetasVentas extends Model
         $params = [$primer_dia_mes, $fecha_fin];
 
         if (! empty($plaza)) {
-            $sql .= ' AND cplaza = ?';
-            $params[] = $plaza;
+            if (strpos($plaza, ',') !== false) {
+                $plazas = explode(',', $plaza);
+                $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+                $sql .= " AND cplaza IN ($placeholders)";
+                $params = array_merge($params, $plazas);
+            } else {
+                $sql .= ' AND cplaza = ?';
+                $params[] = $plaza;
+            }
         }
 
         if (! empty($tienda)) {
-            $sql .= ' AND tienda = ?';
-            $params[] = $tienda;
+            if (strpos($tienda, ',') !== false) {
+                $tiendas = explode(',', $tienda);
+                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                $sql .= " AND ctienda IN ($placeholders)";
+                $params = array_merge($params, $tiendas);
+            } else {
+                $sql .= ' AND ctienda = ?';
+                $params[] = $tienda;
+            }
         }
 
         $sql .= ' GROUP BY cplaza, ctienda, fecha
