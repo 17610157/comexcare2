@@ -18,9 +18,7 @@ Route::get('/', function () {
     return auth()->check() ? redirect()->route('home') : redirect()->route('login');
 });
 
-Route::get('/home', function () {
-    return view('home');
-})->middleware('auth')->name('home');
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->middleware('auth')->name('home');
 
 Route::get('/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
