@@ -62,7 +62,7 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
     Route::get('/', function () {
         return redirect()->route('reportes.vendedores');
     })->name('reportes.index')->middleware('can:reportes.ver');
-
+    
     Route::get('vendedores', [ReporteVendedoresController::class, 'index'])
         ->name('reportes.vendedores')->middleware('can:reportes.vendedores.ver');
 
@@ -79,8 +79,7 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
         ->name('reportes.vendedores.export.pdf')->middleware('can:reportes.vendedores.editar');
 
     Route::post('vendedores/sync', [ReporteVendedoresController::class, 'sync'])
-        ->middleware('can:reportes.vendedores.sincronizar')
-        ->name('reportes.vendedores.sync');
+        ->name('reportes.vendedores.sync')->middleware('can:reportes.vendedores.editar');
 
     Route::get('vendedores-matricial', [ReporteVendedoresMatricialController::class, 'index'])
         ->name('reportes.vendedores.matricial')->middleware('can:reportes.vendedores.matricial.ver');
