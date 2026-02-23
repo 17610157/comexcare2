@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\RoleHelper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class HomeController extends Controller
 {
@@ -17,49 +14,14 @@ class HomeController extends Controller
 
     public function index(Request $request)
     {
-        $user = Auth::user();
+        // Fechas del período actual (mes en curso)
+        $fecha_inicio = date('Y-m-01');
+        $fecha_fin = date('Y-m-d');
 
-        // Obtener fechas del mes actual
-        $fecha_inicio = date('2026-02-01');
-        $fecha_fin = date('2026-02-28');
-
-        // Obtener filtros del usuario
-        $plaza = '';
-        $tienda = '';
-        $error = null;
-
-        if ($user) {
-            $userFilter = RoleHelper::getUserFilter();
-
-            // Log temporal
-            \Log::info('HomeController - User filter: '.json_encode($userFilter));
-
-            // Si tiene asignaciones específicas, usarlas
-            if (! empty($userFilter['plazas_asignadas'])) {
-                $plaza = implode(',', $userFilter['plazas_asignadas']);
-            }
-
-            if (! empty($userFilter['tiendas_asignadas'])) {
-                $tienda = implode(',', $userFilter['tiendas_asignadas']);
-            }
-
-            // Verificar si tiene acceso
-            $accesoTotal = $userFilter['acceso_todas_tiendas'] ?? false;
-            if (! $userFilter['allowed'] && ! $accesoTotal) {
-                $error = $userFilter['message'] ?? 'No autorizado';
-            }
-        }
-
-        // Log de parámetros
-        \Log::info("HomeController - fecha_inicio: $fecha_inicio, fecha_fin: $fecha_fin, plaza: $plaza, tienda: $tienda");
-
-        // Calcular métricas (siempre, si es admin sin restricciones será con filtros vacíos = todos)
-        $metricas = $this->calcularMetricas($fecha_inicio, $fecha_fin, $plaza, $tienda);
-
-        \Log::info('HomeController - metricas: '.json_encode($metricas));
+        // Calcular métricas directamente (todas las plazas/tiendas)
+        $metricas = $this->calcularMetricas($fecha_inicio, $fecha_fin);
 
         return view('home', [
-            'error' => $error,
             'ventas' => $metricas['ventas'],
             'devoluciones' => $metricas['devoluciones'],
             'alcance' => $metricas['alcance'],
@@ -68,8 +30,8 @@ class HomeController extends Controller
             'periodo' => date('Y-m'),
             'fecha_inicio' => $fecha_inicio,
             'fecha_fin' => $fecha_fin,
-            'plaza' => $plaza,
-            'tienda' => $tienda,
+            'plaza' => '',
+            'tienda' => '',
         ]);
     }
 
@@ -87,34 +49,10 @@ class HomeController extends Controller
 
         $params = [$fecha_inicio, $fecha_fin];
 
-        if (! empty($plaza)) {
-            if (strpos($plaza, ',') !== false) {
-                $plazas = explode(',', $plaza);
-                $placeholders = implode(',', array_fill(0, count($plazas), '?'));
-                $ventasSql .= " AND cplaza IN ($placeholders)";
-                $params = array_merge($params, $plazas);
-            } else {
-                $ventasSql .= ' AND cplaza = ?';
-                $params[] = $plaza;
-            }
-        }
-
-        if (! empty($tienda)) {
-            if (strpos($tienda, ',') !== false) {
-                $tiendas = explode(',', $tienda);
-                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
-                $ventasSql .= " AND ctienda IN ($placeholders)";
-                $params = array_merge($params, $tiendas);
-            } else {
-                $ventasSql .= ' AND ctienda = ?';
-                $params[] = $tienda;
-            }
-        }
-
         $ventasResult = DB::select($ventasSql, $params);
         $ventas = floatval($ventasResult[0]->total_ventas ?? 0);
 
-        // Devoluciones de tabla venta (tipo_doc = 'DV')
+        // Devoluciones de tabla venta
         $devSql = "
             SELECT COALESCE(SUM(v.total_brut + v.impuesto), 0) AS total_dev
             FROM venta v
@@ -124,74 +62,24 @@ class HomeController extends Controller
         ";
 
         $devParams = [$fecha_inicio, $fecha_fin];
-
-        if (! empty($plaza)) {
-            if (strpos($plaza, ',') !== false) {
-                $plazas = explode(',', $plaza);
-                $placeholders = implode(',', array_fill(0, count($plazas), '?'));
-                $devSql .= " AND v.cplaza IN ($placeholders)";
-                $devParams = array_merge($devParams, $plazas);
-            } else {
-                $devSql .= ' AND v.cplaza = ?';
-                $devParams[] = $plaza;
-            }
-        }
-
-        if (! empty($tienda)) {
-            if (strpos($tienda, ',') !== false) {
-                $tiendas = explode(',', $tienda);
-                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
-                $devSql .= " AND v.ctienda IN ($placeholders)";
-                $devParams = array_merge($devParams, $tiendas);
-            } else {
-                $devSql .= ' AND v.ctienda = ?';
-                $devParams[] = $tienda;
-            }
-        }
-
         $devResult = DB::select($devSql, $devParams);
         $devoluciones = floatval($devResult[0]->total_dev ?? 0);
 
         // Calcular neto
         $neto = $ventas - $devoluciones;
 
-        // Obtener meta del período
+        // Meta de tabla metas
         $metaSql = '
-            SELECT COALESCE(SUM(m.meta_total), 0) AS total_meta
-            FROM metas m
-            WHERE m.fecha BETWEEN ? AND ?
+            SELECT COALESCE(SUM(meta_total), 0) AS total_meta
+            FROM metas
+            WHERE fecha BETWEEN ? AND ?
         ';
 
         $metaParams = [$fecha_inicio, $fecha_fin];
-
-        if (! empty($plaza)) {
-            if (strpos($plaza, ',') !== false) {
-                $plazas = explode(',', $plaza);
-                $placeholders = implode(',', array_fill(0, count($plazas), '?'));
-                $metaSql .= " AND m.plaza IN ($placeholders)";
-                $metaParams = array_merge($metaParams, $plazas);
-            } else {
-                $metaSql .= ' AND m.plaza = ?';
-                $metaParams[] = $plaza;
-            }
-        }
-
-        if (! empty($tienda)) {
-            if (strpos($tienda, ',') !== false) {
-                $tiendas = explode(',', $tienda);
-                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
-                $metaSql .= " AND m.tienda IN ($placeholders)";
-                $metaParams = array_merge($metaParams, $tiendas);
-            } else {
-                $metaSql .= ' AND m.tienda = ?';
-                $metaParams[] = $tienda;
-            }
-        }
-
         $metaResult = DB::select($metaSql, $metaParams);
         $meta = floatval($metaResult[0]->total_meta ?? 0);
 
-        // Calcular alcance (porcentaje)
+        // Calcular alcance
         $alcance = $meta > 0 ? ($ventas / $meta) * 100 : 0;
 
         return [
