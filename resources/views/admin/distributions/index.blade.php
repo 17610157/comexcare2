@@ -36,7 +36,11 @@
                             <td>
                                 <a href="{{ route('admin.distributions.show', $distribution) }}" class="btn btn-info btn-sm">View</a>
                                 @can('distribution.eliminar')
-                                <button class="btn btn-danger btn-sm" onclick="deleteDistribution({{ $distribution->id }}, {{ json_encode($distribution->name) }})">Delete</button>
+                                <form action="{{ route('admin.distributions.destroy', $distribution) }}" method="POST" style="display:inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar esta distribución?')">Delete</button>
+                                </form>
                                 @endcan
                             </td>
                         </tr>
