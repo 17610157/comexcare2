@@ -13,12 +13,15 @@ class DistributionsController extends Controller
     public function index()
     {
         $distributions = Distribution::with('creator')->paginate(20);
-        return view('admin.distributions.index', compact('distributions'));
+        $groups = Group::all();
+
+        return view('admin.distributions.index', compact('distributions', 'groups'));
     }
 
     public function create()
     {
         $groups = Group::all();
+
         return view('admin.distributions.create', compact('groups'));
     }
 
@@ -41,18 +44,20 @@ class DistributionsController extends Controller
             $service->startDistribution($distribution);
         }
 
-        return redirect()->route('distributions.index')->with('success', 'Distribution created successfully');
+        return redirect()->route('admin.distributions.index')->with('success', 'Distribution created successfully');
     }
 
     public function show(Distribution $distribution)
     {
         $distribution->load('files', 'targets.computer');
+
         return view('admin.distributions.show', compact('distribution'));
     }
 
     public function destroy(Distribution $distribution)
     {
         $distribution->delete();
-        return redirect()->route('distributions.index')->with('success', 'Distribution deleted');
+
+        return redirect()->route('admin.distributions.index')->with('success', 'Distribution deleted');
     }
 }

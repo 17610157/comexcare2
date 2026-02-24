@@ -22,11 +22,14 @@ class AgentController extends Controller
                 return response()->json(['error' => 'Invalid JSON', 'raw' => $request->getContent()], 400);
             }
 
+            Log::info('Agent registration request', $data);
+
             $validator = Validator::make($data, [
                 'computer_name' => 'required|string|max:255',
                 'mac_address' => 'required|string',
                 'agent_version' => 'required|string',
                 'system_info' => 'nullable|array',
+                'download_path' => 'nullable|string',
             ]);
 
             if ($validator->fails()) {
@@ -42,6 +45,7 @@ class AgentController extends Controller
                     'status' => 'online',
                     'last_seen' => now(),
                     'system_info' => $data['system_info'] ?? null,
+                    'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
                 ]
             );
 
@@ -79,6 +83,8 @@ class AgentController extends Controller
 
     public function getCommands(Request $request, $id)
     {
+        Log::info('getCommands request', ['computer_id' => $id]);
+
         $computer = Computer::findOrFail($id);
 
         $commands = Command::where('computer_id', $id)
@@ -86,18 +92,46 @@ class AgentController extends Controller
             ->orderBy('created_at')
             ->get();
 
+        Log::info('Commands found', ['count' => $commands->count(), 'computer_id' => $id]);
+
+        $commandsArray = [];
+
         foreach ($commands as $command) {
             $command->update(['status' => 'sent', 'sent_at' => now()]);
+
+            $data = is_array($command->data) ? $command->data : json_decode($command->data, true);
+
+            $fileName = null;
+            if (! empty($data['file_id'])) {
+                $file = DistributionFile::find($data['file_id']);
+                if ($file) {
+                    $fileName = $file->file_name;
+                }
+            }
+
+            $commandsArray[] = [
+                'id' => $command->id,
+                'computer_id' => $command->computer_id,
+                'type' => $command->type,
+                'file_id' => $data['file_id'] ?? null,
+                'file_name' => $fileName,
+                'distribution_target_id' => $data['distribution_target_id'] ?? null,
+                'status' => 'sent',
+            ];
         }
 
-        return response()->json($commands);
+        return response()->json($commandsArray);
     }
 
     public function report(Request $request)
     {
+        Log::info('Report received', $request->all());
+
         $validator = Validator::make($request->all(), [
             'computer_id' => 'required|integer|exists:computers,id',
             'command_id' => 'nullable|integer|exists:commands,id',
+            'distribution_target_id' => 'nullable|integer|exists:distribution_targets,id',
+            'file_id' => 'nullable|integer|exists:distribution_files,id',
             'status' => 'required|in:completed,failed',
             'progress' => 'nullable|integer|min:0|max:100',
             'response' => 'nullable|string',
@@ -116,10 +150,28 @@ class AgentController extends Controller
             ]);
         }
 
-        if ($request->progress !== null && $request->command_id) {
-            $command = Command::find($request->command_id);
-            if ($command->type === 'download' && isset($command->data['distribution_target_id'])) {
-                $target = \App\Models\DistributionTarget::find($command->data['distribution_target_id']);
+        if ($request->progress !== null) {
+            $targetId = null;
+
+            if ($request->distribution_target_id) {
+                $targetId = $request->distribution_target_id;
+            } elseif ($request->file_id) {
+                $target = \App\Models\DistributionTarget::where('distribution_id', function ($query) use ($request) {
+                    $query->select('distribution_id')
+                        ->from('distribution_files')
+                        ->where('id', $request->file_id);
+                })->where('computer_id', $request->computer_id)->first();
+                if ($target) {
+                    $targetId = $target->id;
+                }
+            } elseif ($request->command_id) {
+                $command = Command::find($request->command_id);
+                $data = is_array($command->data) ? $command->data : json_decode($command->data, true);
+                $targetId = $data['distribution_target_id'] ?? null;
+            }
+
+            if ($targetId) {
+                $target = \App\Models\DistributionTarget::find($targetId);
                 if ($target) {
                     $target->update([
                         'progress' => $request->progress,

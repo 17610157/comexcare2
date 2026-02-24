@@ -19,7 +19,8 @@ class Computer extends Model
         'last_seen',
         'status',
         'system_info',
-        'agent_config'
+        'agent_config',
+        'download_path',
     ];
 
     protected $casts = [

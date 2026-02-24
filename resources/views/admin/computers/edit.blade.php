@@ -22,6 +22,10 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>Download Path</label>
+                    <input type="text" name="download_path" class="form-control" value="{{ $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files' }}">
+                </div>
+                <div class="form-group">
                     <label>Agent Config (JSON)</label>
                     <textarea name="agent_config" class="form-control" rows="5">{{ json_encode($computer->agent_config) }}</textarea>
                 </div>

@@ -181,7 +181,7 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:admin.ver')->group(function () {
     Route::resource('distributions', \App\Http\Controllers\DistributionsController::class);
-    Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update']);
+    Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
     Route::resource('groups', \App\Http\Controllers\GroupsController::class);
     Route::resource('agent-versions', \App\Http\Controllers\AgentVersionsController::class);
 
@@ -227,21 +227,6 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
         Route::delete('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'destroy'])->name('tiendas.destroy');
     });
 });
-
-// Agent API routes (no auth, no CSRF for agents)
-Route::any('/api/register', [App\Http\Controllers\Api\AgentController::class, 'register']);
-Route::any('/api/heartbeat', [App\Http\Controllers\Api\AgentController::class, 'heartbeat']);
-Route::any('/api/commands/{id}', [App\Http\Controllers\Api\AgentController::class, 'getCommands']);
-Route::any('/api/report', [App\Http\Controllers\Api\AgentController::class, 'report']);
-Route::any('/api/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download']);
-Route::any('/api/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate']);
-Route::any('/api/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory']);
-Route::post('/api/heartbeat', [App\Http\Controllers\Api\AgentController::class, 'heartbeat'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/commands/{id}', [App\Http\Controllers\Api\AgentController::class, 'getCommands'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::post('/api/report', [App\Http\Controllers\Api\AgentController::class, 'report'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::post('/api/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // Metas Mensual Import routes (protected by auth)
 Route::middleware(['auth'])->group(function () {

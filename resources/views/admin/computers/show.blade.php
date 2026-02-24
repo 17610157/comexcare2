@@ -15,6 +15,7 @@
             <p><strong>Status:</strong> {{ $computer->status }}</p>
             <p><strong>Agent Version:</strong> {{ $computer->agent_version }}</p>
             <p><strong>Group:</strong> {{ $computer->group->name ?? 'N/A' }}</p>
+            <p><strong>Download Path:</strong> {{ $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files' }}</p>
             <p><strong>Last Seen:</strong> {{ $computer->last_seen ? $computer->last_seen->diffForHumans() : 'Never' }}</p>
         </div>
     </div>
