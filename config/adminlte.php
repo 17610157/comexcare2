@@ -299,7 +299,7 @@ return [
     */
 
     'menu' => [
-                [
+        [
             'text' => 'Dashboard',
             'url' => '/home',
             'icon' => 'fas fa-tachometer-alt',
@@ -412,7 +412,7 @@ return [
                     'url' => 'reportes/notas-completas',
                     'can' => 'reportes.notas-completas.ver',
                 ],
-                             [
+                [
                     'text' => 'Reporte Redenciones Club',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/redenciones-club',
@@ -524,6 +524,21 @@ return [
                     'type' => 'js',
                     'asset' => false,
                     'location' => '//cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.min.js',
+                ],
+            ],
+        ],
+        'Jvectormap' => [
+            'active' => true,
+            'files' => [
+                [
+                    'type' => 'css',
+                    'asset' => false,
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/jvectormap/2.0.5/jquery-jvectormap.min.css',
+                ],
+                [
+                    'type' => 'js',
+                    'asset' => false,
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/jvectormap/2.0.5/jquery-jvectormap.min.js',
                 ],
             ],
         ],

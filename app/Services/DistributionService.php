@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Command;
 use App\Models\Computer;
 use App\Models\Distribution;
 use App\Models\DistributionFile;
 use App\Models\DistributionTarget;
-use App\Models\Command;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class DistributionService
@@ -27,13 +26,13 @@ class DistributionService
         // Handle files
         if (isset($data['files'])) {
             foreach ($data['files'] as $file) {
-                // Assume file is uploaded, store it
-                $path = $file->store('distributions');
+                // Store in public disk for API access
+                $path = $file->store('distributions', 'public');
                 DistributionFile::create([
                     'distribution_id' => $distribution->id,
                     'file_name' => $file->getClientOriginalName(),
                     'file_path' => $path,
-                    'checksum' => hash_file('sha256', Storage::path($path)),
+                    'checksum' => hash_file('sha256', Storage::disk('public')->path($path)),
                     'file_size' => $file->getSize(),
                 ]);
             }
@@ -90,6 +89,7 @@ class DistributionService
     {
         if ($target->attempts >= 3) {
             $target->update(['status' => 'failed']);
+
             return;
         }
 
@@ -110,7 +110,7 @@ class DistributionService
     {
         // Check system_info for disk space
         $systemInfo = $computer->system_info;
-        if (!$systemInfo || !isset($systemInfo['disk_free'])) {
+        if (! $systemInfo || ! isset($systemInfo['disk_free'])) {
             return true; // Assume ok if not available
         }
 
