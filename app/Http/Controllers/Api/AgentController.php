@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Computer;
-use App\Models\Command;
-use App\Models\DistributionFile;
 use App\Models\AgentVersion;
+use App\Models\Command;
+use App\Models\Computer;
+use App\Models\DistributionFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +18,7 @@ class AgentController extends Controller
     {
         try {
             $data = json_decode($request->getContent(), true);
-            if (!$data) {
+            if (! $data) {
                 return response()->json(['error' => 'Invalid JSON', 'raw' => $request->getContent()], 400);
             }
 
@@ -48,6 +48,7 @@ class AgentController extends Controller
             return response()->json(['id' => $computer->id, 'message' => 'Registered successfully']);
         } catch (\Exception $e) {
             Log::error('Registration error', ['exception' => $e->getMessage(), 'data' => $data ?? null]);
+
             return response()->json(['error' => 'Server error', 'message' => $e->getMessage()], 500);
         }
     }
@@ -135,11 +136,11 @@ class AgentController extends Controller
     {
         $file = DistributionFile::findOrFail($fileId);
 
-        if (!Storage::exists($file->file_path)) {
+        if (! Storage::disk('public')->exists($file->file_path)) {
             return response()->json(['error' => 'File not found'], 404);
         }
 
-        return Storage::download($file->file_path, $file->file_name);
+        return Storage::disk('public')->download($file->file_path, $file->file_name);
     }
 
     public function checkUpdate(Request $request, $version)
@@ -147,7 +148,7 @@ class AgentController extends Controller
         $current = AgentVersion::where('version', $version)->first();
         $latest = AgentVersion::where('is_active', true)->orderBy('created_at', 'desc')->first();
 
-        if (!$latest || $current && $current->id >= $latest->id) {
+        if (! $latest || $current && $current->id >= $latest->id) {
             return response()->json(['update_available' => false]);
         }
 

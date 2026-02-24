@@ -53,6 +53,16 @@ class HomeController extends Controller
             'meta' => $metricas['meta'],
             'objetivo' => $metricas['objetivo'],
             'vendedores' => $metricas['vendedores'],
+            'tickets' => $metricas['tickets'] ?? 0,
+            'ticket_promedio' => $metricas['ticket_promedio'] ?? 0,
+            'porc_devoluciones' => $metricas['porc_devoluciones'] ?? 0,
+            'venta_contado' => $metricas['venta_contado'] ?? 0,
+            'venta_credito' => $metricas['venta_credito'] ?? 0,
+            'ventas_plaza' => $metricas['ventas_plaza'] ?? [],
+            'cartera_cargos' => $metricas['cartera_cargos'] ?? 0,
+            'cartera_abonos' => $metricas['cartera_abonos'] ?? 0,
+            'cartera_total' => $metricas['cartera_total'] ?? 0,
+            'cartera_plaza' => $metricas['cartera_plaza'] ?? [],
             'periodo' => date('Y-m', strtotime($fecha_inicio)),
             'fecha_inicio' => $fecha_inicio,
             'fecha_fin' => $fecha_fin,
@@ -89,7 +99,15 @@ class HomeController extends Controller
             SELECT COALESCE(SUM(
                 (COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
                 (COALESCE(vtacred, 0) - COALESCE(descred, 0))
-            ), 0) AS total_ventas
+            ), 0) AS total_ventas,
+            COALESCE(SUM(
+                (COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
+                (COALESCE(vtacred, 0) - COALESCE(descred, 0))
+            ), 0) AS venta_contado,
+            COALESCE(SUM(
+                (COALESCE(vtacred, 0) - COALESCE(descred, 0))
+            ), 0) AS venta_credito,
+            COUNT(*) AS total_tickets
             FROM xcorte 
             WHERE fecha BETWEEN ? AND ?
             $wherePlaza $whereTienda
@@ -99,6 +117,10 @@ class HomeController extends Controller
 
         $ventasResult = DB::select($ventasSql, $params);
         $ventas = floatval($ventasResult[0]->total_ventas ?? 0);
+        $ventaContado = floatval($ventasResult[0]->venta_contado ?? 0);
+        $ventaCredito = floatval($ventasResult[0]->venta_credito ?? 0);
+        $tickets = intval($ventasResult[0]->total_tickets ?? 0);
+        $ticketPromedio = $tickets > 0 ? $ventas / $tickets : 0;
 
         $devParams = $params;
         $devSql = "
@@ -131,6 +153,7 @@ class HomeController extends Controller
         $devoluciones = floatval($devResult[0]->total_dev ?? 0);
 
         $neto = $ventas - $devoluciones;
+        $porcDevoluciones = $ventas > 0 ? ($devoluciones / $ventas) * 100 : 0;
 
         $periodo = date('Y-m');
 
@@ -222,6 +245,12 @@ class HomeController extends Controller
         // Tabla de vendedores
         $vendedoresData = $this->getVendedoresData($fecha_inicio, $fecha_fin, $plazas, $tiendas);
 
+        // Ventas por Plaza
+        $ventasPlazaData = $this->getVentasPlazaData($fecha_inicio, $fecha_fin, $plazas, $tiendas);
+
+        // Cartera y Abonos
+        $carteraAbonosData = $this->getCarteraAbonosData($fecha_inicio, $fecha_fin, $plazas, $tiendas);
+
         return [
             'ventas' => $ventas,
             'devoluciones' => $devoluciones,
@@ -230,6 +259,16 @@ class HomeController extends Controller
             'objetivo' => $objetivo,
             'alcance' => $alcance,
             'vendedores' => $vendedoresData,
+            'tickets' => $tickets,
+            'ticket_promedio' => $ticketPromedio,
+            'porc_devoluciones' => $porcDevoluciones,
+            'venta_contado' => $ventaContado,
+            'venta_credito' => $ventaCredito,
+            'ventas_plaza' => $ventasPlazaData,
+            'cartera_cargos' => $carteraAbonosData['cargos'],
+            'cartera_abonos' => $carteraAbonosData['abonos'],
+            'cartera_total' => $carteraAbonosData['total'],
+            'cartera_plaza' => $carteraAbonosData['por_plaza'],
         ];
     }
 
@@ -387,5 +426,172 @@ class HomeController extends Controller
         });
 
         return $resultado;
+    }
+
+    private function getVentasPlazaData($fecha_inicio, $fecha_fin, $plazas = [], $tiendas = [])
+    {
+        $wherePlaza = '';
+        $whereTienda = '';
+        $params = [$fecha_inicio, $fecha_fin];
+
+        if (! empty($plazas)) {
+            $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+            $wherePlaza = " AND cplaza IN ($placeholders)";
+            $params = array_merge($params, $plazas);
+
+            if (! empty($tiendas)) {
+                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                $whereTienda = " AND ctienda IN ($placeholders)";
+                $params = array_merge($params, $tiendas);
+            }
+        } elseif (! empty($tiendas)) {
+            $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+            $whereTienda = " AND ctienda IN ($placeholders)";
+            $params = array_merge($params, $tiendas);
+        }
+
+        $sql = "
+            SELECT 
+                cplaza AS plaza,
+                SUM(
+                    (COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
+                    (COALESCE(vtacred, 0) - COALESCE(descred, 0))
+                ) AS ventas
+            FROM xcorte 
+            WHERE fecha BETWEEN ? AND ?
+            $wherePlaza $whereTienda
+            AND ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027','00095','GALMA','BOVER')
+            AND ctienda NOT LIKE '%DESC%' AND ctienda NOT LIKE '%CEDI%'
+            GROUP BY cplaza
+            ORDER BY ventas DESC
+        ";
+
+        $result = DB::select($sql, $params);
+        $ventasPorPlaza = [];
+        foreach ($result as $row) {
+            $ventasPorPlaza[$row->plaza] = floatval($row->ventas);
+        }
+
+        $devParams = [$fecha_inicio, $fecha_fin];
+        $devWherePlaza = '';
+        $devWhereTienda = '';
+
+        if (! empty($plazas)) {
+            $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+            $devWherePlaza = " AND cplaza IN ($placeholders)";
+            $devParams = array_merge($devParams, $plazas);
+
+            if (! empty($tiendas)) {
+                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                $devWhereTienda = " AND ctienda IN ($placeholders)";
+                $devParams = array_merge($devParams, $tiendas);
+            }
+        } elseif (! empty($tiendas)) {
+            $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+            $devWhereTienda = " AND ctienda IN ($placeholders)";
+            $devParams = array_merge($devParams, $tiendas);
+        }
+
+        $devSql = "
+            SELECT 
+                cplaza AS plaza,
+                COALESCE(SUM(total_brut + impuesto), 0) AS devoluciones
+            FROM venta 
+            WHERE f_emision BETWEEN ? AND ?
+            AND tipo_doc = 'DV'
+            AND estado NOT LIKE '%C%'
+            $devWherePlaza $devWhereTienda
+            AND ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027','00095','GALMA','BOVER')
+            AND ctienda NOT LIKE '%DESC%' AND ctienda NOT LIKE '%CEDI%'
+            GROUP BY cplaza
+        ";
+
+        $devResult = DB::select($devSql, $devParams);
+        $devPorPlaza = [];
+        foreach ($devResult as $row) {
+            $devPorPlaza[$row->plaza] = floatval($row->devoluciones);
+        }
+
+        $plazasKeys = array_unique(array_merge(array_keys($ventasPorPlaza), array_keys($devPorPlaza)));
+
+        $resultado = [];
+        foreach ($plazasKeys as $plaza) {
+            $ventas = $ventasPorPlaza[$plaza] ?? 0;
+            $devoluciones = $devPorPlaza[$plaza] ?? 0;
+            $resultado[] = [
+                'plaza' => $plaza,
+                'ventas' => $ventas,
+                'devoluciones' => $devoluciones,
+                'neto' => $ventas - $devoluciones,
+            ];
+        }
+
+        usort($resultado, function ($a, $b) {
+            return $b['ventas'] - $a['ventas'];
+        });
+
+        return $resultado;
+    }
+
+    private function getCarteraAbonosData($fecha_inicio, $fecha_fin, $plazas = [], $tiendas = [])
+    {
+        $query = DB::table('cartera_abonos_cache')
+            ->selectRaw('
+                COALESCE(SUM(monto_fa), 0) AS cargos,
+                COALESCE(SUM(monto_cd), 0) AS abonos,
+                COALESCE(SUM(monto_fa + monto_dv + monto_cd), 0) AS total
+            ')
+            ->whereBetween('fecha', [$fecha_inicio, $fecha_fin]);
+
+        if (! empty($plazas)) {
+            $query->whereIn('plaza', $plazas);
+        }
+
+        if (! empty($tiendas)) {
+            $query->whereIn('tienda', $tiendas);
+        }
+
+        $result = $query->first();
+
+        $cargos = floatval($result->cargos ?? 0);
+        $abonos = floatval($result->abonos ?? 0);
+        $total = floatval($result->total ?? 0);
+
+        $porPlaza = DB::table('cartera_abonos_cache')
+            ->select('plaza')
+            ->selectRaw('
+                COALESCE(SUM(monto_fa), 0) AS cargos,
+                COALESCE(SUM(monto_cd), 0) AS abonos,
+                COALESCE(SUM(monto_fa + monto_dv + monto_cd), 0) AS total
+            ')
+            ->whereBetween('fecha', [$fecha_inicio, $fecha_fin]);
+
+        if (! empty($plazas)) {
+            $porPlaza->whereIn('plaza', $plazas);
+        }
+
+        if (! empty($tiendas)) {
+            $porPlaza->whereIn('tienda', $tiendas);
+        }
+
+        $porPlaza = $porPlaza->groupBy('plaza')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        $porPlazaArray = array_map(function ($row) {
+            return [
+                'plaza' => $row->plaza,
+                'cargos' => floatval($row->cargos),
+                'abonos' => floatval($row->abonos),
+                'total' => floatval($row->total),
+            ];
+        }, $porPlaza->toArray());
+
+        return [
+            'cargos' => $cargos,
+            'abonos' => $abonos,
+            'total' => $total,
+            'por_plaza' => $porPlazaArray,
+        ];
     }
 }
