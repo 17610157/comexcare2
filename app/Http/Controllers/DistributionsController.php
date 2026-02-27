@@ -12,10 +12,13 @@ class DistributionsController extends Controller
 {
     public function index()
     {
-        $distributions = Distribution::with('creator')->paginate(20);
+        $distributions = Distribution::with(['creator', 'files', 'targets.computer'])
+            ->orderBy('id', 'desc')
+            ->paginate(20);
         $groups = Group::all();
+        $computers = \App\Models\Computer::select('id', 'computer_name')->orderBy('computer_name')->get();
 
-        return view('admin.distributions.index', compact('distributions', 'groups'));
+        return view('admin.distributions.index', compact('distributions', 'groups', 'computers'));
     }
 
     public function create()
@@ -44,6 +47,13 @@ class DistributionsController extends Controller
             $service->startDistribution($distribution);
         }
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Distribution created successfully',
+                'distribution' => $distribution->id,
+            ]);
+        }
+
         return redirect()->route('admin.distributions.index')->with('success', 'Distribution created successfully');
     }
 
@@ -58,6 +68,38 @@ class DistributionsController extends Controller
     {
         $distribution->delete();
 
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Distribution deleted successfully',
+            ]);
+        }
+
         return redirect()->route('admin.distributions.index')->with('success', 'Distribution deleted');
+    }
+
+    public function update(Request $request, Distribution $distribution)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:immediate,scheduled,recurring',
+            'description' => 'nullable|string',
+            'scheduled_at' => 'nullable|date',
+        ]);
+
+        $distribution->update([
+            'name' => $request->name,
+            'type' => $request->type,
+            'description' => $request->description,
+            'scheduled_at' => $request->scheduled_at,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Distribution updated successfully',
+                'distribution' => $distribution->id,
+            ]);
+        }
+
+        return redirect()->route('admin.distributions.index')->with('success', 'Distribution updated successfully');
     }
 }

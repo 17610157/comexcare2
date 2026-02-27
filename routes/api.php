@@ -27,6 +27,7 @@ Route::middleware('api')->group(function () {
     Route::get('/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download']);
     Route::get('/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate']);
     Route::post('/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory']);
+    Route::post('/logs', [App\Http\Controllers\Api\AgentController::class, 'logs']);
     Route::post('/getComputerId', function (Request $request) {
         $mac = $request->input('mac_address');
         $computer = \App\Models\Computer::where('mac_address', $mac)->first();

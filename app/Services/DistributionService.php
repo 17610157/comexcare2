@@ -39,13 +39,15 @@ class DistributionService
         }
 
         // Handle targets
-        $targets = $data['targets'] ?? [];
+        $targetComputerIds = $data['computer_ids'] ?? ($data['targets'] ?? []);
         if ($data['target_type'] === 'all') {
             $computers = Computer::all();
         } elseif ($data['target_type'] === 'group') {
             $computers = Computer::where('group_id', $data['group_id'])->get();
+        } elseif (! empty($targetComputerIds)) {
+            $computers = Computer::whereIn('id', $targetComputerIds)->get();
         } else {
-            $computers = Computer::whereIn('id', $targets)->get();
+            $computers = collect();
         }
 
         foreach ($computers as $computer) {

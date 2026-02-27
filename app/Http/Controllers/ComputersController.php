@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Computer;
+use App\Models\ComputerLog;
 use App\Models\Group;
 use Illuminate\Http\Request;
 
@@ -47,5 +48,34 @@ class ComputersController extends Controller
         $computer->delete();
 
         return redirect()->route('admin.computers.index')->with('success', 'Agente eliminado correctamente');
+    }
+
+    public function logs(Request $request, Computer $computer)
+    {
+        $lastId = $request->query('last_id', 0);
+
+        $logs = ComputerLog::where('computer_id', $computer->id)
+            ->where('id', '>', $lastId)
+            ->orderBy('id', 'asc')
+            ->limit(100)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'level' => $log->level,
+                    'message' => $log->message,
+                    'time' => $log->created_at->format('H:i:s'),
+                ];
+            });
+
+        return response()->json(['logs' => $logs]);
+    }
+
+    public function status(Computer $computer)
+    {
+        return response()->json([
+            'status' => $computer->status,
+            'last_seen' => $computer->last_seen?->toIso8601String(),
+        ]);
     }
 }
