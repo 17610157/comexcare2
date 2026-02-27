@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AgentVersion;
 use App\Models\Command;
 use App\Models\Computer;
+use App\Models\ComputerLog;
 use App\Models\DistributionFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -63,6 +64,7 @@ class AgentController extends Controller
             'computer_id' => 'required|integer|exists:computers,id',
             'agent_version' => 'required|string',
             'system_info' => 'nullable|array',
+            'logs' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -77,6 +79,29 @@ class AgentController extends Controller
             'ip_address' => $request->ip(),
             'system_info' => $request->system_info ?? $computer->system_info,
         ]);
+
+        // Process logs from the agent
+        if ($request->filled('logs')) {
+            $logLines = explode("\n", $request->logs);
+            foreach ($logLines as $line) {
+                $line = trim($line);
+                if (empty($line)) {
+                    continue;
+                }
+
+                // Parse log level from line (e.g., "[2026-02-27 09:12:15.736] INFO: message")
+                $level = 'info';
+                if (preg_match('/\[([\d\s:.]+)\]\s+(INFO|WARN|ERROR|DEBUG)/i', $line, $matches)) {
+                    $level = strtolower($matches[2]);
+                }
+
+                ComputerLog::create([
+                    'computer_id' => $computer->id,
+                    'level' => $level,
+                    'message' => $line,
+                ]);
+            }
+        }
 
         return response()->json(['message' => 'Heartbeat received']);
     }
@@ -228,5 +253,27 @@ class AgentController extends Controller
         $computer->update(['agent_config' => array_merge($computer->agent_config ?? [], ['inventory' => $request->inventory])]);
 
         return response()->json(['message' => 'Inventory received']);
+    }
+
+    public function logs(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'computer_id' => 'required|integer|exists:computers,id',
+            'logs' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
+        }
+
+        foreach ($request->logs as $log) {
+            \App\Models\ComputerLog::create([
+                'computer_id' => $request->computer_id,
+                'level' => $log['level'] ?? 'info',
+                'message' => $log['message'] ?? '',
+            ]);
+        }
+
+        return response()->json(['message' => 'Logs received', 'count' => count($request->logs)]);
     }
 }

@@ -182,6 +182,8 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:admin.ver')->group(function () {
     Route::resource('distributions', \App\Http\Controllers\DistributionsController::class);
     Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
+    Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');
+    Route::get('computers/{computer}/status', [\App\Http\Controllers\ComputersController::class, 'status'])->name('computers.status');
     Route::resource('groups', \App\Http\Controllers\GroupsController::class);
     Route::resource('agent-versions', \App\Http\Controllers\AgentVersionsController::class);
 
