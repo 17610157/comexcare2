@@ -5,6 +5,7 @@ use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
+use App\Http\Controllers\Reportes\ClubComexController;
 use App\Http\Controllers\Reportes\NotasCompletasController;
 use App\Http\Controllers\Reportes\ReporteRedencionesClubController;
 use App\Http\Controllers\ReporteVendedoresController;
@@ -144,6 +145,17 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
     Route::post('notas-completas/sync', [NotasCompletasController::class, 'sync'])
         ->middleware('can:reportes.notas-completas.sincronizar')
         ->name('reportes.notas-completas.sync');
+
+    // Club Comex - Sincronización
+    Route::get('club-comex', [ClubComexController::class, 'index'])
+        ->name('reportes.club-comex.index')->middleware('can:reportes.club-comex.ver');
+    Route::post('club-comex/sync', [ClubComexController::class, 'sync'])
+        ->middleware('can:reportes.club-comex.sincronizar')
+        ->name('reportes.club-comex.sync');
+    Route::post('club-comex/search', [ClubComexController::class, 'search'])
+        ->name('reportes.club-comex.search')->middleware('can:reportes.club-comex.ver');
+    Route::post('club-comex/export-csv', [ClubComexController::class, 'exportCsv'])
+        ->name('reportes.club-comex.export.csv')->middleware('can:reportes.club-comex.ver');
 
     // Listas dinámicas para filtros (removidas: no se usan patrones de listas externas)
 

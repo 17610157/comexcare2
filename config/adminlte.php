@@ -413,6 +413,12 @@ return [
                     'can' => 'reportes.notas-completas.ver',
                 ],
                 [
+                    'text' => 'Club Comex',
+                    'icon' => 'fas fa-coins',
+                    'url' => 'reportes/club-comex',
+                    'can' => 'reportes.club-comex.ver',
+                ],
+                [
                     'text' => 'Reporte Redenciones Club',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/redenciones-club',
