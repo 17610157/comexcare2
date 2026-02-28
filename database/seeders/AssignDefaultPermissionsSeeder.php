@@ -61,6 +61,8 @@ class AssignDefaultPermissionsSeeder extends Seeder
             'reportes.notas-completas.ver',
             'reportes.notas-completas.editar',
             'reportes.notas-completas.sincronizar',
+            'reportes.club-comex.ver',
+            'reportes.club-comex.sincronizar',
             'reportes.compras-directo.ver',
             'reportes.compras-directo.editar',
             'reportes.compras-directo.sincronizar',
