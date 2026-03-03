@@ -37,9 +37,11 @@ class AgentController extends Controller
                 return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()->toArray(), 'data' => $data], 422);
             }
 
-            $computer = Computer::updateOrCreate(
-                ['mac_address' => $data['mac_address']],
-                [
+            $existingWithMac = Computer::withTrashed()->where('mac_address', $data['mac_address'])->first();
+
+            if ($existingWithMac) {
+                $existingWithMac->restore();
+                $existingWithMac->update([
                     'computer_name' => $data['computer_name'],
                     'ip_address' => $request->ip(),
                     'agent_version' => $data['agent_version'],
@@ -47,8 +49,21 @@ class AgentController extends Controller
                     'last_seen' => now(),
                     'system_info' => $data['system_info'] ?? null,
                     'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
-                ]
-            );
+                    'deleted_at' => null,
+                ]);
+                $computer = $existingWithMac->fresh();
+            } else {
+                $computer = Computer::create([
+                    'computer_name' => $data['computer_name'],
+                    'mac_address' => $data['mac_address'],
+                    'ip_address' => $request->ip(),
+                    'agent_version' => $data['agent_version'],
+                    'status' => 'online',
+                    'last_seen' => now(),
+                    'system_info' => $data['system_info'] ?? null,
+                    'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
+                ]);
+            }
 
             return response()->json(['id' => $computer->id, 'message' => 'Registered successfully']);
         } catch (\Exception $e) {
@@ -61,7 +76,7 @@ class AgentController extends Controller
     public function heartbeat(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'computer_id' => 'required|integer|exists:computers,id',
+            'computer_id' => 'required|integer',
             'agent_version' => 'required|string',
             'system_info' => 'nullable|array',
             'logs' => 'nullable|string',
@@ -72,6 +87,19 @@ class AgentController extends Controller
         }
 
         $computer = Computer::find($request->computer_id);
+
+        if (! $computer) {
+            $computerWithMac = Computer::withTrashed()->where('id', $request->computer_id)->first();
+            if ($computerWithMac && $computerWithMac->trashed()) {
+                return response()->json([
+                    'error' => 'Computer was deleted. Please re-register.',
+                    'needs_registration' => true,
+                    'mac_address' => $computerWithMac->mac_address,
+                ], 404);
+            }
+
+            return response()->json(['error' => 'Computer not found. Please register first.'], 404);
+        }
         $computer->update([
             'status' => 'online',
             'last_seen' => now(),
@@ -103,7 +131,11 @@ class AgentController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Heartbeat received']);
+        return response()->json([
+            'message' => 'Heartbeat received',
+            'computer_name' => $computer->computer_name,
+            'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
+        ]);
     }
 
     public function getCommands(Request $request, $id)
@@ -202,6 +234,16 @@ class AgentController extends Controller
                         'progress' => $request->progress,
                         'status' => $request->status === 'completed' ? 'completed' : 'failed',
                     ]);
+
+                    $distribution = $target->distribution;
+                    $allTargets = $distribution->targets;
+                    $completedCount = $allTargets->where('status', 'completed')->count();
+                    $failedCount = $allTargets->where('status', 'failed')->count();
+                    $totalCount = $allTargets->count();
+
+                    if ($completedCount + $failedCount === $totalCount) {
+                        $distribution->update(['status' => $completedCount === $totalCount ? 'completed' : 'failed']);
+                    }
                 }
             }
         }

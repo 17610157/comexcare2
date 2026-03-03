@@ -13,6 +13,10 @@
                 @csrf
                 @method('PUT')
                 <div class="form-group">
+                    <label>Computer Name</label>
+                    <input type="text" name="computer_name" class="form-control" value="{{ $computer->computer_name }}">
+                </div>
+                <div class="form-group">
                     <label>Group</label>
                     <select name="group_id" class="form-control">
                         <option value="">None</option>

@@ -32,13 +32,22 @@ class ComputersController extends Controller
 
     public function update(Request $request, Computer $computer)
     {
+        $data = $request->all();
+
+        if (isset($data['agent_config']) && is_string($data['agent_config'])) {
+            $data['agent_config'] = json_decode($data['agent_config'], true) ?? [];
+        }
+
+        $request->replace($data);
+
         $request->validate([
+            'computer_name' => 'nullable|string|max:255',
             'group_id' => 'nullable|exists:groups,id',
             'agent_config' => 'nullable|array',
             'download_path' => 'nullable|string',
         ]);
 
-        $computer->update($request->only(['group_id', 'agent_config', 'download_path']));
+        $computer->update($request->only(['computer_name', 'group_id', 'agent_config', 'download_path']));
 
         return redirect()->route('admin.computers.index')->with('success', 'Computer updated');
     }

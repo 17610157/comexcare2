@@ -14,7 +14,7 @@ class DistributionsController extends Controller
     {
         $distributions = Distribution::with(['creator', 'files', 'targets.computer'])
             ->orderBy('id', 'desc')
-            ->paginate(20);
+            ->get();
         $groups = Group::all();
         $computers = \App\Models\Computer::select('id', 'computer_name')->orderBy('computer_name')->get();
 
