@@ -36,7 +36,7 @@
 
     <!-- Modal para crear/editar rol -->
     <div class="modal fade" id="roleModal" tabindex="-1" role="dialog" aria-labelledby="roleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down" role="document">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-lg-responsive" role="document" style="max-width: 90%;">
             <div class="modal-content">
                 <form id="roleForm">
                     @csrf
@@ -47,16 +47,16 @@
                             <span>&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
                         <div class="form-group">
                             <label for="role_name">Nombre del Rol</label>
                             <input type="text" name="name" id="role_name" class="form-control" required>
                         </div>
                         <div class="form-group">
                             <label>Permisos</label>
-                            <div class="row" id="permissions-container">
+                            <div id="permissions-container" class="permissions-scroll-container">
                                 <!-- Permisos cargados via AJAX -->
-                                <div class="col-12 text-center">
+                                <div class="text-center">
                                     <i class="fas fa-spinner fa-spin"></i> Cargando permisos...
                                 </div>
                             </div>
@@ -75,7 +75,7 @@
 
     <!-- Modal para confirmar eliminación -->
     <div class="modal fade" id="deleteRoleModal" tabindex="-1" role="dialog" aria-labelledby="deleteRoleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down" role="document">
+        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deleteRoleModalLabel">Confirmar Eliminación</h5>
@@ -94,6 +94,57 @@
             </div>
         </div>
     </div>
+@stop
+
+@section('css')
+<style>
+.permissions-scroll-container {
+    max-height: 55vh;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 10px;
+    background: #f8f9fa;
+}
+
+.modal-lg-responsive .modal-body {
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+@media (max-width: 991px) {
+    .modal-lg-responsive {
+        max-width: 95%;
+        margin: 0.5rem;
+    }
+    
+    .permissions-scroll-container {
+        max-height: 60vh;
+    }
+}
+
+@media (max-width: 767px) {
+    .modal-lg-responsive {
+        max-width: 100%;
+        margin: 0;
+        height: 100%;
+        max-height: 100%;
+    }
+    
+    .modal-lg-responsive .modal-content {
+        height: 100%;
+        border-radius: 0;
+    }
+    
+    .modal-lg-responsive .modal-body {
+        max-height: calc(100vh - 150px);
+    }
+    
+    .permissions-scroll-container {
+        max-height: 50vh;
+    }
+}
+</style>
 @stop
 
 @section('js')
@@ -128,30 +179,26 @@ function loadPermissions() {
         method: 'GET',
         success: function(response) {
             permissionsData = response;
-            renderPermissionsCheckboxes();
+            renderPermissionsCheckboxes([]);
         },
         error: function() {
-            $('#permissions-container').html('<div class="col-12 text-danger">Error al cargar permisos</div>');
+            $('#permissions-container').html('<div class="text-danger">Error al cargar permisos</div>');
         }
     });
 }
 
 function renderPermissionsCheckboxes(selectedPermissions = []) {
     let html = '';
-    let columns = 3;
-    let permissionsPerColumn = Math.ceil(Object.keys(permissionsData).length / columns);
-    let count = 0;
-    let colIndex = 0;
-
-    html += '<div class="col-12"><strong>Seleccionar Todos</strong> <input type="checkbox" id="selectAllPermissions" onchange="toggleAllPermissions(this)"></div>';
+    
+    html += '<div class="mb-3"><strong>Seleccionar Todos</strong> <input type="checkbox" id="selectAllPermissions" onchange="toggleAllPermissions(this)"></div>';
+    
+    html += '<div class="row">';
     
     for (let module in permissionsData) {
-        if (colIndex === 0) {
-            html += '<div class="col-md-4">';
-        }
-        
-        html += '<div class="module-group">';
-        html += '<strong>' + module + '</strong><br>';
+        html += '<div class="col-md-4 col-sm-6 col-12 mb-3">';
+        html += '<div class="card h-100">';
+        html += '<div class="card-header py-1 bg-light"><strong>' + module + '</strong></div>';
+        html += '<div class="card-body py-2">';
         
         permissionsData[module].forEach(function(permission) {
             let isChecked = selectedPermissions.includes(permission.name) ? 'checked' : '';
@@ -161,19 +208,10 @@ function renderPermissionsCheckboxes(selectedPermissions = []) {
             html += '</div>';
         });
         
-        html += '</div>';
-        
-        count++;
-        if (count >= permissionsPerColumn) {
-            html += '</div>';
-            count = 0;
-            colIndex++;
-        }
+        html += '</div></div></div>';
     }
     
-    if (count > 0) {
-        html += '</div>';
-    }
+    html += '</div>';
 
     $('#permissions-container').html(html);
 }
@@ -230,7 +268,28 @@ function initDataTable() {
             }
         ],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json'
+            "decimal": "",
+            "emptyTable": "No hay datos disponibles",
+            "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            "infoEmpty": "Mostrando 0 a 0 de 0 registros",
+            "infoFiltered": "(filtrado de _MAX_ registros totales)",
+            "infoPostFix": "",
+            "thousands": ",",
+            "lengthMenu": "Mostrar _MENU_ registros",
+            "loadingRecords": "Cargando...",
+            "processing": "Procesando...",
+            "search": "Buscar:",
+            "zeroRecords": "No se encontraron registros coincidentes",
+            "paginate": {
+                "first": "Primero",
+                "last": "Último",
+                "next": "Siguiente",
+                "previous": "Anterior"
+            },
+            "aria": {
+                "sortAscending": ": activar para ordenar la columna de manera ascendente",
+                "sortDescending": ": activar para ordenar la columna de manera descendente"
+            }
         }
     });
 }

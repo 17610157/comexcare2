@@ -21,12 +21,6 @@
                     <label for="filter_rol" class="form-label small mb-1">Rol</label>
                         <select id="filter_rol" class="form-control form-control-sm">
                             <option value="">Todos</option>
-                            <option value="vendedor">Vendedor</option>
-                            <option value="gerente_tienda">Gerente de Tienda</option>
-                            <option value="gerente_plaza">Gerente de Plaza</option>
-                            <option value="coordinador">Coordinador</option>
-                            <option value="administrativo">Administrativo</option>
-                            <option value="super_admin">Super Admin</option>
                         </select>
                 </div>
                 <div class="col-6 col-md-3">
@@ -140,12 +134,6 @@
                         <div class="col-md-4">
                             <label for="rol" class="form-label">Rol *</label>
                             <select class="form-select" id="rol" name="rol" required>
-                                <option value="vendedor">Vendedor</option>
-                                <option value="gerente_tienda">Gerente de Tienda</option>
-                                <option value="gerente_plaza">Gerente de Plaza</option>
-                                <option value="coordinador">Coordinador</option>
-                                <option value="administrativo">Administrativo</option>
-                                <option value="super_admin">Super Admin</option>
                             </select>
                         </div>
                     </div>
@@ -231,6 +219,25 @@ toastr.options = {
 };
 
 $(function() {
+    function loadRoles() {
+        $.get("{{ url('/admin/roles/data') }}", function(response) {
+            const roles = response.data;
+            let options = '<option value="">Todos</option>';
+            let modalOptions = '';
+            
+            roles.forEach(role => {
+                const label = role.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                options += `<option value="${role.name}">${label}</option>`;
+                modalOptions += `<option value="${role.name}">${label}</option>`;
+            });
+            
+            $('#filter_rol').html(options);
+            $('#rol').html(modalOptions);
+        });
+    }
+    
+    loadRoles();
+
     const dataTable = $('#users-table').DataTable({
         processing: true,
         serverSide: true,
@@ -263,15 +270,8 @@ $(function() {
             { data: 'plaza', className: 'text-center' },
             { data: 'tienda', className: 'text-center' },
             { data: 'rol', className: 'text-center', render: function(data) {
-                const roles = {
-                    'vendedor': '<span class="badge bg-primary">Vendedor</span>',
-                    'gerente_tienda': '<span class="badge bg-info">Gerente Tienda</span>',
-                    'gerente_plaza': '<span class="badge bg-success">Gerente Plaza</span>',
-                    'coordinador': '<span class="badge bg-warning text-dark">Coordinador</span>',
-                    'administrativo': '<span class="badge bg-secondary">Administrativo</span>',
-                    'super_admin': '<span class="badge bg-danger">Super Admin</span>'
-                };
-                return roles[data] || data;
+                const label = data ? data.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+                return `<span class="badge bg-info">${label}</span>`;
             }},
             { data: 'activo', className: 'text-center', render: function(data) {
                 return data ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>';

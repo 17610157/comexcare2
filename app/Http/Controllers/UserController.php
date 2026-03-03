@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -17,42 +18,18 @@ class UserController extends Controller
 
     public function data(Request $request)
     {
-        $draw = (int) $request->input('draw', 1);
-        $start = (int) $request->input('start', 0);
-        $length = (int) $request->input('length', 10);
-        $search = $request->input('search.value', '');
-
-        try {
-            $query = User::select(['id', 'name', 'email', 'plaza', 'tienda', 'rol', 'activo', 'created_at']);
-
-            if (! empty($search)) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'ILIKE', '%'.$search.'%')
-                        ->orWhere('email', 'ILIKE', '%'.$search.'%')
-                        ->orWhere('plaza', 'ILIKE', '%'.$search.'%')
-                        ->orWhere('tienda', 'ILIKE', '%'.$search.'%');
+        $users = User::with('roles')
+            ->when($request->rol, function ($query) use ($request) {
+                $query->whereHas('roles', function ($q) use ($request) {
+                    $q->where('name', $request->rol);
                 });
-            }
-
-            if ($request->filled('rol') && $request->input('rol') !== '') {
-                $roleName = $request->input('rol');
-                $query->whereHas('roles', function ($q) use ($roleName) {
-                    $q->where('name', $roleName);
-                });
-            }
-
-            if ($request->filled('activo') && $request->input('activo') !== '') {
-                $query->where('activo', $request->input('activo') === '1');
-            }
-
-            $total = $query->count();
-
-            $users = $query->orderBy('name')
-                ->offset($start)
-                ->limit($length)
-                ->get();
-
-            $data = $users->map(function ($user) {
+            })
+            ->when($request->activo !== '' && $request->activo !== null, function ($query) use ($request) {
+                $query->where('activo', $request->activo);
+            })
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -65,17 +42,7 @@ class UserController extends Controller
                 ];
             });
 
-            return response()->json([
-                'draw' => $draw,
-                'recordsTotal' => (int) $total,
-                'recordsFiltered' => (int) $total,
-                'data' => $data,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('User data error: '.$e->getMessage());
-
-            return response()->json(['draw' => $draw, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => [], 'error' => $e->getMessage()]);
-        }
+        return response()->json(['data' => $users]);
     }
 
     public function store(Request $request)
@@ -83,13 +50,14 @@ class UserController extends Controller
         Log::info('User store request', $request->all());
 
         try {
+            $roles = Role::pluck('name')->toArray();
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:8',
                 'plaza' => 'nullable|string|max:10',
                 'tienda' => 'nullable|string|max:10',
-                'rol' => 'required|in:vendedor,gerente_tienda,gerente_plaza,coordinador,administrativo,super_admin',
+                'rol' => 'required|in:'.implode(',', $roles),
             ], [
                 'password.required' => 'La contraseña es requerida.',
             ]);
@@ -119,12 +87,13 @@ class UserController extends Controller
         Log::info('User update request', $request->all());
 
         try {
+            $roles = Role::pluck('name')->toArray();
             $rules = [
                 'name' => 'required|string|max:255',
                 'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
                 'plaza' => 'nullable|string|max:10',
                 'tienda' => 'nullable|string|max:10',
-                'rol' => 'required|in:vendedor,gerente_tienda,gerente_plaza,coordinador,administrativo,super_admin',
+                'rol' => 'required|in:'.implode(',', $roles),
             ];
 
             if ($request->filled('password')) {

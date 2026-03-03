@@ -26,6 +26,7 @@ Route::middleware('api')->group(function () {
     Route::post('/report', [App\Http\Controllers\Api\AgentController::class, 'report']);
     Route::get('/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download']);
     Route::get('/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate']);
+    Route::get('/check-update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate']);
     Route::post('/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory']);
     Route::post('/logs', [App\Http\Controllers\Api\AgentController::class, 'logs']);
     Route::post('/getComputerId', function (Request $request) {
