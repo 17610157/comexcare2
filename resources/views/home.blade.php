@@ -168,6 +168,19 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Total Cartera -->
+            <div class="col-lg-2 col-md-3 col-sm-6 col-12 mb-2 mb-lg-0">
+                <div class="small-box bg-warning">
+                    <div class="inner p-2">
+                        <h3 class="h5">${{ number_format($cartera_total ?? 0, 0) }}</h3>
+                        <p class="mb-0">Total Cartera</p>
+                    </div>
+                    <div class="icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Tabla de Vendedores -->
@@ -218,21 +231,22 @@
         </div>
         @endif
 
-        <!-- Mapa de México - Ventas por Plaza -->
+        <!-- Ventas por Plaza y Tienda -->
         @php
             $ventasPlazaArray = is_array($ventas_plaza) ? $ventas_plaza : $ventas_plaza->toArray();
-            $maxVenta = count($ventasPlazaArray) > 0 ? max(array_column($ventasPlazaArray, 'ventas')) : 1;
-            
+            $ventasTiendaArray = is_array($ventas_tienda) ? $ventas_tienda : $ventas_tienda->toArray();
             $plazaDataJson = json_encode($ventasPlazaArray);
+            $tiendaDataJson = json_encode($ventasTiendaArray);
         @endphp
-        @if(!empty($ventasPlazaArray))
+        @if(!empty($ventasPlazaArray) || !empty($ventasTiendaArray))
         <div class="row mt-3">
-            <div class="col-12">
+            @if(!empty($ventasPlazaArray))
+            <div class="col-lg-6 col-md-6 col-12 mb-3">
                 <div class="card bg-gradient-primary" style="position: relative;">
                     <div class="card-header border-0 ui-sortable-handle">
                         <h3 class="card-title">
                             <i class="fas fa-map-marker-alt mr-1"></i>
-                            Ventas por Plaza - México
+                            Ventas por Plaza
                         </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-primary btn-sm" data-card-widget="collapse" title="Collapse">
@@ -241,34 +255,8 @@
                         </div>
                     </div>
                     <div class="card-body" style="display: block;">
-                        <div class="row">
-                            <div class="col-lg-8 col-md-7 col-12 mb-3">
-                                <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
-                                    <canvas id="plazasChart"></canvas>
-                                </div>
-                            </div>
-                            <div class="col-lg-4 col-md-5 col-12">
-                                <div class="table-responsive" style="max-height: 200px;">
-                                    <table class="table table-sm table-dark table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Plaza</th>
-                                                <th class="text-right">Ventas</th>
-                                                <th class="text-right">Neto</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($ventasPlazaArray as $p)
-                                            <tr>
-                                                <td>{{ $p['plaza'] }}</td>
-                                                <td class="text-right">${{ number_format($p['ventas'], 0) }}</td>
-                                                <td class="text-right text-success">${{ number_format($p['neto'], 0) }}</td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                        <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
+                            <canvas id="plazasChart"></canvas>
                         </div>
                     </div>
                     <div class="card-footer bg-transparent">
@@ -294,170 +282,157 @@
                     </div>
                 </div>
             </div>
+            @endif
+
+            @if(!empty($ventasTiendaArray))
+            <div class="col-lg-6 col-md-6 col-12 mb-3">
+                <div class="card bg-gradient-info" style="position: relative;">
+                    <div class="card-header border-0 ui-sortable-handle">
+                        <h3 class="card-title">
+                            <i class="fas fa-store mr-1"></i>
+                            Ventas por Tienda
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-info btn-sm" data-card-widget="collapse" title="Collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="display: block;">
+                        <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
+                            <canvas id="tiendasChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="row text-center">
+                            @php
+                                $totalVentasTienda = array_sum(array_column($ventasTiendaArray, 'ventas'));
+                                $totalDevTienda = array_sum(array_column($ventasTiendaArray, 'devoluciones'));
+                                $totalNetoTienda = array_sum(array_column($ventasTiendaArray, 'neto'));
+                            @endphp
+                            <div class="col-4">
+                                <div class="text-white small">Ventas</div>
+                                <div class="text-white font-weight-bold" style="font-size: 0.9rem;">${{ number_format($totalVentasTienda, 0) }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-white small">Devoluciones</div>
+                                <div class="text-white font-weight-bold text-danger" style="font-size: 0.9rem;">${{ number_format($totalDevTienda, 0) }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-white small">Neto</div>
+                                <div class="text-white font-weight-bold text-success" style="font-size: 0.9rem;">${{ number_format($totalNetoTienda, 0) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             var plazaData = {!! $plazaDataJson !!};
-            
-            var labels = plazaData.map(function(p) { return p.plaza; });
-            var ventas = plazaData.map(function(p) { return p.ventas; });
-            var devoluciones = plazaData.map(function(p) { return p.devoluciones; });
-            var neto = plazaData.map(function(p) { return p.neto; });
-            
-            var ctx = document.getElementById('plazasChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Ventas',
-                            data: ventas,
-                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
-                            borderColor: 'rgba(40, 167, 69, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Devoluciones',
-                            data: devoluciones,
-                            backgroundColor: 'rgba(220, 53, 69, 0.8)',
-                            borderColor: 'rgba(220, 53, 69, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Neto',
-                            data: neto,
-                            backgroundColor: 'rgba(23, 162, 184, 0.8)',
-                            borderColor: 'rgba(23, 162, 184, 1)',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        x: {
-                            stacked: false,
-                            ticks: { color: 'white' }
-                        },
-                        y: {
-                            stacked: false,
-                            ticks: { 
-                                color: 'white',
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
+            if (plazaData.length > 0) {
+                var labelsPlaza = plazaData.map(function(p) { return p.plaza; });
+                var ventasPlaza = plazaData.map(function(p) { return p.ventas; });
+                var devPlaza = plazaData.map(function(p) { return p.devoluciones; });
+                var netoPlaza = plazaData.map(function(p) { return p.neto; });
+                
+                var ctxPlaza = document.getElementById('plazasChart').getContext('2d');
+                new Chart(ctxPlaza, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsPlaza,
+                        datasets: [
+                            {
+                                label: 'Ventas',
+                                data: ventasPlaza,
+                                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                                borderColor: 'rgba(40, 167, 69, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Devoluciones',
+                                data: devPlaza,
+                                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                                borderColor: 'rgba(220, 53, 69, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Neto',
+                                data: netoPlaza,
+                                backgroundColor: 'rgba(23, 162, 184, 0.8)',
+                                borderColor: 'rgba(23, 162, 184, 1)',
+                                borderWidth: 1
                             }
-                        }
+                        ]
                     },
-                    plugins: {
-                        legend: {
-                            labels: { color: 'white' }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: false, ticks: { color: 'white' } },
+                            y: { stacked: false, ticks: { color: 'white', callback: function(value) { return '$' + value.toLocaleString(); } } }
                         },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': $' + context.raw.toLocaleString('es-MX', {minimumFractionDigits: 2});
-                                }
-                            }
+                        plugins: {
+                            legend: { labels: { color: 'white' } },
+                            tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': $' + context.raw.toLocaleString('es-MX', {minimumFractionDigits: 2}); } } }
                         }
                     }
-                }
-            });
+                });
+            }
+
+            var tiendaData = {!! $tiendaDataJson !!};
+            if (tiendaData.length > 0) {
+                var labelsTienda = tiendaData.map(function(t) { return t.tienda; });
+                var ventasTienda = tiendaData.map(function(t) { return t.ventas; });
+                var devTienda = tiendaData.map(function(t) { return t.devoluciones; });
+                var netoTienda = tiendaData.map(function(t) { return t.neto; });
+                
+                var ctxTienda = document.getElementById('tiendasChart').getContext('2d');
+                new Chart(ctxTienda, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsTienda,
+                        datasets: [
+                            {
+                                label: 'Ventas',
+                                data: ventasTienda,
+                                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                                borderColor: 'rgba(40, 167, 69, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Devoluciones',
+                                data: devTienda,
+                                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                                borderColor: 'rgba(220, 53, 69, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Neto',
+                                data: netoTienda,
+                                backgroundColor: 'rgba(23, 162, 184, 0.8)',
+                                borderColor: 'rgba(23, 162, 184, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: false, ticks: { color: 'white' } },
+                            y: { stacked: false, ticks: { color: 'white', callback: function(value) { return '$' + value.toLocaleString(); } } }
+                        },
+                        plugins: {
+                            legend: { labels: { color: 'white' } },
+                            tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': $' + context.raw.toLocaleString('es-MX', {minimumFractionDigits: 2}); } } }
+                        }
+                    }
+                });
+            }
         });
         </script>
-        @endif
-
-        <!-- Cards de Cartera y Abonos -->
-        <div class="row mt-3">
-            <div class="col-12">
-                <h4 class="mt-3"><i class="fas fa-wallet"></i> Cartera y Abonos</h4>
-            </div>
-            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
-                <div class="small-box bg-danger">
-                    <div class="inner p-2">
-                        <h3 class="h5">${{ number_format($cartera_cargos ?? 0, 0) }}</h3>
-                        <p class="mb-0">Cargos</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-file-invoice-dollar"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
-                <div class="small-box bg-success">
-                    <div class="inner p-2">
-                        <h3 class="h5">${{ number_format($cartera_abonos ?? 0, 0) }}</h3>
-                        <p class="mb-0">Abonos</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-hand-holding-usd"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
-                <div class="small-box bg-warning">
-                    <div class="inner p-2">
-                        <h3 class="h5">${{ number_format($cartera_total ?? 0, 0) }}</h3>
-                        <p class="mb-0">Total</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-coins"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
-                @php
-                    $porcCobertura = ($cartera_abonos ?? 0) > 0 ? (($cartera_abonos ?? 0) / ($cartera_cargos ?? 1)) * 100 : 0;
-                @endphp
-                <div class="small-box bg-info">
-                    <div class="inner p-2">
-                        <h3 class="h5">{{ number_format($porcCobertura, 1) }}%</h3>
-                        <p class="mb-0">% Cobertura</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fas fa-percentage"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabla de Cartera por Plaza -->
-        @php
-            $carteraPlazaArray = is_array($cartera_plaza) ? $cartera_plaza : collect($cartera_plaza)->toArray();
-        @endphp
-        @if(!empty($carteraPlazaArray))
-        <div class="row mt-2">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-chart-bar"></i> Cartera por Plaza</h3>
-                    </div>
-                    <div class="card-body table-responsive">
-                        <table class="table table-bordered table-striped table-hover">
-                            <thead class="thead-dark">
-                                <tr>
-                                    <th>Plaza</th>
-                                    <th class="text-right">Cargos</th>
-                                    <th class="text-right">Abonos</th>
-                                    <th class="text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($carteraPlazaArray as $plaza)
-                                <tr>
-                                    <td><strong>{{ $plaza['plaza'] }}</strong></td>
-                                    <td class="text-right text-danger">${{ number_format($plaza['cargos'], 2) }}</td>
-                                    <td class="text-right text-success">${{ number_format($plaza['abonos'], 2) }}</td>
-                                    <td class="text-right"><strong>${{ number_format($plaza['total'], 2) }}</strong></td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
         @endif
 
         <!-- Accesos Rápidos -->
