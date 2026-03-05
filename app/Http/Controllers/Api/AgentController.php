@@ -274,6 +274,33 @@ class AgentController extends Controller
         return response()->json([
             'update_available' => true,
             'version' => $latest->version,
+            'download_url' => url('storage/'.$latest->file_path),
+            'channel' => $latest->channel,
+            'checksum' => $latest->checksum,
+            'changelog' => $latest->changelog,
+        ]);
+    }
+
+    public function checkUpdateByComputerId(Request $request, $computer_id)
+    {
+        $computer = Computer::find($computer_id);
+
+        if (! $computer) {
+            return response()->json(['error' => 'Computer not found'], 404);
+        }
+
+        $currentVersion = $computer->agent_version;
+        $current = AgentVersion::where('version', $currentVersion)->first();
+        $latest = AgentVersion::where('is_active', true)->orderBy('created_at', 'desc')->first();
+
+        if (! $latest || $current && $current->id >= $latest->id) {
+            return response()->json(['update_available' => false]);
+        }
+
+        return response()->json([
+            'update_available' => true,
+            'version' => $latest->version,
+            'download_url' => url('storage/'.$latest->file_path),
             'channel' => $latest->channel,
             'checksum' => $latest->checksum,
             'changelog' => $latest->changelog,
