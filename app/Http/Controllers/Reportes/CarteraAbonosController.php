@@ -17,7 +17,7 @@ class CarteraAbonosController extends Controller
     {
         $userFilter = RoleHelper::getUserFilter();
 
-        if (!$userFilter['allowed']) {
+        if (! $userFilter['allowed']) {
             return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
         }
 
@@ -26,7 +26,7 @@ class CarteraAbonosController extends Controller
 
         // Obtener listas filtradas por asignaciones del usuario
         $listas = RoleHelper::getListasParaFiltros();
-        
+
         $plazas = $listas['plazas'];
         $tiendas = $listas['tiendas'];
 
@@ -67,12 +67,12 @@ class CarteraAbonosController extends Controller
             $query = DB::table('cartera_abonos_cache');
 
             // Filtros según el rol del usuario - plazas
-            if (!empty($plazasPermitidas)) {
+            if (! empty($plazasPermitidas)) {
                 $query->whereIn('plaza', $plazasPermitidas);
             }
 
             // Filtros según el rol del usuario - tiendas específicas
-            if (!empty($tiendasPermitidas)) {
+            if (! empty($tiendasPermitidas)) {
                 $query->whereIn('tienda', $tiendasPermitidas);
             }
 
@@ -131,6 +131,15 @@ class CarteraAbonosController extends Controller
     // Export PDF for the current period (or given period_start/period_end)
     public function pdf(Request $request)
     {
+        $userFilter = RoleHelper::getUserFilter();
+
+        if (! $userFilter['allowed']) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        $tiendasPermitidas = RoleHelper::getTiendasAcceso();
+        $plazasPermitidas = $userFilter['plazas_asignadas'] ?? [];
+
         $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
         $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
 
@@ -138,12 +147,30 @@ class CarteraAbonosController extends Controller
             $query = DB::table('cartera_abonos_cache')
                 ->whereBetween('fecha', [$start, $end]);
 
-            if ($request->filled('plaza') && $request->input('plaza') !== '') {
-                $query->where('plaza', trim($request->input('plaza')));
+            if (! empty($plazasPermitidas)) {
+                $query->whereIn('plaza', $plazasPermitidas);
             }
 
-            if ($request->filled('tienda') && $request->input('tienda') !== '') {
-                $query->where('tienda', trim($request->input('tienda')));
+            if (! empty($tiendasPermitidas)) {
+                $query->whereIn('tienda', $tiendasPermitidas);
+            }
+
+            $plazaFilter = $request->input('plaza');
+            if ($plazaFilter && $plazaFilter !== '') {
+                if (is_array($plazaFilter)) {
+                    $query->whereIn('plaza', $plazaFilter);
+                } else {
+                    $query->where('plaza', trim($plazaFilter));
+                }
+            }
+
+            $tiendaFilter = $request->input('tienda');
+            if ($tiendaFilter && $tiendaFilter !== '') {
+                if (is_array($tiendaFilter)) {
+                    $query->whereIn('tienda', $tiendaFilter);
+                } else {
+                    $query->where('tienda', trim($tiendaFilter));
+                }
             }
 
             $data = $query->orderBy('plaza')->orderBy('tienda')->orderBy('fecha')->get();
@@ -165,6 +192,15 @@ class CarteraAbonosController extends Controller
 
     public function exportExcel(Request $request)
     {
+        $userFilter = RoleHelper::getUserFilter();
+
+        if (! $userFilter['allowed']) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        $tiendasPermitidas = RoleHelper::getTiendasAcceso();
+        $plazasPermitidas = $userFilter['plazas_asignadas'] ?? [];
+
         $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
         $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
         $plaza = $request->input('plaza', '');
@@ -173,7 +209,7 @@ class CarteraAbonosController extends Controller
         try {
             $filename = 'cartera_abonos_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.xlsx';
 
-            return Excel::download(new CarteraAbonosExport($start, $end, $plaza, $tienda), $filename);
+            return Excel::download(new CarteraAbonosExport($start, $end, $plaza, $tienda, $plazasPermitidas, $tiendasPermitidas), $filename);
         } catch (\Exception $e) {
             Log::error('CarteraAbonos Excel error: '.$e->getMessage());
 
@@ -183,6 +219,15 @@ class CarteraAbonosController extends Controller
 
     public function exportCsv(Request $request)
     {
+        $userFilter = RoleHelper::getUserFilter();
+
+        if (! $userFilter['allowed']) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        $tiendasPermitidas = RoleHelper::getTiendasAcceso();
+        $plazasPermitidas = $userFilter['plazas_asignadas'] ?? [];
+
         $start = $request->input('period_start', Carbon::parse('first day of previous month')->toDateString());
         $end = $request->input('period_end', Carbon::parse('last day of previous month')->toDateString());
 
@@ -190,12 +235,30 @@ class CarteraAbonosController extends Controller
             $query = DB::table('cartera_abonos_cache')
                 ->whereBetween('fecha', [$start, $end]);
 
-            if ($request->filled('plaza') && $request->input('plaza') !== '') {
-                $query->where('plaza', trim($request->input('plaza')));
+            if (! empty($plazasPermitidas)) {
+                $query->whereIn('plaza', $plazasPermitidas);
             }
 
-            if ($request->filled('tienda') && $request->input('tienda') !== '') {
-                $query->where('tienda', trim($request->input('tienda')));
+            if (! empty($tiendasPermitidas)) {
+                $query->whereIn('tienda', $tiendasPermitidas);
+            }
+
+            $plazaFilter = $request->input('plaza');
+            if ($plazaFilter && $plazaFilter !== '') {
+                if (is_array($plazaFilter)) {
+                    $query->whereIn('plaza', $plazaFilter);
+                } else {
+                    $query->where('plaza', trim($plazaFilter));
+                }
+            }
+
+            $tiendaFilter = $request->input('tienda');
+            if ($tiendaFilter && $tiendaFilter !== '') {
+                if (is_array($tiendaFilter)) {
+                    $query->whereIn('tienda', $tiendaFilter);
+                } else {
+                    $query->where('tienda', trim($tiendaFilter));
+                }
             }
 
             $count = $query->count();
