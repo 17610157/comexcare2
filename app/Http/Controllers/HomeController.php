@@ -59,6 +59,7 @@ class HomeController extends Controller
             'venta_contado' => $metricas['venta_contado'] ?? 0,
             'venta_credito' => $metricas['venta_credito'] ?? 0,
             'ventas_plaza' => $metricas['ventas_plaza'] ?? [],
+            'ventas_tienda' => $metricas['ventas_tienda'] ?? [],
             'cartera_cargos' => $metricas['cartera_cargos'] ?? 0,
             'cartera_abonos' => $metricas['cartera_abonos'] ?? 0,
             'cartera_total' => $metricas['cartera_total'] ?? 0,
@@ -101,8 +102,7 @@ class HomeController extends Controller
                 (COALESCE(vtacred, 0) - COALESCE(descred, 0))
             ), 0) AS total_ventas,
             COALESCE(SUM(
-                (COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
-                (COALESCE(vtacred, 0) - COALESCE(descred, 0))
+                (COALESCE(vtacont, 0) - COALESCE(descont, 0))
             ), 0) AS venta_contado,
             COALESCE(SUM(
                 (COALESCE(vtacred, 0) - COALESCE(descred, 0))
@@ -248,6 +248,9 @@ class HomeController extends Controller
         // Ventas por Plaza
         $ventasPlazaData = $this->getVentasPlazaData($fecha_inicio, $fecha_fin, $plazas, $tiendas);
 
+        // Ventas por Tienda
+        $ventasTiendaData = $this->getVentasTiendaData($fecha_inicio, $fecha_fin, $plazas, $tiendas);
+
         // Cartera y Abonos
         $carteraAbonosData = $this->getCarteraAbonosData($fecha_inicio, $fecha_fin, $plazas, $tiendas);
 
@@ -265,6 +268,7 @@ class HomeController extends Controller
             'venta_contado' => $ventaContado,
             'venta_credito' => $ventaCredito,
             'ventas_plaza' => $ventasPlazaData,
+            'ventas_tienda' => $ventasTiendaData,
             'cartera_cargos' => $carteraAbonosData['cargos'],
             'cartera_abonos' => $carteraAbonosData['abonos'],
             'cartera_total' => $carteraAbonosData['total'],
@@ -520,6 +524,113 @@ class HomeController extends Controller
             $devoluciones = $devPorPlaza[$plaza] ?? 0;
             $resultado[] = [
                 'plaza' => $plaza,
+                'ventas' => $ventas,
+                'devoluciones' => $devoluciones,
+                'neto' => $ventas - $devoluciones,
+            ];
+        }
+
+        usort($resultado, function ($a, $b) {
+            return $b['ventas'] - $a['ventas'];
+        });
+
+        return $resultado;
+    }
+
+    private function getVentasTiendaData($fecha_inicio, $fecha_fin, $plazas = [], $tiendas = [])
+    {
+        $wherePlaza = '';
+        $whereTienda = '';
+        $params = [$fecha_inicio, $fecha_fin];
+
+        if (! empty($plazas)) {
+            $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+            $wherePlaza = " AND cplaza IN ($placeholders)";
+            $params = array_merge($params, $plazas);
+
+            if (! empty($tiendas)) {
+                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                $whereTienda = " AND ctienda IN ($placeholders)";
+                $params = array_merge($params, $tiendas);
+            }
+        } elseif (! empty($tiendas)) {
+            $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+            $whereTienda = " AND ctienda IN ($placeholders)";
+            $params = array_merge($params, $tiendas);
+        }
+
+        $sql = "
+            SELECT 
+                ctienda AS tienda,
+                cplaza AS plaza,
+                SUM(
+                    (COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
+                    (COALESCE(vtacred, 0) - COALESCE(descred, 0))
+                ) AS ventas
+            FROM xcorte 
+            WHERE fecha BETWEEN ? AND ?
+            $wherePlaza $whereTienda
+            AND ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027','00095','GALMA','BOVER')
+            AND ctienda NOT LIKE '%DESC%' AND ctienda NOT LIKE '%CEDI%'
+            GROUP BY ctienda, cplaza
+            ORDER BY ventas DESC
+            LIMIT 20
+        ";
+
+        $result = DB::select($sql, $params);
+        $ventasPorTienda = [];
+        foreach ($result as $row) {
+            $ventasPorTienda[$row->tienda] = floatval($row->ventas);
+        }
+
+        $devParams = [$fecha_inicio, $fecha_fin];
+        $devWherePlaza = '';
+        $devWhereTienda = '';
+
+        if (! empty($plazas)) {
+            $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+            $devWherePlaza = " AND cplaza IN ($placeholders)";
+            $devParams = array_merge($devParams, $plazas);
+
+            if (! empty($tiendas)) {
+                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                $devWhereTienda = " AND ctienda IN ($placeholders)";
+                $devParams = array_merge($devParams, $tiendas);
+            }
+        } elseif (! empty($tiendas)) {
+            $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+            $devWhereTienda = " AND ctienda IN ($placeholders)";
+            $devParams = array_merge($devParams, $tiendas);
+        }
+
+        $devSql = "
+            SELECT 
+                ctienda AS tienda,
+                COALESCE(SUM(total_brut + impuesto), 0) AS devoluciones
+            FROM venta 
+            WHERE f_emision BETWEEN ? AND ?
+            AND tipo_doc = 'DV'
+            AND estado NOT LIKE '%C%'
+            $devWherePlaza $devWhereTienda
+            AND ctienda NOT IN ('ALMAC','BODEG','ALTAP','CXVEA','00095','GALMA','B0001','00027','00095','GALMA','BOVER')
+            AND ctienda NOT LIKE '%DESC%' AND ctienda NOT LIKE '%CEDI%'
+            GROUP BY ctienda
+        ";
+
+        $devResult = DB::select($devSql, $devParams);
+        $devPorTienda = [];
+        foreach ($devResult as $row) {
+            $devPorTienda[$row->tienda] = floatval($row->devoluciones);
+        }
+
+        $tiendasKeys = array_unique(array_merge(array_keys($ventasPorTienda), array_keys($devPorTienda)));
+
+        $resultado = [];
+        foreach ($tiendasKeys as $tienda) {
+            $ventas = $ventasPorTienda[$tienda] ?? 0;
+            $devoluciones = $devPorTienda[$tienda] ?? 0;
+            $resultado[] = [
+                'tienda' => $tienda,
                 'ventas' => $ventas,
                 'devoluciones' => $devoluciones,
                 'neto' => $ventas - $devoluciones,
