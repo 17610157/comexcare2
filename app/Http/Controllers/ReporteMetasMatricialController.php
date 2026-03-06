@@ -6,7 +6,7 @@ use App\Helpers\RoleHelper;
 use App\Services\ReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -17,9 +17,20 @@ class ReporteMetasMatricialController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // Verificar si tiene el permiso del reporte
+        $hasPermission = $user && $user->can('reportes.metas-matricial.ver');
+
+        // Obtener filtros del usuario
         $userFilter = RoleHelper::getUserFilter();
 
-        if (! $userFilter['allowed']) {
+        // Permitir acceso si:
+        // 1. Ya tiene acceso por asignaciones, O
+        // 2. Tiene el permiso del reporte
+        $allowed = $userFilter['allowed'] || $hasPermission;
+
+        if (! $allowed) {
             return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
         }
 
@@ -34,6 +45,14 @@ class ReporteMetasMatricialController extends Controller
         $tiendas = $listas['tiendas'];
         $plazasAsignadas = $listas['plazas_asignadas'];
         $tiendasAsignadas = $listas['tiendas_asignadas'];
+
+        // Si no tiene asignaciones pero tiene permiso, usar todas las disponibles
+        if (empty($plazasAsignadas) && $hasPermission) {
+            $plazasAsignadas = $plazas->toArray();
+        }
+        if (empty($tiendasAsignadas) && $hasPermission) {
+            $tiendasAsignadas = $tiendas->toArray();
+        }
 
         // Procesar valores del request, validando contra asignaciones del usuario
         $plazaInput = $request->input('plaza', '');
@@ -101,10 +120,54 @@ class ReporteMetasMatricialController extends Controller
      */
     public function exportExcel(Request $request)
     {
+        $user = Auth::user();
+        $hasPermission = $user && $user->can('reportes.metas-matricial.exportar');
+
+        $userFilter = RoleHelper::getUserFilter();
+
+        $allowed = $userFilter['allowed'] || $hasPermission;
+
+        if (! $allowed) {
+            return back()->with('error', 'No autorizado');
+        }
+
+        $listas = RoleHelper::getListasParaFiltros();
+        $plazasAsignadas = $listas['plazas_asignadas'] ?? [];
+        $tiendasAsignadas = $listas['tiendas_asignadas'] ?? [];
+
+        // Si no tiene asignaciones pero tiene permiso, usar todas las disponibles
+        if (empty($plazasAsignadas) && $hasPermission) {
+            $plazasAsignadas = $listas['plazas']->toArray();
+        }
+        if (empty($tiendasAsignadas) && $hasPermission) {
+            $tiendasAsignadas = $listas['tiendas']->toArray();
+        }
+
         try {
             // Obtener datos
             $plazaInput = $request->input('plaza', '');
             $tiendaInput = $request->input('tienda', '');
+
+            // Validar que los filtros estén dentro de lo asignado al usuario
+            if (! empty($plazasAsignadas)) {
+                if (empty($plazaInput)) {
+                    $plazaInput = $plazasAsignadas;
+                } else {
+                    $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
+                    $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
+                    $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+                }
+            }
+
+            if (! empty($tiendasAsignadas)) {
+                if (empty($tiendaInput)) {
+                    $tiendaInput = $tiendasAsignadas;
+                } else {
+                    $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
+                    $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
+                    $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+                }
+            }
 
             $filtros = [
                 'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
@@ -303,11 +366,32 @@ class ReporteMetasMatricialController extends Controller
     /**
      * Obtener datos agrupados por plaza para PDF
      */
-    private function obtenerDatosAgrupadosPorPlaza(Request $request)
+    private function obtenerDatosAgrupadosPorPlaza(Request $request, $plazasAsignadas = [], $tiendasAsignadas = [])
     {
         // Obtener datos básicos
         $plazaInput = $request->input('plaza', '');
         $tiendaInput = $request->input('tienda', '');
+
+        // Aplicar filtros del usuario si se proporcionaron
+        if (! empty($plazasAsignadas)) {
+            if (empty($plazaInput)) {
+                $plazaInput = $plazasAsignadas;
+            } else {
+                $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
+                $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
+                $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+            }
+        }
+
+        if (! empty($tiendasAsignadas)) {
+            if (empty($tiendaInput)) {
+                $tiendaInput = $tiendasAsignadas;
+            } else {
+                $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
+                $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
+                $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+            }
+        }
 
         $filtros = [
             'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
@@ -395,9 +479,56 @@ class ReporteMetasMatricialController extends Controller
      */
     public function exportPdf(Request $request)
     {
+        $user = Auth::user();
+        $hasPermission = $user && $user->can('reportes.metas-matricial.exportar');
+
+        $userFilter = RoleHelper::getUserFilter();
+
+        $allowed = $userFilter['allowed'] || $hasPermission;
+
+        if (! $allowed) {
+            return back()->with('error', 'No autorizado');
+        }
+
+        $listas = RoleHelper::getListasParaFiltros();
+        $plazasAsignadas = $listas['plazas_asignadas'] ?? [];
+        $tiendasAsignadas = $listas['tiendas_asignadas'] ?? [];
+
+        // Si no tiene asignaciones pero tiene permiso, usar todas las disponibles
+        if (empty($plazasAsignadas) && $hasPermission) {
+            $plazasAsignadas = $listas['plazas']->toArray();
+        }
+        if (empty($tiendasAsignadas) && $hasPermission) {
+            $tiendasAsignadas = $listas['tiendas']->toArray();
+        }
+
         try {
+            // Validar filtros contra asignaciones del usuario
+            $plazaInput = $request->input('plaza', '');
+            $tiendaInput = $request->input('tienda', '');
+
+            if (! empty($plazasAsignadas)) {
+                if (empty($plazaInput)) {
+                    $plazaInput = $plazasAsignadas;
+                } else {
+                    $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
+                    $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
+                    $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+                }
+            }
+
+            if (! empty($tiendasAsignadas)) {
+                if (empty($tiendaInput)) {
+                    $tiendaInput = $tiendasAsignadas;
+                } else {
+                    $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
+                    $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
+                    $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+                }
+            }
+
             // Obtener datos agrupados por plaza
-            $datos = $this->obtenerDatosAgrupadosPorPlaza($request);
+            $datos = $this->obtenerDatosAgrupadosPorPlaza($request, $plazaInput, $tiendaInput);
 
             // Verificar si hay datos
             if (empty($datos['plazas'])) {
