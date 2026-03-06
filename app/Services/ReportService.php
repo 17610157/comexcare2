@@ -35,7 +35,7 @@ class ReportService
                         'vendedor_dia',
                         'venta_total',
                         'devolucion',
-                        'venta_neta'
+                        'venta_neta',
                     ])
                     ->whereBetween('nota_fecha', [$fecha_inicio, $fecha_fin]);
 
@@ -80,6 +80,7 @@ class ReportService
             });
         } catch (\Exception $e) {
             Log::error('Error en getVendedoresReport con cache: '.$e->getMessage());
+
             return collect([]);
         }
     }
@@ -110,7 +111,7 @@ class ReportService
                         'vendedor_dia',
                         'venta_total',
                         'devolucion',
-                        'venta_neta'
+                        'venta_neta',
                     ])
                     ->whereBetween('nota_fecha', [$fecha_inicio, $fecha_fin]);
 
@@ -132,6 +133,7 @@ class ReportService
             });
         } catch (\Exception $e) {
             Log::error('Error en getVendedoresMatricialReport: '.$e->getMessage());
+
             return [];
         }
     }
@@ -515,29 +517,56 @@ class ReportService
           AND xc.fecha BETWEEN ? AND ?
         ";
 
-        // Obtener suma_valor_dia por tienda para el rango completo
-        $sumaValorDiaQuery = '
-        SELECT tienda, SUM(valor_dia) as suma_valor_dia
+        // Obtener datos de metas por tienda para el MES COMPLETO (basado en fecha_inicio)
+        $mesInicio = date('Y-m-01', strtotime($fecha_inicio));
+        $mesFin = date('Y-m-t', strtotime($fecha_inicio));
+
+        $metasQuery = '
+        SELECT 
+            tienda, 
+            SUM(valor_dia) as suma_valor_dia,
+            MAX(dias_total) as dias_total,
+            SUM(meta_dia) as meta_dia_sum,
+            MAX(meta_total) as meta_total
         FROM metas
         WHERE fecha BETWEEN ? AND ?
         GROUP BY tienda
         ';
-        $sumaValorDiaData = DB::select($sumaValorDiaQuery, [$fecha_inicio, $fecha_fin]);
-        $sumasValorDia = [];
-        foreach ($sumaValorDiaData as $row) {
-            $sumasValorDia[$row->tienda] = $row->suma_valor_dia;
+        $metasData = DB::select($metasQuery, [$mesInicio, $mesFin]);
+        $metasInfo = [];
+        foreach ($metasData as $row) {
+            $metasInfo[$row->tienda] = [
+                'suma_valor_dia' => $row->suma_valor_dia,
+                'dias_totales' => $row->dias_total,
+                'meta_dia_sum' => $row->meta_dia_sum,
+                'meta_total' => $row->meta_total,
+            ];
         }
 
         $params = [$fecha_inicio, $fecha_fin];
 
-        // Aplicar filtros
+        // Aplicar filtros - manejar múltiples valores separados por coma
         if (! empty($plaza)) {
-            $sql .= ' AND xc.cplaza = ?';
-            $params[] = $plaza;
+            $plazasArray = array_map('trim', explode(',', $plaza));
+            if (count($plazasArray) > 1) {
+                $placeholders = implode(',', array_fill(0, count($plazasArray), '?'));
+                $sql .= " AND xc.cplaza IN ($placeholders)";
+                $params = array_merge($params, $plazasArray);
+            } else {
+                $sql .= ' AND xc.cplaza = ?';
+                $params[] = $plaza;
+            }
         }
         if (! empty($tienda)) {
-            $sql .= ' AND xc.tienda = ?';
-            $params[] = $tienda;
+            $tiendasArray = array_map('trim', explode(',', $tienda));
+            if (count($tiendasArray) > 1) {
+                $placeholders = implode(',', array_fill(0, count($tiendasArray), '?'));
+                $sql .= " AND xc.ctienda IN ($placeholders)";
+                $params = array_merge($params, $tiendasArray);
+            } else {
+                $sql .= ' AND xc.ctienda = ?';
+                $params[] = $tienda;
+            }
         }
         if (! empty($zona)) {
             $sql .= ' AND bst.zona = ?';
@@ -549,10 +578,10 @@ class ReportService
         $rawData = DB::select($sql, $params);
 
         // Procesar datos jerárquicos
-        return self::construirMatrizJerarquica($rawData, $fecha_inicio, $fecha_fin, $sumasValorDia);
+        return self::construirMatrizJerarquica($rawData, $fecha_inicio, $fecha_fin, $metasInfo);
     }
 
-    private static function construirMatrizJerarquica($rawData, $fecha_inicio, $fecha_fin, $sumasValorDia): array
+    private static function construirMatrizJerarquica($rawData, $fecha_inicio, $fecha_fin, $metasInfo): array
     {
         $fechas = self::generarRangoFechas($fecha_inicio, $fecha_fin);
         $matriz = [];
@@ -570,20 +599,18 @@ class ReportService
                 if (empty($zona)) {
                     $zona = $row->cplaza; // Si no hay zona, usar plaza como zona
                 }
+
+                // Usar info de metasInfo que tiene los valores correctos del rango
+                $infoMeta = $metasInfo[$tienda] ?? [];
+
                 $matriz['info'][$tienda] = [
                     'plaza' => $row->cplaza,
                     'zona' => $zona,
                     'tienda' => $tienda,
-                    'meta_total' => $row->meta_total,
-                    'dias_totales' => $row->dias_total,
-                    'suma_valor_dia' => $sumasValorDia[$row->clave_tienda ?? $tienda] ?? 0,
+                    'meta_total' => $infoMeta['meta_total'] ?? $row->meta_total ?? 0,
+                    'dias_totales' => $infoMeta['dias_totales'] ?? $row->dias_total ?? count($fechas),
+                    'suma_valor_dia' => $infoMeta['suma_valor_dia'] ?? 0,
                 ];
-
-                // Debug: si suma_valor_dia es 0, intentar con clave alternativa
-                if (($sumasValorDia[$tienda][$row->cplaza] ?? 0) == 0) {
-                    // Verificar si hay con plaza como string o algo
-                    // Por ahora, dejar como está
-                }
             }
 
             // Datos por fecha

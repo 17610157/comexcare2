@@ -17,17 +17,17 @@
             <button type="button" class="btn btn-success" id="btn-export-excel">
                 <i class="fas fa-file-excel"></i> Exportar Excel
             </button>
-            <form id="export-pdf-form" method="POST" action="{{ route('reportes.metas-matricial.export.pdf') }}" style="display: inline;">
-                @csrf
-                <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
-                <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
-                <input type="hidden" name="plaza" value="{{ $plaza }}">
-                <input type="hidden" name="tienda" value="{{ $tienda }}">
-                <input type="hidden" name="zona" value="{{ $zona }}">
-                <button type="button" class="btn btn-danger" id="btn-export-pdf">
-                    <i class="fas fa-file-pdf"></i> Exportar PDF
-                </button>
-            </form>
+        </form>
+        <form id="export-pdf-form" method="POST" action="{{ route('reportes.metas-matricial.export.pdf') }}" style="display: inline;">
+            @csrf
+            <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
+            <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
+            <input type="hidden" name="plaza" value="{{ $plaza }}">
+            <input type="hidden" name="tienda" value="{{ $tienda }}">
+            <input type="hidden" name="zona" value="{{ $zona }}">
+            <button type="button" class="btn btn-danger" id="btn-export-pdf">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
         </form>
         @endhasPermission
         @hasPermission('reportes.metas_matricial.ver')
@@ -63,10 +63,13 @@
                             <input type="checkbox" id="select_all_plazas" class="form-check-input">
                             <label for="select_all_plazas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
                         </div>
+                        @php
+                            $plazaArray = is_array($plaza) ? $plaza : ($plaza ? explode(',', $plaza) : []);
+                        @endphp
                         @foreach($plazas as $p)
                         <div class="form-check">
                             <input type="checkbox" name="plaza[]" value="{{ $p }}" id="plaza_{{ $p }}" class="form-check-input plaza-checkbox"
-                                   {{ is_array($plaza) && in_array($p, $plaza) ? 'checked' : '' }}>
+                                   {{ in_array($p, $plazaArray) ? 'checked' : '' }}>
                             <label for="plaza_{{ $p }}" class="form-check-label">{{ $p }}</label>
                         </div>
                         @endforeach
@@ -79,10 +82,13 @@
                             <input type="checkbox" id="select_all_tiendas" class="form-check-input">
                             <label for="select_all_tiendas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
                         </div>
+                        @php
+                            $tiendaArray = is_array($tienda) ? $tienda : ($tienda ? explode(',', $tienda) : []);
+                        @endphp
                         @foreach($tiendas as $t)
                         <div class="form-check">
                             <input type="checkbox" name="tienda[]" value="{{ $t }}" id="tienda_{{ $t }}" class="form-check-input tienda-checkbox"
-                                   {{ is_array($tienda) && in_array($t, $tienda) ? 'checked' : '' }}>
+                                   {{ in_array($t, $tiendaArray) ? 'checked' : '' }}>
                             <label for="tienda_{{ $t }}" class="form-check-label">{{ $t }}</label>
                         </div>
                         @endforeach
