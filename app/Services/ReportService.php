@@ -517,30 +517,54 @@ class ReportService
           AND xc.fecha BETWEEN ? AND ?
         ";
 
-        // Obtener datos de metas por tienda para el MES COMPLETO (basado en fecha_inicio)
+        // Obtener datos de metas por tienda
+        // 1. Del mes completo: dias_total y meta_total
         $mesInicio = date('Y-m-01', strtotime($fecha_inicio));
         $mesFin = date('Y-m-t', strtotime($fecha_inicio));
 
-        $metasQuery = '
+        $metasMesQuery = '
         SELECT 
             tienda, 
-            SUM(valor_dia) as suma_valor_dia,
             MAX(dias_total) as dias_total,
-            SUM(meta_dia) as meta_dia_sum,
             MAX(meta_total) as meta_total
         FROM metas
         WHERE fecha BETWEEN ? AND ?
         GROUP BY tienda
         ';
-        $metasData = DB::select($metasQuery, [$mesInicio, $mesFin]);
+        $metasMesData = DB::select($metasMesQuery, [$mesInicio, $mesFin]);
+
+        // 2. Del rango seleccionado: suma_valor_dia (días transcurridos)
+        $metasRangoQuery = '
+        SELECT 
+            tienda, 
+            SUM(valor_dia) as suma_valor_dia
+        FROM metas
+        WHERE fecha BETWEEN ? AND ?
+        GROUP BY tienda
+        ';
+        $metasRangoData = DB::select($metasRangoQuery, [$fecha_inicio, $fecha_fin]);
+
+        // Combinar datos
         $metasInfo = [];
-        foreach ($metasData as $row) {
+        foreach ($metasMesData as $row) {
             $metasInfo[$row->tienda] = [
-                'suma_valor_dia' => $row->suma_valor_dia,
+                'suma_valor_dia' => 0,
                 'dias_totales' => $row->dias_total,
-                'meta_dia_sum' => $row->meta_dia_sum,
+                'meta_dia_sum' => 0,
                 'meta_total' => $row->meta_total,
             ];
+        }
+        foreach ($metasRangoData as $row) {
+            if (isset($metasInfo[$row->tienda])) {
+                $metasInfo[$row->tienda]['suma_valor_dia'] = $row->suma_valor_dia;
+            } else {
+                $metasInfo[$row->tienda] = [
+                    'suma_valor_dia' => $row->suma_valor_dia,
+                    'dias_totales' => 0,
+                    'meta_dia_sum' => 0,
+                    'meta_total' => 0,
+                ];
+            }
         }
 
         $params = [$fecha_inicio, $fecha_fin];
