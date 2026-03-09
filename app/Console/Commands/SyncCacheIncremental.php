@@ -40,7 +40,6 @@ class SyncCacheIncremental extends Command
         $results = [];
 
         $results[] = $this->syncCarteraAbonos($start, $end);
-        $results[] = $this->syncNotasCompletas($start, $end);
         $results[] = $this->syncComprasDirecto($start, $end);
         $results[] = $this->syncRedencionesClub($start, $end);
         $results[] = $this->syncVendedores($start, $end);
