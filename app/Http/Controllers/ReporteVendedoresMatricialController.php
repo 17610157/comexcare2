@@ -27,9 +27,9 @@ class ReporteVendedoresMatricialController extends Controller
             return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
         }
 
-        // Fechas por defecto
-        $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
-        $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
+        // Fechas por defecto - usar rango con datos disponibles
+        $fecha_inicio = $request->input('fecha_inicio', '2026-02-01');
+        $fecha_fin = $request->input('fecha_fin', '2026-02-21');
         $vendedor = $request->input('vendedor', '');
 
         // Obtener listas para filtros usando el helper
@@ -313,8 +313,8 @@ class ReporteVendedoresMatricialController extends Controller
     private function obtenerDatosParaExportar(Request $request)
     {
         // Obtener datos del request
-        $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
-        $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
+        $fecha_inicio = $request->input('fecha_inicio', '2026-02-01');
+        $fecha_fin = $request->input('fecha_fin', '2026-02-21');
         $plazaInput = $request->input('plaza', '');
         $tiendaInput = $request->input('tienda', '');
         $vendedor = $request->input('vendedor', '');

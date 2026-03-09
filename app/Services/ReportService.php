@@ -105,7 +105,7 @@ class ReportService
                         'cplaza',
                         'ctienda',
                         'vend_clave',
-                        'nota_fecha',
+                        'fecha',
                         'plaza_ajustada',
                         'tienda_vendedor',
                         'vendedor_dia',
@@ -113,11 +113,11 @@ class ReportService
                         'devolucion',
                         'venta_neta',
                     ])
-                    ->whereBetween('nota_fecha', [$fecha_inicio, $fecha_fin]);
+                    ->whereBetween('fecha', [$fecha_inicio, $fecha_fin]);
 
                 if (! empty($plaza)) {
                     $plazasArray = explode(',', $plaza);
-                    $query->whereIn('cplaza', $plazasArray);
+                    $query->whereIn('plaza_ajustada', $plazasArray);
                 }
                 if (! empty($tienda)) {
                     $tiendasArray = explode(',', $tienda);
@@ -161,8 +161,8 @@ class ReportService
         foreach ($resultados_raw as $row) {
             $vendedor_id = $row->vend_clave;
             $tienda_val = $row->ctienda;
-            $plaza_val = $row->cplaza;
-            $fecha_key = $row->nota_fecha;
+            $plaza_val = $row->plaza_ajustada;
+            $fecha_key = $row->fecha;
 
             if (! isset($vendedores_info[$vendedor_id])) {
                 $vendedores_info[$vendedor_id] = [
@@ -248,7 +248,7 @@ class ReportService
             $tipo = $row->tipo;
             $tienda_val = $row->ctienda;
             $plaza_val = $row->cplaza;
-            $fecha_key = $row->nota_fecha;
+            $fecha_key = $row->fecha;
 
             if (strlen($fecha_key) == 8) {
                 $fecha_key = $fecha_key;
