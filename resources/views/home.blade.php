@@ -1,10 +1,10 @@
 @extends('adminlte::page')
 
-@section('title', 'Dashboard ComexCare')
+@section('title', 'Comexcare')
 
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-chart-line text-primary"></i> Dashboard ComexCare</h1>
+        <h1><i class="fas fa-chart-line text-primary"></i> Comexcare</h1>
         <form method="GET" action="{{ route('home') }}" class="d-flex align-items-center gap-2">
             <label class="mb-0"><strong>Del:</strong></label>
             <input type="date" name="fecha_inicio" value="{{ $fecha_inicio ?? date('Y-m-01') }}" class="form-control form-control-sm" style="width: 140px;">
