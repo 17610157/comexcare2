@@ -274,7 +274,7 @@ class AgentController extends Controller
         return response()->json([
             'update_available' => true,
             'version' => $latest->version,
-            'download_url' => url('storage/'.$latest->file_path),
+            'download_url' => url('agent-updates/'.$latest->file_path),
             'channel' => $latest->channel,
             'checksum' => $latest->checksum,
             'changelog' => $latest->changelog,
@@ -300,7 +300,7 @@ class AgentController extends Controller
         return response()->json([
             'update_available' => true,
             'version' => $latest->version,
-            'download_url' => url('storage/'.$latest->file_path),
+            'download_url' => url('agent-updates/'.$latest->file_path),
             'channel' => $latest->channel,
             'checksum' => $latest->checksum,
             'changelog' => $latest->changelog,

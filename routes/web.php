@@ -263,6 +263,17 @@ Route::get('/api/update/{version}', [App\Http\Controllers\Api\AgentController::c
 Route::get('/api/check-update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/api/computer/{computer_id}/update', [App\Http\Controllers\Api\AgentController::class, 'checkUpdateByComputerId'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/api/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Serve agent updates directly without middleware
+Route::get('/agent-updates/{filename}', function (string $filename) {
+    $path = storage_path('app/public/agent_updates/'.$filename);
+
+    if (! file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/api/dias-periodo', [App\Http\Controllers\MetasMensualController::class, 'getDiasPeriodo'])->middleware('can:metas.ver');
 Route::post('/metas-dias/generate', [App\Http\Controllers\MetasMensualController::class, 'generateDias'])->name('metas_dias.generate')->middleware('can:metas.crear');
 Route::get('/metas-mensual/performance-test', [App\Http\Controllers\MetasMensualController::class, 'performanceTest'])
