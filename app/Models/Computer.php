@@ -43,4 +43,9 @@ class Computer extends Model
     {
         return $this->hasMany(Command::class);
     }
+
+    public function logs()
+    {
+        return $this->hasMany(ComputerLog::class);
+    }
 }
