@@ -271,10 +271,12 @@ class AgentController extends Controller
             return response()->json(['update_available' => false]);
         }
 
+        $filename = basename($latest->file_path);
+
         return response()->json([
             'update_available' => true,
             'version' => $latest->version,
-            'download_url' => url('agent-updates/'.$latest->file_path),
+            'download_url' => url('agent-updates/'.$filename),
             'channel' => $latest->channel,
             'checksum' => $latest->checksum,
             'changelog' => $latest->changelog,
@@ -297,10 +299,12 @@ class AgentController extends Controller
             return response()->json(['update_available' => false]);
         }
 
+        $filename = basename($latest->file_path);
+
         return response()->json([
             'update_available' => true,
             'version' => $latest->version,
-            'download_url' => url('agent-updates/'.$latest->file_path),
+            'download_url' => url('agent-updates/'.$filename),
             'channel' => $latest->channel,
             'checksum' => $latest->checksum,
             'changelog' => $latest->changelog,
