@@ -194,7 +194,7 @@
 @section('js')
 <script>
 let autoScroll = true;
-let lastLogId = 0;
+let lastLogId = {{ $computer->logs()->max('id') ?? 0 }};
 let computerId = {{ $computer->id }};
 
 function toggleAutoScroll() {
