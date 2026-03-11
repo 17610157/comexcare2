@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\AgentVersion;
-use App\Models\Computer;
 use App\Models\Command;
+use App\Models\Computer;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -12,13 +12,13 @@ class AgentUpdateService
 {
     public function createVersion(array $data): AgentVersion
     {
-        $path = $data['file']->store('agent_updates');
+        $path = $data['file']->store('agent_updates', 'public');
 
         return AgentVersion::create([
             'version' => $data['version'],
             'channel' => $data['channel'] ?? 'stable',
             'file_path' => $path,
-            'checksum' => hash_file('sha256', Storage::path($path)),
+            'checksum' => hash_file('sha256', Storage::disk('public')->path($path)),
             'changelog' => $data['changelog'] ?? null,
             'is_active' => true,
         ]);
