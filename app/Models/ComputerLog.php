@@ -13,4 +13,9 @@ class ComputerLog extends Model
         'level',
         'message',
     ];
+
+    public function computer()
+    {
+        return $this->belongsTo(Computer::class);
+    }
 }
