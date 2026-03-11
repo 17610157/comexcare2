@@ -237,13 +237,13 @@ function fetchLogs() {
         .catch(err => console.error('Error fetching logs:', err));
 }
 
-// Fetch logs every 10 minutes (600000 ms)
-setInterval(fetchLogs, 600000);
+// Fetch logs every 5 seconds
+setInterval(fetchLogs, 5000);
 
 // Initial fetch
 fetchLogs();
 
-// Also poll for status updates every 10 minutes
+// Also poll for status updates every 5 seconds
 setInterval(function() {
     fetch(`/admin/computers/${computerId}/status`)
         .then(r => r.json())
@@ -256,6 +256,6 @@ setInterval(function() {
             }
         })
         .catch(() => {});
-}, 600000);
+}, 5000);
 </script>
 @stop
