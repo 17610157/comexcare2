@@ -12,6 +12,7 @@ class Computer extends Model
 
     protected $fillable = [
         'computer_name',
+        'short_key',
         'mac_address',
         'ip_address',
         'group_id',
@@ -20,6 +21,7 @@ class Computer extends Model
         'status',
         'system_info',
         'agent_config',
+        'receive_paths',
         'download_path',
         'download_path_1',
         'download_path_2',
@@ -37,6 +39,7 @@ class Computer extends Model
         'last_seen' => 'datetime',
         'system_info' => 'array',
         'agent_config' => 'array',
+        'receive_paths' => 'array',
     ];
 
     public function group()
@@ -74,6 +77,16 @@ class Computer extends Model
             }
         }
 
+        $additionalPaths = $this->agent_config['additional_download_paths'] ?? [];
+        if (is_array($additionalPaths)) {
+            $paths = array_merge($paths, $additionalPaths);
+        }
+
         return $paths;
+    }
+
+    public function getDownloadPathsCount(): int
+    {
+        return count($this->getAllDownloadPaths());
     }
 }

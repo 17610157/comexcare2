@@ -14,25 +14,28 @@
 @stop
 
 @section('content')
+    <!-- Computer Info -->
     <div class="row">
-        <!-- Computer Info -->
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-desktop"></i> Computer Info</h3>
+                    <h3 class="card-title"><i class="fas fa-desktop"></i> Información de la Computadora</h3>
                 </div>
                 <div class="card-body">
                     <table class="table table-sm">
-                        <tr><th width="40%">Name:</th><td>{{ $computer->computer_name }}</td></tr>
+                        <tr><th width="40%">Nombre:</th><td>{{ $computer->computer_name }}</td></tr>
+                        @if($computer->short_key)
+                        <tr><th>Short Key:</th><td><span class="badge badge-info">{{ $computer->short_key }}</span></td></tr>
+                        @endif
                         <tr><th>MAC:</th><td>{{ $computer->mac_address }}</td></tr>
                         <tr><th>IP:</th><td>{{ $computer->ip_address }}</td></tr>
-                        <tr><th>Agent Version:</th><td>{{ $computer->agent_version ?? 'N/A' }}</td></tr>
-                        <tr><th>Group:</th><td>{{ $computer->group->name ?? 'N/A' }}</td></tr>
-                        <tr><th>Download Path:</th><td><small>{{ $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files' }}</small></td></tr>
+                        <tr><th>Versión Agente:</th><td>{{ $computer->agent_version ?? 'N/A' }}</td></tr>
+                        <tr><th>Grupo:</th><td>{{ $computer->group->name ?? 'N/A' }}</td></tr>
+                        <tr><th>Ruta de Descarga:</th><td><small>{{ $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files' }}</small></td></tr>
                         @php $additionalPaths = array_slice($computer->getAllDownloadPaths(), 1); @endphp
                         @if(count($additionalPaths) > 0)
                         <tr>
-                            <th>Additional Paths:</th>
+                            <th>Rutas Adicionales:</th>
                             <td>
                                 @foreach($additionalPaths as $idx => $path)
                                     <div><small>{{ $idx + 2 }}. {{ $path }}</small></div>
@@ -40,147 +43,130 @@
                             </td>
                         </tr>
                         @endif
-                        <tr><th>Last Seen:</th><td>{{ $computer->last_seen ? $computer->last_seen->diffForHumans() : 'Never' }}</td></tr>
-                        <tr><th>Created:</th><td>{{ $computer->created_at->diffForHumans() }}</td></tr>
+                        <tr><th>Última Comunicación:</th><td>{{ $computer->last_seen ? $computer->last_seen->diffForHumans() : 'Nunca' }}</td></tr>
+                        <tr><th>Creado:</th><td>{{ $computer->created_at->diffForHumans() }}</td></tr>
                     </table>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Active Distributions -->
-        <div class="col-md-8">
-            <div class="card">
+    <!-- Archivos DBF/CDX/FPT - Rutas de Recepción -->
+    @php
+        $receivePaths = $computer->receive_paths ?? [];
+        $receptionFiles = [];
+        
+        foreach ($receivePaths as $path) {
+            $shortKey = $computer->short_key ?? 'NO_KEY';
+            $folderName = $path['folder_name'] ?? basename($path['local_path'] ?? '');
+            $serverPath = storage_path('app/distributions/' . $shortKey . '/' . $folderName);
+            
+            if (is_dir($serverPath)) {
+                $items = scandir($serverPath);
+                foreach ($items as $item) {
+                    if ($item === '.' || $item === '..') continue;
+                    
+                    $fullPath = $serverPath . '/' . $item;
+                    $isDir = is_dir($fullPath);
+                    
+                    $receptionFiles[] = [
+                        'name' => $item,
+                        'path' => $fullPath,
+                        'local_path' => $path['local_path'] ?? '',
+                        'folder_name' => $folderName,
+                        'size' => $isDir ? 0 : filesize($fullPath),
+                        'modified' => filemtime($fullPath),
+                        'is_directory' => $isDir,
+                    ];
+                }
+            }
+        }
+    @endphp
+    @if(count($receptionFiles) > 0)
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-info">
                 <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-download"></i> Active Distributions</h3>
+                    <h3 class="card-title"><i class="fas fa-upload"></i> Archivos DBF/CDX/FPT (Rutas de Recepción)</h3>
                 </div>
-                <div class="card-body">
-                    @php
-                        $activeDistributions = \App\Models\DistributionTarget::with('distribution')
-                            ->where('computer_id', $computer->id)
-                            ->whereIn('status', ['pending', 'in_progress'])
-                            ->get();
-                    @endphp
-                    @if($activeDistributions->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Distribution</th>
-                                        <th>Files</th>
-                                        <th>Status</th>
-                                        <th>Progress</th>
-                                        <th>Last Update</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($activeDistributions as $target)
-                                        <tr>
-                                            <td>{{ $target->distribution->name ?? 'N/A' }}</td>
-                                            <td>{{ $target->distribution->files->count() ?? 0 }}</td>
-                                            <td>
-                                                @if($target->status === 'completed')
-                                                    <span class="badge badge-success">Completed</span>
-                                                @elseif($target->status === 'in_progress')
-                                                    <span class="badge badge-primary">In Progress</span>
-                                                @else
-                                                    <span class="badge badge-warning">{{ $target->status }}</span>
-                                                @endif
-                                            </td>
-                                            <td>
-                                                <div class="progress" style="height: 15px; width: 100px;">
-                                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ $target->progress ?? 0 }}%;">
-                                                        {{ $target->progress ?? 0 }}%
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>{{ $target->updated_at ? $target->updated_at->diffForHumans() : 'N/A' }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <p class="text-muted mb-0">No active distributions for this computer.</p>
-                    @endif
+                <div class="card-body table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Archivo</th>
+                                <th>Carpeta Servidor</th>
+                                <th>Ruta Local Agente</th>
+                                <th>Peso</th>
+                                <th>Fecha Modificación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($receptionFiles as $file)
+                            <tr>
+                                <td>
+                                    @if($file['is_directory'])
+                                        <i class="fas fa-folder text-warning"></i>
+                                    @else
+                                        <i class="fas fa-file text-info"></i>
+                                    @endif
+                                    <strong>{{ $file['name'] }}</strong>
+                                </td>
+                                <td><small>{{ $computer->short_key }}/{{ $file['folder_name'] }}</small></td>
+                                <td><small>{{ $file['local_path'] }}</small></td>
+                                <td>{{ $file['is_directory'] ? '-' : number_format($file['size'] / 1024, 2) . ' KB' }}</td>
+                                <td>{{ date('d/m/Y H:i', $file['modified']) }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Commands -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-terminal"></i> Recent Commands</h3>
-        </div>
-        <div class="card-body">
-            <table class="table table-bordered table-striped" id="commandsTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Type</th>
-                        <th>Data</th>
-                        <th>Status</th>
-                        <th>Sent At</th>
-                        <th>Completed</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($computer->commands->take(20) as $command)
-                        <tr>
-                            <td>{{ $command->id }}</td>
-                            <td>
-                                @if($command->type === 'download')
-                                    <span class="badge badge-primary"><i class="fas fa-download"></i> Download</span>
-                                @elseif($command->type === 'update')
-                                    <span class="badge badge-info"><i class="fas fa-sync"></i> Update</span>
-                                @else
-                                    <span class="badge badge-secondary">{{ $command->type }}</span>
-                                @endif
-                            </td>
-                            <td><small>{{ is_array($command->data) ? json_encode($command->data) : $command->data }}</small></td>
-                            <td>
-                                @if($command->status === 'pending')
-                                    <span class="badge badge-warning">Pending</span>
-                                @elseif($command->status === 'sent')
-                                    <span class="badge badge-primary">Sent</span>
-                                @elseif($command->status === 'completed')
-                                    <span class="badge badge-success">Completed</span>
-                                @elseif($command->status === 'failed')
-                                    <span class="badge badge-danger">Failed</span>
-                                @else
-                                    {{ $command->status }}
-                                @endif
-                            </td>
-                            <td>{{ $command->sent_at ? $command->sent_at->diffForHumans() : 'Not sent' }}</td>
-                            <td>{{ $command->completed_at ? $command->completed_at->diffForHumans() : '-' }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+    @else
+    @if(count($receivePaths) > 0)
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-info">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-upload"></i> Archivos DBF/CDX/FPT (Rutas de Recepción)</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        No hay archivos en las rutas de recepción del servidor.<br>
+                        <small>Rutas configuradas:</small>
+                        @foreach($receivePaths as $path)
+                            <br><code>{{ $path['local_path'] ?? '' }}</code> → <code>{{ $computer->short_key }}/{{ $path['folder_name'] ?? '' }}</code>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+    @endif
+    @endif
 
     <!-- Real-time Logs -->
     <div class="card card-primary card-outline">
         <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-list"></i> Real-time Logs</h3>
+            <h3 class="card-title"><i class="fas fa-list"></i> Logs en Tiempo Real</h3>
             <div class="card-tools">
                 <button type="button" class="btn btn-tool" onclick="clearLogs()">
-                    <i class="fas fa-trash"></i> Clear
+                    <i class="fas fa-trash"></i> Limpiar
                 </button>
                 <button type="button" class="btn btn-tool" onclick="toggleAutoScroll()">
                     <i class="fas fa-arrow-down"></i> Auto-scroll
-                </label>
                 </button>
             </div>
         </div>
-        <div class="card-body" style="height: 400px; overflow-y: auto; background: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace; font-size: 12px;" id="logContainer">
+        <div class="card-body" style="height: 500px; overflow-y: auto; background: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace; font-size: 12px;" id="logContainer">
             <div id="logsContent">
-                <div style="color: #6a9955;">// Waiting for logs...</div>
+                <div style="color: #6a9955;">// Esperando logs...</div>
             </div>
         </div>
         <div class="card-footer">
-            <small class="text-muted">Last update: <span id="lastUpdate">Never</span></small>
+            <small class="text-muted">Última actualización: <span id="lastUpdate">Nunca</span></small>
         </div>
     </div>
 @stop
@@ -205,7 +191,7 @@
 @section('js')
 <script>
 let autoScroll = true;
-let lastLogId = {{ $computer->logs()->max('id') ?? 0 }};
+let lastLogId = {{ $lastLogId ?? 0 }};
 let computerId = {{ $computer->id }};
 
 function toggleAutoScroll() {
@@ -259,7 +245,6 @@ setInterval(function() {
     fetch(`/admin/computers/${computerId}/status`)
         .then(r => r.json())
         .then(data => {
-            // Update status badge if changed
             const badge = document.querySelector('.badge-lg');
             if (badge && data.status) {
                 badge.textContent = data.status;
