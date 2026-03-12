@@ -47,7 +47,24 @@ class ComputersController extends Controller
             'download_path' => 'nullable|string',
         ]);
 
-        $computer->update($request->only(['computer_name', 'group_id', 'agent_config', 'download_path']));
+        $fillableFields = [
+            'computer_name',
+            'group_id',
+            'agent_config',
+            'download_path',
+            'download_path_1',
+            'download_path_2',
+            'download_path_3',
+            'download_path_4',
+            'download_path_5',
+            'download_path_6',
+            'download_path_7',
+            'download_path_8',
+            'download_path_9',
+            'download_path_10',
+        ];
+
+        $computer->update($request->only($fillableFields));
 
         return redirect()->route('admin.computers.index')->with('success', 'Computer updated');
     }

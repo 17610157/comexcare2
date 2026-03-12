@@ -135,6 +135,7 @@ class AgentController extends Controller
             'message' => 'Heartbeat received',
             'computer_name' => $computer->computer_name,
             'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
+            'download_paths' => $computer->getAllDownloadPaths(),
         ]);
     }
 
@@ -166,7 +167,7 @@ class AgentController extends Controller
                 }
             }
 
-            $commandsArray[] = [
+            $commandArray = [
                 'id' => $command->id,
                 'computer_id' => $command->computer_id,
                 'type' => $command->type,
@@ -175,6 +176,12 @@ class AgentController extends Controller
                 'distribution_target_id' => $data['distribution_target_id'] ?? null,
                 'status' => 'sent',
             ];
+
+            if ($command->type === 'distribute' || $command->type === 'update') {
+                $commandArray['download_paths'] = $computer->getAllDownloadPaths();
+            }
+
+            $commandsArray[] = $commandArray;
         }
 
         return response()->json($commandsArray);
