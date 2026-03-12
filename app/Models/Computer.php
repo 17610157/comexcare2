@@ -21,6 +21,16 @@ class Computer extends Model
         'system_info',
         'agent_config',
         'download_path',
+        'download_path_1',
+        'download_path_2',
+        'download_path_3',
+        'download_path_4',
+        'download_path_5',
+        'download_path_6',
+        'download_path_7',
+        'download_path_8',
+        'download_path_9',
+        'download_path_10',
     ];
 
     protected $casts = [
@@ -47,5 +57,23 @@ class Computer extends Model
     public function logs()
     {
         return $this->hasMany(ComputerLog::class);
+    }
+
+    public function getAllDownloadPaths(): array
+    {
+        $paths = [];
+
+        if ($this->download_path) {
+            $paths[] = $this->download_path;
+        }
+
+        for ($i = 1; $i <= 10; $i++) {
+            $path = $this->{"download_path_{$i}"};
+            if ($path) {
+                $paths[] = $path;
+            }
+        }
+
+        return $paths;
     }
 }

@@ -29,6 +29,17 @@
                         <tr><th>Agent Version:</th><td>{{ $computer->agent_version ?? 'N/A' }}</td></tr>
                         <tr><th>Group:</th><td>{{ $computer->group->name ?? 'N/A' }}</td></tr>
                         <tr><th>Download Path:</th><td><small>{{ $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files' }}</small></td></tr>
+                        @php $additionalPaths = array_slice($computer->getAllDownloadPaths(), 1); @endphp
+                        @if(count($additionalPaths) > 0)
+                        <tr>
+                            <th>Additional Paths:</th>
+                            <td>
+                                @foreach($additionalPaths as $idx => $path)
+                                    <div><small>{{ $idx + 2 }}. {{ $path }}</small></div>
+                                @endforeach
+                            </td>
+                        </tr>
+                        @endif
                         <tr><th>Last Seen:</th><td>{{ $computer->last_seen ? $computer->last_seen->diffForHumans() : 'Never' }}</td></tr>
                         <tr><th>Created:</th><td>{{ $computer->created_at->diffForHumans() }}</td></tr>
                     </table>
