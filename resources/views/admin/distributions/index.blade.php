@@ -353,9 +353,9 @@ $(document).ready(function() {
     // File input change
     $('#fileInput').change(function() {
         const files = this.files;
-        let html = '<ul class="list-group">';
+        let html = '<ul class="list-group" style="max-height: 150px; overflow-y: auto;">';
         for (let i = 0; i < files.length; i++) {
-            html += '<li class="list-group-item">' + files[i].name + ' (' + (files[i].size / 1024).toFixed(2) + ' KB)</li>';
+            html += '<li class="list-group-item py-1">' + files[i].name + ' (' + (files[i].size / 1024).toFixed(2) + ' KB)</li>';
         }
         html += '</ul>';
         $('#fileList').html(html);

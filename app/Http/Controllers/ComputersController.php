@@ -20,7 +20,12 @@ class ComputersController extends Controller
     {
         $computer->load('commands', 'distributionTargets.distribution');
 
-        return view('admin.computers.show', compact('computer'));
+        // Obtener el último ID de las últimas 24 horas para polling
+        $lastLogId = ComputerLog::where('computer_id', $computer->id)
+            ->where('created_at', '>=', now()->subHours(24))
+            ->max('id') ?? 0;
+
+        return view('admin.computers.show', compact('computer', 'lastLogId'));
     }
 
     public function edit(Computer $computer)
@@ -34,14 +39,28 @@ class ComputersController extends Controller
     {
         $data = $request->all();
 
-        if (isset($data['agent_config']) && is_string($data['agent_config'])) {
+        if (isset($data['agent_config_json']) && is_string($data['agent_config_json'])) {
+            $data['agent_config'] = json_decode($data['agent_config_json'], true) ?? [];
+        } elseif (isset($data['agent_config']) && is_string($data['agent_config'])) {
             $data['agent_config'] = json_decode($data['agent_config'], true) ?? [];
+        }
+
+        if ($request->has('additional_download_paths')) {
+            $additionalPaths = array_filter($request->additional_download_paths, function ($path) {
+                return ! empty(trim($path));
+            });
+            if (! empty($additionalPaths)) {
+                $data['agent_config']['additional_download_paths'] = array_values($additionalPaths);
+            } else {
+                unset($data['agent_config']['additional_download_paths']);
+            }
         }
 
         $request->replace($data);
 
         $request->validate([
             'computer_name' => 'nullable|string|max:255',
+            'short_key' => 'nullable|string|max:50|unique:computers,short_key,'.$computer->id,
             'group_id' => 'nullable|exists:groups,id',
             'agent_config' => 'nullable|array',
             'download_path' => 'nullable|string',
@@ -49,8 +68,10 @@ class ComputersController extends Controller
 
         $fillableFields = [
             'computer_name',
+            'short_key',
             'group_id',
             'agent_config',
+            'receive_paths',
             'download_path',
             'download_path_1',
             'download_path_2',
@@ -64,7 +85,23 @@ class ComputersController extends Controller
             'download_path_10',
         ];
 
+        // Necesitamos actualizar receive_paths manualmente porque el request->only no funciona bien con arrays
         $computer->update($request->only($fillableFields));
+
+        // Actualizar receive_paths por separado si viene en el request
+        if ($request->has('receive_paths')) {
+            $receivePaths = [];
+            foreach ($request->receive_paths as $path) {
+                if (! empty($path['local_path']) && ! empty($path['folder_name'])) {
+                    $receivePaths[] = [
+                        'local_path' => trim($path['local_path']),
+                        'folder_name' => trim($path['folder_name']),
+                        'type' => $path['type'] ?? 'file',
+                    ];
+                }
+            }
+            $computer->update(['receive_paths' => $receivePaths]);
+        }
 
         return redirect()->route('admin.computers.index')->with('success', 'Computer updated');
     }
@@ -80,19 +117,40 @@ class ComputersController extends Controller
     {
         $lastId = $request->query('last_id', 0);
 
-        $logs = ComputerLog::where('computer_id', $computer->id)
-            ->where('id', '>', $lastId)
-            ->orderBy('id', 'asc')
-            ->limit(100)
-            ->get()
-            ->map(function ($log) {
-                return [
-                    'id' => $log->id,
-                    'level' => $log->level,
-                    'message' => $log->message,
-                    'time' => $log->created_at->format('H:i:s'),
-                ];
-            });
+        // Si last_id es 0, mostrar los últimos 100 logs (para carga inicial)
+        if ($lastId == 0) {
+            $logs = ComputerLog::where('computer_id', $computer->id)
+                ->where('created_at', '>=', now()->subHours(24))
+                ->orderBy('id', 'desc')
+                ->limit(100)
+                ->get()
+                ->map(function ($log) {
+                    return [
+                        'id' => $log->id,
+                        'level' => $log->level,
+                        'message' => $log->message,
+                        'time' => $log->created_at->format('H:i:s'),
+                    ];
+                })
+                ->reverse()
+                ->values();
+        } else {
+            // Si hay un last_id, obtener solo logs nuevos
+            $logs = ComputerLog::where('computer_id', $computer->id)
+                ->where('id', '>', $lastId)
+                ->where('created_at', '>=', now()->subHours(24))
+                ->orderBy('id', 'asc')
+                ->limit(100)
+                ->get()
+                ->map(function ($log) {
+                    return [
+                        'id' => $log->id,
+                        'level' => $log->level,
+                        'message' => $log->message,
+                        'time' => $log->created_at->format('H:i:s'),
+                    ];
+                });
+        }
 
         return response()->json(['logs' => $logs]);
     }

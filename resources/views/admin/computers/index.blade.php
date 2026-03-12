@@ -12,6 +12,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
+                        <th>Short Key</th>
                         <th>Name</th>
                         <th>MAC Address</th>
                         <th>IP</th>
@@ -25,6 +26,7 @@
                 <tbody>
                     @foreach($computers as $computer)
                         <tr>
+                            <td><span class="badge badge-info">{{ $computer->short_key ?? '-' }}</span></td>
                             <td>{{ $computer->computer_name }}</td>
                             <td>{{ $computer->mac_address }}</td>
                             <td>{{ $computer->ip_address }}</td>

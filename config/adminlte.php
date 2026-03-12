@@ -348,6 +348,12 @@ return [
             'can' => 'distribution.ver',
         ],
         [
+            'text' => 'Recepción',
+            'url' => 'admin/reception',
+            'icon' => 'fas fa-download',
+            'can' => 'distribution.ver',
+        ],
+        [
             'text' => 'Computers',
             'url' => 'admin/computers',
             'icon' => 'fas fa-desktop',

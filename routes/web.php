@@ -199,6 +199,17 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::resource('groups', \App\Http\Controllers\GroupsController::class);
     Route::resource('agent-versions', \App\Http\Controllers\AgentVersionsController::class);
 
+    // Reception Module - Subida de archivos
+    Route::get('reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception.index');
+    Route::get('reception/create', [\App\Http\Controllers\ReceptionController::class, 'create'])->name('reception.create');
+    Route::post('reception', [\App\Http\Controllers\ReceptionController::class, 'store'])->name('reception.store');
+    Route::get('reception/{reception}', [\App\Http\Controllers\ReceptionController::class, 'show'])->name('reception.show');
+    Route::delete('reception/{reception}', [\App\Http\Controllers\ReceptionController::class, 'destroy'])->name('reception.destroy');
+    Route::get('reception/computer/{computer}', [\App\Http\Controllers\ReceptionController::class, 'showComputer'])->name('reception.computer');
+
+    // File Reception (Subida de archivos)
+    Route::resource('file-receptions', \App\Http\Controllers\FileReceptionController::class);
+
     // User Plaza Tienda - Solo super_admin
     Route::middleware('can:admin.usuarios.ver')->group(function () {
         Route::get('user-plaza-tienda', [\App\Http\Controllers\UserPlazaTiendaController::class, 'index'])->name('user-plaza-tienda.index');
@@ -263,6 +274,7 @@ Route::get('/api/update/{version}', [App\Http\Controllers\Api\AgentController::c
 Route::get('/api/check-update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/api/computer/{computer_id}/update', [App\Http\Controllers\Api\AgentController::class, 'checkUpdateByComputerId'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/api/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+Route::post('/api/upload-reception', [App\Http\Controllers\Api\AgentController::class, 'uploadReception'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // Serve agent updates directly without middleware
 Route::get('/agent-updates/{path}', function (string $path) {

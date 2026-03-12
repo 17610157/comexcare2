@@ -80,6 +80,8 @@ class AgentController extends Controller
             'agent_version' => 'required|string',
             'system_info' => 'nullable|array',
             'logs' => 'nullable|string',
+            'dbf_files' => 'nullable|array',
+            'receive_paths' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -100,13 +102,27 @@ class AgentController extends Controller
 
             return response()->json(['error' => 'Computer not found. Please register first.'], 404);
         }
-        $computer->update([
+
+        $updateData = [
             'status' => 'online',
             'last_seen' => now(),
             'agent_version' => $request->agent_version,
             'ip_address' => $request->ip(),
             'system_info' => $request->system_info ?? $computer->system_info,
-        ]);
+        ];
+
+        if ($request->filled('dbf_files')) {
+            $updateData['agent_config'] = array_merge($computer->agent_config ?? [], ['dbf_files' => $request->dbf_files]);
+        }
+
+        // Las receive_paths se configuran ÚNICAMENTE desde el panel de administración
+        // El agente NUNCA debe poder modificar estas rutas
+        // Solo se guardan si no existen en el servidor Y el agente envía datos por primera vez
+
+        // NO guardamos lo que el agente envía - el panel tiene prioridad absoluta
+        // $computer->receive_paths ya tiene la configuración del panel
+
+        $computer->update($updateData);
 
         // Process logs from the agent
         if ($request->filled('logs')) {
@@ -136,6 +152,7 @@ class AgentController extends Controller
             'computer_name' => $computer->computer_name,
             'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
             'download_paths' => $computer->getAllDownloadPaths(),
+            'receive_paths' => $computer->receive_paths ?? [],
         ]);
     }
 
@@ -181,9 +198,16 @@ class AgentController extends Controller
                 $commandArray['download_paths'] = $computer->getAllDownloadPaths();
             }
 
+            // Para comandos de recepción, enviar las rutas de receive_paths
+            if ($command->type === 'receive') {
+                $commandArray['receive_paths'] = $computer->receive_paths ?? [];
+            }
+
             $commandsArray[] = $commandArray;
         }
 
+        // Mantenemos compatibilidad: el agente espera un array
+        // Las rutas de receive_paths se envían en el heartbeat
         return response()->json($commandsArray);
     }
 
@@ -195,6 +219,7 @@ class AgentController extends Controller
             'computer_id' => 'required|integer|exists:computers,id',
             'command_id' => 'nullable|integer|exists:commands,id',
             'distribution_target_id' => 'nullable|integer|exists:distribution_targets,id',
+            'reception_target_id' => 'nullable|integer|exists:reception_targets,id',
             'file_id' => 'nullable|integer|exists:distribution_files,id',
             'status' => 'required|in:completed,failed',
             'progress' => 'nullable|integer|min:0|max:100',
@@ -250,6 +275,29 @@ class AgentController extends Controller
 
                     if ($completedCount + $failedCount === $totalCount) {
                         $distribution->update(['status' => $completedCount === $totalCount ? 'completed' : 'failed']);
+                    }
+                }
+            }
+
+            // Actualizar ReceptionTarget si existe
+            if ($request->reception_target_id) {
+                $receptionTarget = \App\Models\ReceptionTarget::find($request->reception_target_id);
+                if ($receptionTarget) {
+                    $receptionTarget->update([
+                        'progress' => $request->progress ?? 100,
+                        'status' => $request->status === 'completed' ? 'completed' : 'failed',
+                        'completed_at' => $request->status === 'completed' ? now() : null,
+                    ]);
+
+                    // Actualizar estado de la recepción
+                    $reception = $receptionTarget->reception;
+                    $allTargets = $reception->targets;
+                    $completedCount = $allTargets->where('status', 'completed')->count();
+                    $failedCount = $allTargets->where('status', 'failed')->count();
+                    $totalCount = $allTargets->count();
+
+                    if ($completedCount + $failedCount === $totalCount) {
+                        $reception->update(['status' => $completedCount === $totalCount ? 'completed' : 'failed']);
                     }
                 }
             }
@@ -355,5 +403,55 @@ class AgentController extends Controller
         }
 
         return response()->json(['message' => 'Logs received', 'count' => count($request->logs)]);
+    }
+
+    public function uploadReception(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'computer_id' => 'required|integer|exists:computers,id',
+            'reception_target_id' => 'required|integer|exists:reception_targets,id',
+            'folder_name' => 'required|string',
+            'file' => 'required|file',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
+        }
+
+        $computer = Computer::find($request->computer_id);
+        $receptionTarget = \App\Models\ReceptionTarget::find($request->reception_target_id);
+
+        if (! $computer || ! $receptionTarget) {
+            return response()->json(['error' => 'Computer or reception not found'], 404);
+        }
+
+        $shortKey = $computer->short_key ?? 'NO_KEY';
+        $folderName = $request->folder_name;
+
+        // Crear estructura de carpetas
+        $path = storage_path('app/distributions/'.$shortKey.'/'.$folderName);
+
+        if (! is_dir($path)) {
+            mkdir($path, 0755, true);
+        }
+
+        // Guardar archivo
+        $fileName = $request->file('file')->getClientOriginalName();
+        $filePath = $path.'/'.$fileName;
+
+        $request->file('file')->move($path, $fileName);
+
+        Log::info('Reception file uploaded', [
+            'computer_id' => $computer->id,
+            'reception_target_id' => $request->reception_target_id,
+            'file' => $fileName,
+            'path' => $filePath,
+        ]);
+
+        return response()->json([
+            'message' => 'File uploaded successfully',
+            'file_name' => $fileName,
+            'server_path' => $filePath,
+        ]);
     }
 }
