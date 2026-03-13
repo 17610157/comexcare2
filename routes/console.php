@@ -10,6 +10,7 @@ Artisan::command('inspire', function () {
 
 Schedule::command('queue:work --stop-when-empty')->everyMinute();
 Schedule::job(new \App\Jobs\ProcessScheduledDistributions)->everyMinute();
+Schedule::job(new \App\Jobs\ProcessScheduledReceptions)->everyMinute();
 
 Schedule::command('sync:cache-incremental')->twiceDaily(0, 11);
 

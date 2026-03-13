@@ -191,6 +191,7 @@ class AgentController extends Controller
                 'file_id' => $data['file_id'] ?? null,
                 'file_name' => $fileName,
                 'distribution_target_id' => $data['distribution_target_id'] ?? null,
+                'reception_target_id' => $data['reception_target_id'] ?? null,
                 'status' => 'sent',
             ];
 
@@ -198,9 +199,18 @@ class AgentController extends Controller
                 $commandArray['download_paths'] = $computer->getAllDownloadPaths();
             }
 
-            // Para comandos de recepción, enviar las rutas de receive_paths
+            // Para comandos de recepción, enviar las rutas de receive_paths y configuración
             if ($command->type === 'receive') {
                 $commandArray['receive_paths'] = $computer->receive_paths ?? [];
+                $commandArray['reception_target_id'] = $data['reception_target_id'] ?? null;
+                $commandArray['file_types'] = $data['file_types'] ?? null;
+                $commandArray['specific_files'] = $data['specific_files'] ?? null;
+                $commandArray['all_files'] = $data['all_files'] ?? true;
+                $commandArray['scheduled_time'] = $data['scheduled_time'] ?? null;
+                $commandArray['reception_type'] = $data['type'] ?? 'immediate';
+                $commandArray['recurrence'] = $data['recurrence'] ?? null;
+                $commandArray['frequency_interval'] = $data['frequency_interval'] ?? null;
+                $commandArray['week_days'] = $data['week_days'] ?? null;
             }
 
             $commandsArray[] = $commandArray;
@@ -407,51 +417,75 @@ class AgentController extends Controller
 
     public function uploadReception(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'computer_id' => 'required|integer|exists:computers,id',
-            'reception_target_id' => 'required|integer|exists:reception_targets,id',
-            'folder_name' => 'required|string',
-            'file' => 'required|file',
+        // Loguear todo lo que llega
+        Log::info('UploadReception RAW', [
+            'all' => $request->all(),
+            'files' => array_keys($request->allFiles()),
+            'headers' => $request->headers->all(),
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
+        // Intentar obtener valores - aceptar tanto form-data como JSON
+        $computer_id = $request->computer_id ?? $request->input('computer_id') ?? ($request->json('computer_id') ?? null);
+        $reception_target_id = $request->reception_target_id ?? $request->input('reception_target_id') ?? ($request->json('reception_target_id') ?? null);
+        $folder_name = $request->folder_name ?? $request->input('folder_name') ?? ($request->json('folder_name') ?? null);
+
+        // Buscar el archivo
+        $uploadedFile = null;
+        $files = $request->allFiles();
+        if (! empty($files)) {
+            $uploadedFile = array_values($files)[0];
         }
 
-        $computer = Computer::find($request->computer_id);
-        $receptionTarget = \App\Models\ReceptionTarget::find($request->reception_target_id);
+        Log::info('UploadReception parsed', [
+            'computer_id' => $computer_id,
+            'reception_target_id' => $reception_target_id,
+            'folder_name' => $folder_name,
+            'has_file' => $uploadedFile ? true : false,
+        ]);
+
+        if (! $computer_id || ! $reception_target_id || ! $folder_name) {
+            return response()->json([
+                'error' => 'Missing required fields',
+                'computer_id' => $computer_id,
+                'reception_target_id' => $reception_target_id,
+                'folder_name' => $folder_name,
+            ], 422);
+        }
+
+        if (! $uploadedFile) {
+            return response()->json(['error' => 'No file provided'], 422);
+        }
+
+        $computer = Computer::find($computer_id);
+        $receptionTarget = \App\Models\ReceptionTarget::find($reception_target_id);
 
         if (! $computer || ! $receptionTarget) {
             return response()->json(['error' => 'Computer or reception not found'], 404);
         }
 
         $shortKey = $computer->short_key ?? 'NO_KEY';
-        $folderName = $request->folder_name;
 
-        // Crear estructura de carpetas
-        $path = storage_path('app/distributions/'.$shortKey.'/'.$folderName);
+        $path = storage_path('app/distributions/'.$shortKey.'/'.$folder_name);
 
         if (! is_dir($path)) {
             mkdir($path, 0755, true);
         }
 
-        // Guardar archivo
-        $fileName = $request->file('file')->getClientOriginalName();
+        $fileName = $uploadedFile->getClientOriginalName();
         $filePath = $path.'/'.$fileName;
 
-        $request->file('file')->move($path, $fileName);
+        $uploadedFile->move($path, $fileName);
 
         Log::info('Reception file uploaded', [
             'computer_id' => $computer->id,
-            'reception_target_id' => $request->reception_target_id,
+            'reception_target_id' => $reception_target_id,
             'file' => $fileName,
-            'path' => $filePath,
         ]);
 
         return response()->json([
+            'success' => true,
             'message' => 'File uploaded successfully',
             'file_name' => $fileName,
-            'server_path' => $filePath,
         ]);
     }
 }

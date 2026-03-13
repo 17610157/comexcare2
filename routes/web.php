@@ -205,6 +205,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::post('reception', [\App\Http\Controllers\ReceptionController::class, 'store'])->name('reception.store');
     Route::get('reception/{reception}', [\App\Http\Controllers\ReceptionController::class, 'show'])->name('reception.show');
     Route::delete('reception/{reception}', [\App\Http\Controllers\ReceptionController::class, 'destroy'])->name('reception.destroy');
+    Route::post('reception/{reception}/stop', [\App\Http\Controllers\ReceptionController::class, 'stop'])->name('reception.stop');
     Route::get('reception/computer/{computer}', [\App\Http\Controllers\ReceptionController::class, 'showComputer'])->name('reception.computer');
 
     // File Reception (Subida de archivos)
