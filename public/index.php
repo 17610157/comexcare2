@@ -3,6 +3,11 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
+// Increase PHP limits for file uploads
+@ini_set('upload_max_filesize', '100M');
+@ini_set('post_max_size', '100M');
+@ini_set('memory_limit', '256M');
+
 define('LARAVEL_START', microtime(true));
 
 // Determine if the application is in maintenance mode...
