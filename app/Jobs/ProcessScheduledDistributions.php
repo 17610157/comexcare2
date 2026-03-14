@@ -68,7 +68,7 @@ class ProcessScheduledDistributions implements ShouldQueue
             if ($shouldRun) {
                 $service = new DistributionService;
                 $service->startDistribution($distribution);
-                $distribution->update(['last_run_at' => $now, 'status' => 'in_progress']);
+                $distribution->update(['last_run_at' => $now]);
             }
         }
     }

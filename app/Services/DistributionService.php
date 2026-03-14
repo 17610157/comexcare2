@@ -69,7 +69,10 @@ class DistributionService
 
     public function startDistribution(Distribution $distribution)
     {
-        $distribution->update(['status' => 'in_progress']);
+        // Only change status to in_progress if not recurring
+        if ($distribution->type !== 'recurring') {
+            $distribution->update(['status' => 'in_progress']);
+        }
 
         $targets = $distribution->targets;
 
