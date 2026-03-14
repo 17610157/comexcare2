@@ -119,22 +119,91 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <div class="form-group">
-                            <label>Name *</label>
-                            <input type="text" name="name" class="form-control" required>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Name *</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Type *</label>
+                                    <select name="type" class="form-control" id="modalDistributionType" required>
+                                        <option value="immediate">Inmediato</option>
+                                        <option value="scheduled">Programado</option>
+                                        <option value="recurring">Recurrente</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Type *</label>
-                            <select name="type" class="form-control" id="distributionType" required>
-                                <option value="immediate">Immediate</option>
-                                <option value="scheduled">Scheduled</option>
-                                <option value="recurring">Recurring</option>
-                            </select>
+
+                        <!-- Scheduled -->
+                        <div class="row" id="modalScheduledRow" style="display:none;">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Fecha Programada</label>
+                                    <input type="datetime-local" name="scheduled_at" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Hora Programada</label>
+                                    <input type="time" name="scheduled_time" class="form-control">
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group" id="scheduledAtGroup" style="display: none;">
-                            <label>Scheduled At</label>
-                            <input type="datetime-local" name="scheduled_at" class="form-control">
+
+                        <!-- Recurring -->
+                        <div class="row" id="modalRecurringRow" style="display:none;">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Tipo de Frecuencia</label>
+                                    <select name="recurrence" class="form-control" id="modalRecurrenceSelect">
+                                        <option value="daily">Diario</option>
+                                        <option value="weekly">Semanal</option>
+                                        <option value="monthly">Mensual</option>
+                                        <option value="hourly">Cada Hora</option>
+                                        <option value="minutes">Cada Minutos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3" id="modalFrequencyIntervalRow" style="display:none;">
+                                <div class="form-group">
+                                    <label>Intervalo</label>
+                                    <select name="frequency_interval" class="form-control" id="modalFrequencyInterval">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="5">5</option>
+                                        <option value="10">10</option>
+                                        <option value="15">15</option>
+                                        <option value="30">30</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3" id="modalWeekDaysRow" style="display:none;">
+                                <div class="form-group">
+                                    <label>Días de la Semana</label>
+                                    <select name="week_days[]" class="form-control" multiple style="height: 80px;">
+                                        <option value="monday">Lunes</option>
+                                        <option value="tuesday">Martes</option>
+                                        <option value="wednesday">Miércoles</option>
+                                        <option value="thursday">Jueves</option>
+                                        <option value="friday">Viernes</option>
+                                        <option value="saturday">Sábado</option>
+                                        <option value="sunday">Domingo</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3" id="modalHourlyTimeRow">
+                                <div class="form-group">
+                                    <label>Hora Programada</label>
+                                    <input type="time" name="scheduled_time" class="form-control">
+                                </div>
+                            </div>
                         </div>
+
                         <div class="form-group">
                             <label>Description</label>
                             <textarea name="description" class="form-control" rows="3"></textarea>
@@ -145,29 +214,36 @@
                             <small class="text-muted">Select multiple files to distribute</small>
                             <div id="fileList" class="mt-2"></div>
                         </div>
-                        <div class="form-group">
-                            <label>Target Type *</label>
-                            <select name="target_type" class="form-control" id="targetType" required>
-                                <option value="all">All Computers</option>
-                                <option value="group">Group</option>
-                                <option value="specific">Specific</option>
-                            </select>
-                        </div>
-                        <div class="form-group" id="groupSelect" style="display: none;">
-                            <label>Group</label>
-                            <select name="group_id" class="form-control">
-                                @foreach($groups ?? [] as $group)
-                                    <option value="{{ $group->id }}">{{ $group->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group" id="specificComputers" style="display: none;">
-                            <label>Computers</label>
-                            <select name="computer_ids[]" class="form-control" multiple>
-                                @foreach($computers ?? [] as $computer)
-                                    <option value="{{ $computer->id }}">{{ $computer->computer_name }}</option>
-                                @endforeach
-                            </select>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Target Type *</label>
+                                    <select name="target_type" class="form-control" id="modalTargetType" required>
+                                        <option value="all">All Computers</option>
+                                        <option value="group">Grupos Específicos</option>
+                                        <option value="specific">Specific</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group" id="modalGroupsSelect" style="display:none;">
+                                    <label>Grupos</label>
+                                    <select name="group_ids[]" class="form-control" multiple style="height: 100px;">
+                                        @foreach($groups ?? [] as $group)
+                                            <option value="{{ $group->id }}">{{ $group->name }} ({{ $group->type ?? 'Sin tipo' }})</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">Ctrl/Cmd para seleccionar varios</small>
+                                </div>
+                                <div class="form-group" id="modalSpecificComputers" style="display:none;">
+                                    <label>Computers</label>
+                                    <select name="computer_ids[]" class="form-control" multiple style="height: 100px;">
+                                        @foreach($computers ?? [] as $computer)
+                                            <option value="{{ $computer->id }}">{{ $computer->computer_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -369,15 +445,47 @@ $(document).ready(function() {
         $('#fileList').html(html);
     });
 
-    // Distribution type change
-    $('#distributionType').change(function() {
-        $('#scheduledAtGroup').toggle(this.value === 'scheduled');
+    // Distribution type change (modal)
+    $('#modalDistributionType').change(function() {
+        $('#modalScheduledRow').toggle(this.value === 'scheduled');
+        $('#modalRecurringRow').toggle(this.value === 'recurring');
     });
 
-    // Target type change
-    $('#targetType').change(function() {
-        $('#groupSelect').toggle(this.value === 'group');
-        $('#specificComputers').toggle(this.value === 'specific');
+    // Recurrence change (modal)
+    $('#modalRecurrenceSelect').change(function() {
+        const recurrence = this.value;
+        $('#modalWeekDaysRow').toggle(recurrence === 'weekly');
+        $('#modalFrequencyIntervalRow').toggle(recurrence === 'hourly' || recurrence === 'minutes');
+        $('#modalHourlyTimeRow').toggle(recurrence === 'daily' || recurrence === 'weekly' || recurrence === 'monthly');
+        
+        const intervalLabel = $('#modalFrequencyIntervalRow label');
+        const intervalSelect = document.getElementById('modalFrequencyInterval');
+        intervalSelect.innerHTML = '';
+        
+        if (recurrence === 'hourly') {
+            intervalLabel.text('Cada cuántas horas:');
+            for (let i = 1; i <= 23; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = i;
+                intervalSelect.appendChild(opt);
+            }
+        } else if (recurrence === 'minutes') {
+            intervalLabel.text('Cada cuántos minutos:');
+            const values = [1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 45, 60];
+            values.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                intervalSelect.appendChild(opt);
+            });
+        }
+    });
+
+    // Target type change (modal)
+    $('#modalTargetType').change(function() {
+        $('#modalGroupsSelect').toggle(this.value === 'group');
+        $('#modalSpecificComputers').toggle(this.value === 'specific');
     });
 
     // Form submit
