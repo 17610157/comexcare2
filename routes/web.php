@@ -193,6 +193,7 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:admin.ver')->group(function () {
     Route::resource('distributions', \App\Http\Controllers\DistributionsController::class);
+    Route::post('distributions/{distribution}/stop', [\App\Http\Controllers\DistributionsController::class, 'stop'])->name('distributions.stop');
     Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
     Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');
     Route::get('computers/{computer}/status', [\App\Http\Controllers\ComputersController::class, 'status'])->name('computers.status');

@@ -194,20 +194,20 @@
                             <label>Tipo de Destino *</label>
                             <select name="target_type" class="form-control" id="targetType" required>
                                 <option value="all">Todas las Computadoras</option>
-                                <option value="group">Grupo Específico</option>
+                                <option value="group">Grupos Específicos</option>
                                 <option value="specific">Computadoras Específicas</option>
                             </select>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-group" id="groupSelect" style="display:none;">
-                            <label>Grupo</label>
-                            <select name="group_id" class="form-control">
-                                <option value="">Seleccionar...</option>
+                        <div class="form-group" id="groupsSelect" style="display:none;">
+                            <label>Grupos</label>
+                            <select name="group_ids[]" class="form-control" multiple style="height: 150px;">
                                 @foreach($groups as $group)
-                                    <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                    <option value="{{ $group->id }}">{{ $group->name }} ({{ $group->type ?? 'Sin tipo' }})</option>
                                 @endforeach
                             </select>
+                            <small class="text-muted">Mantenga Ctrl/Cmd presionado para seleccionar varios</small>
                         </div>
                         <div class="form-group" id="specificComputers" style="display:none;">
                             <label>Computadoras</label>
@@ -265,7 +265,7 @@
         });
 
         document.getElementById('targetType').addEventListener('change', function() {
-            document.getElementById('groupSelect').style.display = this.value === 'group' ? 'block' : 'none';
+            document.getElementById('groupsSelect').style.display = this.value === 'group' ? 'block' : 'none';
             document.getElementById('specificComputers').style.display = this.value === 'specific' ? 'block' : 'none';
         });
 

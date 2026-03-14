@@ -36,7 +36,8 @@ class ReceptionController extends Controller
             'scheduled_time' => 'nullable',
             'recurrence' => 'nullable|required_if:type,recurring',
             'target_type' => 'required|in:all,group,specific',
-            'group_id' => 'nullable|required_if:target_type,group',
+            'group_ids' => 'nullable|array',
+            'group_ids.*' => 'exists:groups,id',
         ]);
 
         // Procesar días de la semana
@@ -88,8 +89,12 @@ class ReceptionController extends Controller
 
         if ($request->target_type === 'all') {
             $computerIds = Computer::pluck('id')->toArray();
-        } elseif ($request->target_type === 'group' && $request->group_id) {
-            $computerIds = Computer::where('group_id', $request->group_id)->pluck('id')->toArray();
+        } elseif ($request->target_type === 'group') {
+            // Support multiple groups
+            $groupIds = $request->group_ids ?? [];
+            if (! empty($groupIds)) {
+                $computerIds = Computer::whereIn('group_id', $groupIds)->pluck('id')->toArray();
+            }
         } elseif ($request->target_type === 'specific' && $request->computer_ids) {
             $computerIds = $request->computer_ids;
         }
