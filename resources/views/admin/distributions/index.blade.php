@@ -82,11 +82,18 @@
                                                 data-target="#viewDistributionModal{{ $distribution->id }}">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        @if($distribution->type === 'recurring' && $distribution->status !== 'stopped')
-                                            <button type="button" class="btn btn-secondary btn-sm" 
-                                                    onclick="stopDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
-                                                <i class="fas fa-stop"></i>
-                                            </button>
+                                        @if($distribution->type === 'recurring')
+                                            @if($distribution->status === 'stopped')
+                                                <button type="button" class="btn btn-success btn-sm" 
+                                                        onclick="startDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                            @else
+                                                <button type="button" class="btn btn-secondary btn-sm" 
+                                                        onclick="stopDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
+                                                    <i class="fas fa-stop"></i>
+                                                </button>
+                                            @endif
                                         @endif
                                         <button type="button" class="btn btn-warning btn-sm" 
                                                 onclick="editDistribution({{ $distribution->id }}, '{{ $distribution->name }}', '{{ $distribution->type }}', '{{ $distribution->description ?? '' }}', '{{ $distribution->scheduled_at ?? '' }}')">
@@ -601,6 +608,45 @@ function stopDistribution(id, name) {
                         icon: 'error',
                         title: 'Error',
                         text: 'Error stopping distribution'
+                    });
+                }
+            });
+        }
+    });
+}
+
+function startDistribution(id, name) {
+    Swal.fire({
+        title: '¿Iniciar distribución?',
+        text: `¿Estás seguro de iniciar "${name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, start it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/admin/distributions/' + id + '/start',
+                type: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Started',
+                        text: 'Distribution started successfully'
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error starting distribution'
                     });
                 }
             });

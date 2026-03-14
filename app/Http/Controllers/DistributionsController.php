@@ -97,6 +97,19 @@ class DistributionsController extends Controller
         return redirect()->route('admin.distributions.index')->with('success', 'Distribution stopped. Ya no se enviarán más comandos.');
     }
 
+    public function start(Distribution $distribution)
+    {
+        $distribution->update(['status' => 'pending']);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Distribution started successfully',
+            ]);
+        }
+
+        return redirect()->route('admin.distributions.index')->with('success', 'Distribution iniciada correctamente.');
+    }
+
     public function update(Request $request, Distribution $distribution)
     {
         $request->validate([
