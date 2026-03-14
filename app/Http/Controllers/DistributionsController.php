@@ -24,8 +24,9 @@ class DistributionsController extends Controller
     public function create()
     {
         $groups = Group::all();
+        $computers = \App\Models\Computer::select('id', 'computer_name')->orderBy('computer_name')->get();
 
-        return view('admin.distributions.create', compact('groups'));
+        return view('admin.distributions.create', compact('groups', 'computers'));
     }
 
     public function store(Request $request, DistributionService $service)
@@ -36,9 +37,15 @@ class DistributionsController extends Controller
             'files' => 'nullable|array',
             'files.*' => 'file|max:204800', // 200MB
             'target_type' => 'required|in:all,group,specific',
-            'group_id' => 'nullable|exists:groups,id',
-            'targets' => 'nullable|array',
+            'group_ids' => 'nullable|array',
+            'group_ids.*' => 'exists:groups,id',
+            'computer_ids' => 'nullable|array',
+            'computer_ids.*' => 'exists:computers,id',
             'scheduled_at' => 'nullable|date',
+            'scheduled_time' => 'nullable',
+            'recurrence' => 'nullable',
+            'frequency_interval' => 'nullable|integer',
+            'week_days' => 'nullable|array',
         ]);
 
         $distribution = $service->createDistribution($request->all(), Auth::id());
@@ -75,6 +82,19 @@ class DistributionsController extends Controller
         }
 
         return redirect()->route('admin.distributions.index')->with('success', 'Distribution deleted');
+    }
+
+    public function stop(Distribution $distribution)
+    {
+        $distribution->update(['status' => 'stopped']);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Distribution stopped successfully',
+            ]);
+        }
+
+        return redirect()->route('admin.distributions.index')->with('success', 'Distribution stopped. Ya no se enviarán más comandos.');
     }
 
     public function update(Request $request, Distribution $distribution)

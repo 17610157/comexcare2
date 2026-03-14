@@ -21,6 +21,10 @@ class DistributionService
             'created_by' => $userId,
             'status' => 'pending',
             'scheduled_at' => $data['scheduled_at'] ?? now(),
+            'scheduled_time' => $data['scheduled_time'] ?? null,
+            'recurrence' => $data['recurrence'] ?? null,
+            'frequency_interval' => $data['frequency_interval'] ?? null,
+            'week_days' => $data['week_days'] ?? null,
         ]);
 
         // Handle files
@@ -38,12 +42,15 @@ class DistributionService
             }
         }
 
-        // Handle targets
+        // Handle targets - multiple groups support
         $targetComputerIds = $data['computer_ids'] ?? ($data['targets'] ?? []);
+
         if ($data['target_type'] === 'all') {
             $computers = Computer::all();
         } elseif ($data['target_type'] === 'group') {
-            $computers = Computer::where('group_id', $data['group_id'])->get();
+            // Support multiple groups
+            $groupIds = $data['group_ids'] ?? ($data['group_id'] ? [$data['group_id']] : []);
+            $computers = Computer::whereIn('group_id', $groupIds)->get();
         } elseif (! empty($targetComputerIds)) {
             $computers = Computer::whereIn('id', $targetComputerIds)->get();
         } else {

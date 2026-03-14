@@ -16,12 +16,20 @@ class Distribution extends Model
         'description',
         'created_by',
         'status',
-        'scheduled_at'
+        'scheduled_at',
+        'scheduled_time',
+        'recurrence',
+        'frequency_type',
+        'frequency_interval',
+        'week_days',
+        'last_run_at',
     ];
 
     protected $casts = [
         'schedule' => 'array',
         'scheduled_at' => 'datetime',
+        'last_run_at' => 'datetime',
+        'week_days' => 'array',
     ];
 
     public function creator()

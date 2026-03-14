@@ -54,6 +54,8 @@
                                             <span class="badge badge-warning">Pending</span>
                                         @elseif($distribution->status === 'failed')
                                             <span class="badge badge-danger">Failed</span>
+                                        @elseif($distribution->status === 'stopped')
+                                            <span class="badge badge-secondary">Stopped</span>
                                         @else
                                             <span class="badge badge-secondary">{{ $distribution->status }}</span>
                                         @endif
@@ -80,6 +82,12 @@
                                                 data-target="#viewDistributionModal{{ $distribution->id }}">
                                             <i class="fas fa-eye"></i>
                                         </button>
+                                        @if($distribution->type === 'recurring' && $distribution->status !== 'stopped')
+                                            <button type="button" class="btn btn-secondary btn-sm" 
+                                                    onclick="stopDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
+                                                <i class="fas fa-stop"></i>
+                                            </button>
+                                        @endif
                                         <button type="button" class="btn btn-warning btn-sm" 
                                                 onclick="editDistribution({{ $distribution->id }}, '{{ $distribution->name }}', '{{ $distribution->type }}', '{{ $distribution->description ?? '' }}', '{{ $distribution->scheduled_at ?? '' }}')">
                                             <i class="fas fa-edit"></i>
@@ -446,6 +454,45 @@ function deleteDistribution(id, name) {
                         icon: 'error',
                         title: 'Error',
                         text: 'Error deleting distribution'
+                    });
+                }
+            });
+        }
+    });
+}
+
+function stopDistribution(id, name) {
+    Swal.fire({
+        title: '¿Detener distribución?',
+        text: `¿Estás seguro de detener "${name}"? Ya no se enviarán más comandos.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#6c757d',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, stop it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/admin/distributions/' + id + '/stop',
+                type: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Stopped',
+                        text: 'Distribution stopped successfully'
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error stopping distribution'
                     });
                 }
             });

@@ -16,6 +16,7 @@
                 <thead>
                     <tr>
                         <th>Name</th>
+                        <th>Type</th>
                         <th>Description</th>
                         <th>Computers</th>
                         <th>Actions</th>
@@ -25,10 +26,17 @@
                     @foreach($groups as $group)
                         <tr>
                             <td>{{ $group->name }}</td>
+                            <td>
+                                @if($group->type)
+                                    <span class="badge badge-info">{{ $group->type }}</span>
+                                @else
+                                    <span class="text-muted">Sin tipo</span>
+                                @endif
+                            </td>
                             <td>{{ $group->description }}</td>
                             <td>{{ $group->computers_count }}</td>
                             <td>
-                                <button class="btn btn-warning btn-sm" onclick='editGroup({{ $group->id }}, {{ json_encode($group->name) }}, {{ json_encode($group->description) }})'>Edit</button>
+                                <button class="btn btn-warning btn-sm" onclick='editGroup({{ $group->id }}, {{ json_encode($group->name) }}, {{ json_encode($group->description) }}, {{ json_encode($group->type) }})'>Edit</button>
                                 <button class="btn btn-danger btn-sm" onclick='deleteGroup({{ $group->id }}, {{ json_encode($group->name) }})'>Delete</button>
                             </td>
                         </tr>
@@ -54,6 +62,18 @@
                         <div class="form-group">
                             <label>Name</label>
                             <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select name="type" class="form-control">
+                                <option value="">Seleccionar...</option>
+                                <option value="tienda">Tienda</option>
+                                <option value="almacen">Almacén</option>
+                                <option value="cedis">CEDIS</option>
+                                <option value="vendedor">Vendedor</option>
+                                <option value="especial">Especial</option>
+                                <option value="cobranza">Cobranza</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Description</label>
@@ -88,6 +108,18 @@
                             <input type="text" name="name" id="editName" class="form-control" required>
                         </div>
                         <div class="form-group">
+                            <label>Type</label>
+                            <select name="type" id="editType" class="form-control">
+                                <option value="">Seleccionar...</option>
+                                <option value="tienda">Tienda</option>
+                                <option value="almacen">Almacén</option>
+                                <option value="cedis">CEDIS</option>
+                                <option value="vendedor">Vendedor</option>
+                                <option value="especial">Especial</option>
+                                <option value="cobranza">Cobranza</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>Description</label>
                             <textarea name="description" id="editDescription" class="form-control"></textarea>
                         </div>
@@ -104,10 +136,11 @@
 
 @section('js')
 <script>
-function editGroup(id, name, description) {
+function editGroup(id, name, description, type) {
     document.getElementById('editGroupForm').action = '{{ url("admin/groups") }}/' + id;
     document.getElementById('editName').value = name;
     document.getElementById('editDescription').value = description;
+    document.getElementById('editType').value = type || '';
     $('#editGroupModal').modal('show');
 }
 
