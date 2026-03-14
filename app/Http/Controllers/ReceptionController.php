@@ -183,6 +183,13 @@ class ReceptionController extends Controller
         return redirect()->route('admin.reception.index')->with('success', 'Recepción detenida. Ya no se enviarán más comandos.');
     }
 
+    public function start(Reception $reception)
+    {
+        $reception->update(['status' => 'pending']);
+
+        return redirect()->route('admin.reception.index')->with('success', 'Recepción iniciada correctamente.');
+    }
+
     private function getServerPath(Computer $computer, array $path): string
     {
         $shortKey = $computer->short_key ?? 'NO_KEY';

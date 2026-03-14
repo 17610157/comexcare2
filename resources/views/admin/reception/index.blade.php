@@ -72,13 +72,22 @@
                                     <a href="{{ route('admin.reception.show', $reception) }}" class="btn btn-info btn-sm">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    @if($reception->type === 'recurring' && $reception->status !== 'stopped')
-                                        <form action="{{ route('admin.reception.stop', $reception) }}" method="POST" style="display:inline;">
-                                            @csrf
-                                            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('¿Detener esta recepción recurrente? Ya no se enviarán más comandos.')">
-                                                <i class="fas fa-stop"></i>
-                                            </button>
-                                        </form>
+                                    @if($reception->type === 'recurring')
+                                        @if($reception->status === 'stopped')
+                                            <form action="{{ route('admin.reception.start', $reception) }}" method="POST" style="display:inline;">
+                                                @csrf
+                                                <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('¿Iniciar esta recepción recurrente?')">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                            </form>
+                                        @else
+                                            <form action="{{ route('admin.reception.stop', $reception) }}" method="POST" style="display:inline;">
+                                                @csrf
+                                                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('¿Detener esta recepción recurrente? Ya no se enviarán más comandos.')">
+                                                    <i class="fas fa-stop"></i>
+                                                </button>
+                                            </form>
+                                        @endif
                                     @endif
                                     <form action="{{ route('admin.reception.destroy', $reception) }}" method="POST" style="display:inline;">
                                         @csrf

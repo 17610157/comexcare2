@@ -194,6 +194,7 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:admin.ver')->group(function () {
     Route::resource('distributions', \App\Http\Controllers\DistributionsController::class);
     Route::post('distributions/{distribution}/stop', [\App\Http\Controllers\DistributionsController::class, 'stop'])->name('distributions.stop');
+    Route::post('distributions/{distribution}/start', [\App\Http\Controllers\DistributionsController::class, 'start'])->name('distributions.start');
     Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
     Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');
     Route::get('computers/{computer}/status', [\App\Http\Controllers\ComputersController::class, 'status'])->name('computers.status');
@@ -207,6 +208,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::get('reception/{reception}', [\App\Http\Controllers\ReceptionController::class, 'show'])->name('reception.show');
     Route::delete('reception/{reception}', [\App\Http\Controllers\ReceptionController::class, 'destroy'])->name('reception.destroy');
     Route::post('reception/{reception}/stop', [\App\Http\Controllers\ReceptionController::class, 'stop'])->name('reception.stop');
+    Route::post('reception/{reception}/start', [\App\Http\Controllers\ReceptionController::class, 'start'])->name('reception.start');
     Route::get('reception/computer/{computer}', [\App\Http\Controllers\ReceptionController::class, 'showComputer'])->name('reception.computer');
 
     // File Reception (Subida de archivos)
