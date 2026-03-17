@@ -195,7 +195,7 @@ class AgentController extends Controller
                 'status' => 'sent',
             ];
 
-            if ($command->type === 'distribute' || $command->type === 'update') {
+            if ($command->type === 'distribute' || $command->type === 'update' || $command->type === 'download') {
                 $commandArray['download_paths'] = $computer->getAllDownloadPaths();
             }
 
