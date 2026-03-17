@@ -272,10 +272,16 @@ class AgentController extends Controller
             if ($targetId) {
                 $target = \App\Models\DistributionTarget::find($targetId);
                 if ($target) {
-                    $target->update([
+                    $updateData = [
                         'progress' => $request->progress,
                         'status' => $request->status === 'completed' ? 'completed' : 'failed',
-                    ]);
+                    ];
+
+                    if ($request->status === 'failed' && $request->response) {
+                        $updateData['error_message'] = $request->response;
+                    }
+
+                    $target->update($updateData);
 
                     $distribution = $target->distribution;
                     $allTargets = $distribution->targets;
@@ -293,11 +299,17 @@ class AgentController extends Controller
             if ($request->reception_target_id) {
                 $receptionTarget = \App\Models\ReceptionTarget::find($request->reception_target_id);
                 if ($receptionTarget) {
-                    $receptionTarget->update([
+                    $updateData = [
                         'progress' => $request->progress ?? 100,
                         'status' => $request->status === 'completed' ? 'completed' : 'failed',
                         'completed_at' => $request->status === 'completed' ? now() : null,
-                    ]);
+                    ];
+
+                    if ($request->status === 'failed' && $request->response) {
+                        $updateData['error_message'] = $request->response;
+                    }
+
+                    $receptionTarget->update($updateData);
 
                     // Actualizar estado de la recepción
                     $reception = $receptionTarget->reception;

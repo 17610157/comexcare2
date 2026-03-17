@@ -195,20 +195,11 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::resource('distributions', \App\Http\Controllers\DistributionsController::class);
     Route::post('distributions/{distribution}/stop', [\App\Http\Controllers\DistributionsController::class, 'stop'])->name('distributions.stop');
     Route::post('distributions/{distribution}/start', [\App\Http\Controllers\DistributionsController::class, 'start'])->name('distributions.start');
-    Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
-    Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');
-    Route::get('computers/{computer}/status', [\App\Http\Controllers\ComputersController::class, 'status'])->name('computers.status');
-    Route::resource('groups', \App\Http\Controllers\GroupsController::class);
-    Route::resource('agent-versions', \App\Http\Controllers\AgentVersionsController::class);
+    Route::post('distributions/target/{target}/retry', [\App\Http\Controllers\DistributionsController::class, 'retryTarget'])->name('distributions.retry-target');
 
-    // Reception Module - Subida de archivos
-    Route::get('reception', [\App\Http\Controllers\ReceptionController::class, 'index'])->name('reception.index');
-    Route::get('reception/create', [\App\Http\Controllers\ReceptionController::class, 'create'])->name('reception.create');
-    Route::post('reception', [\App\Http\Controllers\ReceptionController::class, 'store'])->name('reception.store');
-    Route::get('reception/{reception}', [\App\Http\Controllers\ReceptionController::class, 'show'])->name('reception.show');
-    Route::delete('reception/{reception}', [\App\Http\Controllers\ReceptionController::class, 'destroy'])->name('reception.destroy');
     Route::post('reception/{reception}/stop', [\App\Http\Controllers\ReceptionController::class, 'stop'])->name('reception.stop');
     Route::post('reception/{reception}/start', [\App\Http\Controllers\ReceptionController::class, 'start'])->name('reception.start');
+    Route::post('reception/target/{target}/retry', [\App\Http\Controllers\ReceptionController::class, 'retryTarget'])->name('reception.retry-target');
     Route::get('reception/computer/{computer}', [\App\Http\Controllers\ReceptionController::class, 'showComputer'])->name('reception.computer');
 
     // File Reception (Subida de archivos)

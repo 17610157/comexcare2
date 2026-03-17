@@ -15,10 +15,14 @@ class ReceptionTarget extends Model
         'status',
         'progress',
         'completed_at',
+        'error_message',
+        'attempts',
+        'next_retry_at',
     ];
 
     protected $casts = [
         'completed_at' => 'datetime',
+        'next_retry_at' => 'datetime',
     ];
 
     public function reception()

@@ -1,5 +1,7 @@
 @extends('adminlte::page')
 
+@use('Illuminate\Support\Str')
+
 @section('title', 'Distributions')
 
 @section('content_header')
@@ -310,7 +312,9 @@
                                         <th>Status</th>
                                         <th>Progress</th>
                                         <th>Attempts</th>
+                                        <th>Error</th>
                                         <th>Last Update</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -336,7 +340,26 @@
                                                 {{ $target->progress ?? 0 }}%
                                             </td>
                                             <td>{{ $target->attempts ?? 0 }}</td>
+                                            <td>
+                                                @if($target->error_message)
+                                                    <span class="text-danger" title="{{ $target->error_message }}">
+                                                        <i class="fas fa-exclamation-circle"></i> {{ Str::limit($target->error_message, 30) }}
+                                                    </span>
+                                                @else
+                                                    -
+                                                @endif
+                                            </td>
                                             <td>{{ $target->updated_at ? $target->updated_at->diffForHumans() : 'N/A' }}</td>
+                                            <td>
+                                                @if(in_array($target->status, ['failed', 'pending']))
+                                                    <form action="{{ route('admin.distributions.retry-target', $target) }}" method="POST" style="display:inline;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-primary" title="Reenviar">
+                                                            <i class="fas fa-redo"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
