@@ -77,6 +77,10 @@ class DistributionService
         $targets = $distribution->targets;
 
         foreach ($targets as $target) {
+            // Update target status to in_progress when sending commands
+            if ($target->status === 'pending') {
+                $target->update(['status' => 'in_progress', 'progress' => 0]);
+            }
             $this->sendDownloadCommand($target);
         }
     }
