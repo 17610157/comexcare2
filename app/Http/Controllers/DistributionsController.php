@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Distribution;
+use App\Models\DistributionTarget;
 use App\Models\Group;
 use App\Services\DistributionService;
 use Illuminate\Http\Request;
@@ -108,6 +109,21 @@ class DistributionsController extends Controller
         }
 
         return redirect()->route('admin.distributions.index')->with('success', 'Distribution iniciada correctamente.');
+    }
+
+    public function retryTarget(DistributionTarget $target)
+    {
+        $target->update([
+            'status' => 'pending',
+            'error_message' => null,
+            'attempts' => 0,
+            'next_retry_at' => null,
+        ]);
+
+        $service = new DistributionService;
+        $service->sendDownloadCommand($target);
+
+        return redirect()->back()->with('success', 'Comando reenviado correctamente.');
     }
 
     public function update(Request $request, Distribution $distribution)

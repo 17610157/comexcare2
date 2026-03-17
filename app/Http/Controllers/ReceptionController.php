@@ -190,6 +190,35 @@ class ReceptionController extends Controller
         return redirect()->route('admin.reception.index')->with('success', 'Recepción iniciada correctamente.');
     }
 
+    public function retryTarget(ReceptionTarget $target)
+    {
+        $target->update([
+            'status' => 'pending',
+            'error_message' => null,
+            'attempts' => 0,
+            'next_retry_at' => null,
+        ]);
+
+        $computer = $target->computer;
+
+        if ($computer) {
+            \App\Models\Command::create([
+                'computer_id' => $computer->id,
+                'type' => 'receive',
+                'status' => 'pending',
+                'data' => [
+                    'reception_target_id' => $target->id,
+                    'receive_paths' => $computer->receive_paths ?? [],
+                    'file_types' => $target->reception->file_types ?? null,
+                    'specific_files' => $target->reception->specific_files ?? null,
+                    'all_files' => $target->reception->all_files ?? true,
+                ],
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Comando reenviado correctamente.');
+    }
+
     private function getServerPath(Computer $computer, array $path): string
     {
         $shortKey = $computer->short_key ?? 'NO_KEY';
