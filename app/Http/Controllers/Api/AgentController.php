@@ -153,6 +153,7 @@ class AgentController extends Controller
             'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
             'download_paths' => $computer->getAllDownloadPaths(),
             'receive_paths' => $computer->receive_paths ?? [],
+            'report_url' => config('app.url').'/api/agent/report',
         ]);
     }
 
