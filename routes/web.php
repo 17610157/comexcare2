@@ -197,6 +197,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::post('distributions/{distribution}/start', [\App\Http\Controllers\DistributionsController::class, 'start'])->name('distributions.start');
     Route::post('distributions/target/{target}/retry', [\App\Http\Controllers\DistributionsController::class, 'retryTarget'])->name('distributions.retry-target');
 
+    Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
+    Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');
+    Route::get('computers/{computer}/status', [\App\Http\Controllers\ComputersController::class, 'status'])->name('computers.status');
+    Route::resource('groups', \App\Http\Controllers\GroupsController::class);
+    Route::resource('agent-versions', \App\Http\Controllers\AgentVersionsController::class);
+
     Route::post('reception/{reception}/stop', [\App\Http\Controllers\ReceptionController::class, 'stop'])->name('reception.stop');
     Route::post('reception/{reception}/start', [\App\Http\Controllers\ReceptionController::class, 'start'])->name('reception.start');
     Route::post('reception/target/{target}/retry', [\App\Http\Controllers\ReceptionController::class, 'retryTarget'])->name('reception.retry-target');
