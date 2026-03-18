@@ -6,14 +6,78 @@ use App\Models\Computer;
 use App\Models\ComputerLog;
 use App\Models\Group;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class ComputersController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $computers = Computer::with('group')->paginate(50);
+        if ($request->ajax() || $request->wantsJson()) {
+            $columns = Schema::getColumnListing('computers');
 
-        return view('admin.computers.index', compact('computers'));
+            $query = Computer::with('group');
+
+            $searchValue = $request->input('search.value');
+            if (! empty($searchValue)) {
+                $query->where(function ($q) use ($searchValue) {
+                    $q->where('short_key', 'like', "%{$searchValue}%")
+                        ->orWhere('computer_name', 'like', "%{$searchValue}%")
+                        ->orWhere('mac_address', 'like', "%{$searchValue}%")
+                        ->orWhere('ip_address', 'like', "%{$searchValue}%");
+                });
+            }
+
+            if ($request->filled('group_id')) {
+                $query->where('group_id', $request->group_id);
+            }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->filled('short_key')) {
+                $query->where('short_key', 'like', "%{$request->short_key}%");
+            }
+
+            $start = $request->input('start', 0);
+            $length = $request->input('length', 10);
+
+            $total = $query->count();
+
+            $computers = $query->orderBy('id', 'desc')
+                ->offset($start)
+                ->limit($length)
+                ->get();
+
+            $data = $computers->map(function ($computer) {
+                return [
+                    'id' => $computer->id,
+                    'short_key' => $computer->short_key ?? '-',
+                    'computer_name' => $computer->computer_name,
+                    'mac_address' => $computer->mac_address,
+                    'ip_address' => $computer->ip_address,
+                    'status' => $computer->status,
+                    'group_name' => $computer->group->name ?? 'N/A',
+                    'group_id' => $computer->group_id,
+                    'agent_version' => $computer->agent_version ?? '-',
+                    'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
+                    'last_seen' => $computer->last_seen ? $computer->last_seen->diffForHumans() : 'Never',
+                    'last_seen_raw' => $computer->last_seen ? $computer->last_seen->toIso8601String() : null,
+                ];
+            });
+
+            return response()->json([
+                'draw' => $request->input('draw', 1),
+                'recordsTotal' => Computer::count(),
+                'recordsFiltered' => $total,
+                'data' => $data,
+            ]);
+        }
+
+        $groups = Group::orderBy('name')->get();
+        $statuses = Computer::distinct()->pluck('status')->filter()->values()->toArray();
+
+        return view('admin.computers.index', compact('groups', 'statuses'));
     }
 
     public function show(Computer $computer)

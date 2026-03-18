@@ -164,7 +164,13 @@ class AgentController extends Controller
         $computer = Computer::findOrFail($id);
 
         $commands = Command::where('computer_id', $id)
-            ->where('status', 'pending')
+            ->where(function ($query) {
+                $query->where('status', 'pending')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'sent')
+                            ->where('updated_at', '<', now()->subMinutes(5));
+                    });
+            })
             ->orderBy('created_at')
             ->get();
 
