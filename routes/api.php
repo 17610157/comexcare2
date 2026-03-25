@@ -24,11 +24,13 @@ Route::middleware('api')->group(function () {
     Route::post('/heartbeat', [App\Http\Controllers\Api\AgentController::class, 'heartbeat']);
     Route::get('/commands/{id}', [App\Http\Controllers\Api\AgentController::class, 'getCommands']);
     Route::post('/report', [App\Http\Controllers\Api\AgentController::class, 'report']);
+    Route::post('/agent/report', [App\Http\Controllers\Api\AgentController::class, 'report']);
     Route::get('/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download']);
     Route::get('/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate']);
     Route::get('/check-update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate']);
     Route::post('/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory']);
     Route::post('/logs', [App\Http\Controllers\Api\AgentController::class, 'logs']);
+    Route::patch('/pvsi-update', [App\Http\Controllers\Api\AgentController::class, 'pvsiUpdate']);
     Route::post('/getComputerId', function (Request $request) {
         $mac = $request->input('mac_address');
         $computer = \App\Models\Computer::where('mac_address', $mac)->first();

@@ -105,7 +105,7 @@ class ReportService
                         'cplaza',
                         'ctienda',
                         'vend_clave',
-                        'fecha',
+                        'nota_fecha as fecha',
                         'plaza_ajustada',
                         'tienda_vendedor',
                         'vendedor_dia',
@@ -113,7 +113,7 @@ class ReportService
                         'devolucion',
                         'venta_neta',
                     ])
-                    ->whereBetween('fecha', [$fecha_inicio, $fecha_fin]);
+                    ->whereBetween('nota_fecha', [$fecha_inicio, $fecha_fin]);
 
                 if (! empty($plaza)) {
                     $plazasArray = explode(',', $plaza);

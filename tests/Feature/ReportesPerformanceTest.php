@@ -2,18 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use App\Services\ReportService;
 use Tests\TestCase;
+use Tests\Traits\RequiresExternalTables;
 
 class ReportesPerformanceTest extends TestCase
 {
     use RefreshDatabase;
+    use RequiresExternalTables;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Skip if external tables not available
+        $this->requiresTables(['vendedores', 'cobranza', 'metas']);
 
         // Limpiar cache antes de cada test
         Cache::flush();
@@ -32,7 +37,7 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         $start = microtime(true);
@@ -65,7 +70,7 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         $memoryBefore = memory_get_usage();
@@ -87,7 +92,7 @@ class ReportesPerformanceTest extends TestCase
         $this->assertLessThan(
             50 * 1024 * 1024,
             $memoryUsed,
-            "Uso excesivo de memoria: " . round($memoryUsed / 1024 / 1024, 2) . "MB"
+            'Uso excesivo de memoria: '.round($memoryUsed / 1024 / 1024, 2).'MB'
         );
     }
 
@@ -101,7 +106,7 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         // Limpiar cache
@@ -138,7 +143,7 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         $resultados = ReportService::getVendedoresReport($filtros);
@@ -173,7 +178,7 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-15', // Menos días para evitar timeouts
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         $start = microtime(true);
@@ -199,7 +204,7 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         $resultados = ReportService::getVendedoresReport($filtros);
@@ -228,7 +233,7 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-31',
             'plaza' => 'PLAZA001', // Plaza específica
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         $filtrosSinPlaza = [
@@ -236,7 +241,7 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         $resultadosConFiltro = ReportService::getVendedoresReport($filtrosConPlaza);
@@ -257,14 +262,14 @@ class ReportesPerformanceTest extends TestCase
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         // Generar cache
         ReportService::getVendedoresReport($filtros);
 
         // Verificar que hay cache
-        $cacheKey = 'vendedores_report_' . md5(serialize($filtros));
+        $cacheKey = 'vendedores_report_'.md5(serialize($filtros));
         $this->assertTrue(Cache::has($cacheKey));
 
         // Limpiar cache

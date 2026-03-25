@@ -98,9 +98,11 @@ class DistributionsController extends Controller
         return redirect()->route('admin.distributions.index')->with('success', 'Distribution stopped. Ya no se enviarán más comandos.');
     }
 
-    public function start(Distribution $distribution)
+    public function start(Distribution $distribution, DistributionService $service)
     {
         $distribution->update(['status' => 'pending']);
+
+        $service->startDistribution($distribution);
 
         if (request()->expectsJson()) {
             return response()->json([
@@ -150,5 +152,40 @@ class DistributionsController extends Controller
         }
 
         return redirect()->route('admin.distributions.index')->with('success', 'Distribution updated successfully');
+    }
+
+    public function progress($id)
+    {
+        $distribution = Distribution::with(['targets.computer', 'files'])->findOrFail($id);
+
+        $targets = $distribution->targets;
+        $completed = $targets->where('status', 'completed')->count();
+        $failed = $targets->where('status', 'failed')->count();
+        $inProgress = $targets->where('status', 'in_progress')->count();
+        $pending = $targets->where('status', 'pending')->count();
+        $total = $targets->count();
+
+        $targetsData = $targets->map(function ($target) {
+            return [
+                'id' => $target->id,
+                'computer_name' => $target->computer->computer_name ?? 'Unknown',
+                'status' => $target->status,
+                'progress' => $target->progress ?? 0,
+                'error_message' => $target->error_message,
+                'updated_at' => $target->updated_at ? $target->updated_at->toISOString() : null,
+            ];
+        });
+
+        return response()->json([
+            'id' => $distribution->id,
+            'status' => $distribution->status,
+            'completed' => $completed,
+            'failed' => $failed,
+            'in_progress' => $inProgress,
+            'pending' => $pending,
+            'total' => $total,
+            'percent' => $total > 0 ? round(($completed / $total) * 100) : 0,
+            'targets' => $targetsData,
+        ]);
     }
 }

@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Models;
 
-use Tests\TestCase;
-use App\Models\DistributionFile;
 use App\Models\Distribution;
+use App\Models\DistributionFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class DistributionFileTest extends TestCase
 {
@@ -13,10 +13,10 @@ class DistributionFileTest extends TestCase
 
     public function test_fillable_attributes()
     {
-        $distributionFile = new DistributionFile();
-        
+        $distributionFile = new DistributionFile;
+
         $fillable = ['distribution_id', 'file_name', 'file_path', 'checksum', 'file_size'];
-        
+
         foreach ($fillable as $attribute) {
             $this->assertTrue(in_array($attribute, $distributionFile->getFillable()));
         }
@@ -34,7 +34,7 @@ class DistributionFileTest extends TestCase
     public function test_mass_assignment()
     {
         $distribution = Distribution::factory()->create();
-        
+
         $data = [
             'distribution_id' => $distribution->id,
             'file_name' => 'test-document.pdf',
@@ -53,7 +53,7 @@ class DistributionFileTest extends TestCase
     public function test_file_size_stores_integer()
     {
         $distributionFile = DistributionFile::factory()->create(['file_size' => 2048576]);
-        
+
         $this->assertIsInt($distributionFile->file_size);
         $this->assertEquals(2048576, $distributionFile->file_size);
     }
@@ -62,7 +62,7 @@ class DistributionFileTest extends TestCase
     {
         $checksum = 'sha256:abc123def456789ghijklmnopqrstuvwxyz';
         $distributionFile = DistributionFile::factory()->create(['checksum' => $checksum]);
-        
+
         $this->assertIsString($distributionFile->checksum);
         $this->assertEquals($checksum, $distributionFile->checksum);
     }
@@ -71,7 +71,7 @@ class DistributionFileTest extends TestCase
     {
         $fileName = 'important-document-v2-final-edited.pdf';
         $distributionFile = DistributionFile::factory()->create(['file_name' => $fileName]);
-        
+
         $this->assertIsString($distributionFile->file_name);
         $this->assertEquals($fileName, $distributionFile->file_name);
     }
@@ -80,7 +80,7 @@ class DistributionFileTest extends TestCase
     {
         $filePath = 'distributions/2024/01/15/document_abc123.pdf';
         $distributionFile = DistributionFile::factory()->create(['file_path' => $filePath]);
-        
+
         $this->assertIsString($distributionFile->file_path);
         $this->assertEquals($filePath, $distributionFile->file_path);
     }
@@ -91,7 +91,7 @@ class DistributionFileTest extends TestCase
         $distributionFiles = DistributionFile::factory()->count(3)->create(['distribution_id' => $distribution->id]);
 
         $this->assertCount(3, $distribution->files);
-        
+
         foreach ($distributionFiles as $file) {
             $this->assertEquals($distribution->id, $file->distribution_id);
             $this->assertEquals($distribution->id, $file->distribution->id);
@@ -111,22 +111,19 @@ class DistributionFileTest extends TestCase
         $this->assertDatabaseMissing('distribution_files', ['distribution_id' => $distribution->id]);
     }
 
-    public function test_file_with_null_values()
+    public function test_file_requires_mandatory_fields()
     {
         $distribution = Distribution::factory()->create();
-        
-        $distributionFile = DistributionFile::create([
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
+        DistributionFile::create([
             'distribution_id' => $distribution->id,
             'file_name' => null,
             'file_path' => null,
             'checksum' => null,
             'file_size' => null,
         ]);
-
-        $this->assertNull($distributionFile->file_name);
-        $this->assertNull($distributionFile->file_path);
-        $this->assertNull($distributionFile->checksum);
-        $this->assertNull($distributionFile->file_size);
     }
 
     public function test_factory_creates_valid_distribution_file()
@@ -147,16 +144,16 @@ class DistributionFileTest extends TestCase
     public function test_unique_constraints()
     {
         $distribution = Distribution::factory()->create();
-        
+
         $file1 = DistributionFile::factory()->create([
             'distribution_id' => $distribution->id,
-            'file_path' => 'distributions/test.pdf'
+            'file_path' => 'distributions/test.pdf',
         ]);
 
         // Should be able to create file with different path for same distribution
         $file2 = DistributionFile::factory()->create([
             'distribution_id' => $distribution->id,
-            'file_path' => 'distributions/test2.pdf'
+            'file_path' => 'distributions/test2.pdf',
         ]);
 
         $this->assertNotEquals($file1->file_path, $file2->file_path);
@@ -168,7 +165,7 @@ class DistributionFileTest extends TestCase
     {
         $largeSize = 2 * 1024 * 1024 * 1024; // 2GB in bytes
         $distributionFile = DistributionFile::factory()->create(['file_size' => $largeSize]);
-        
+
         $this->assertEquals($largeSize, $distributionFile->file_size);
     }
 
@@ -176,7 +173,7 @@ class DistributionFileTest extends TestCase
     {
         $specialFileName = 'documento_importanté (v2.1) [FINAL].pdf';
         $distributionFile = DistributionFile::factory()->create(['file_name' => $specialFileName]);
-        
+
         $this->assertEquals($specialFileName, $distributionFile->file_name);
     }
 
@@ -184,7 +181,7 @@ class DistributionFileTest extends TestCase
     {
         $sha256Checksum = 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456';
         $distributionFile = DistributionFile::factory()->create(['checksum' => $sha256Checksum]);
-        
+
         $this->assertEquals(64, strlen($distributionFile->checksum));
         $this->assertEquals($sha256Checksum, $distributionFile->checksum);
     }

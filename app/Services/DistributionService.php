@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\ProcessDistributionJob;
 use App\Models\Command;
 use App\Models\Computer;
 use App\Models\Distribution;
@@ -27,10 +28,8 @@ class DistributionService
             'week_days' => $data['week_days'] ?? null,
         ]);
 
-        // Handle files
         if (isset($data['files'])) {
             foreach ($data['files'] as $file) {
-                // Store in public disk for API access
                 $path = $file->store('distributions', 'public');
                 DistributionFile::create([
                     'distribution_id' => $distribution->id,
@@ -42,13 +41,12 @@ class DistributionService
             }
         }
 
-        // Handle targets - multiple groups support
         $targetComputerIds = $data['computer_ids'] ?? ($data['targets'] ?? []);
+        $targetType = $data['target_type'] ?? null;
 
-        if ($data['target_type'] === 'all') {
+        if ($targetType === 'all') {
             $computers = Computer::all();
-        } elseif ($data['target_type'] === 'group') {
-            // Support multiple groups
+        } elseif ($targetType === 'group') {
             $groupIds = $data['group_ids'] ?? ($data['group_id'] ? [$data['group_id']] : []);
             $computers = Computer::whereIn('group_id', $groupIds)->get();
         } elseif (! empty($targetComputerIds)) {
@@ -69,20 +67,7 @@ class DistributionService
 
     public function startDistribution(Distribution $distribution)
     {
-        // Only change status to in_progress if not recurring
-        if ($distribution->type !== 'recurring') {
-            $distribution->update(['status' => 'in_progress']);
-        }
-
-        $targets = $distribution->targets;
-
-        foreach ($targets as $target) {
-            // Update target status to in_progress when sending commands
-            if ($target->status === 'pending') {
-                $target->update(['status' => 'in_progress', 'progress' => 0]);
-            }
-            $this->sendDownloadCommand($target);
-        }
+        ProcessDistributionJob::dispatch($distribution);
     }
 
     public function sendDownloadCommand(DistributionTarget $target)
@@ -109,7 +94,7 @@ class DistributionService
             return;
         }
 
-        $delays = [1, 5, 15, 60]; // minutes
+        $delays = [1, 5, 15, 60];
         $delay = $delays[$target->attempts] ?? 60;
 
         $target->update([
@@ -118,16 +103,14 @@ class DistributionService
             'status' => 'pending',
         ]);
 
-        // Schedule job to retry
         \App\Jobs\RetryDistribution::dispatch($target)->delay($target->next_retry_at);
     }
 
     public function validateFileSpace(Computer $computer, DistributionFile $file): bool
     {
-        // Check system_info for disk space
         $systemInfo = $computer->system_info;
         if (! $systemInfo || ! isset($systemInfo['disk_free'])) {
-            return true; // Assume ok if not available
+            return true;
         }
 
         return $systemInfo['disk_free'] > $file->file_size;

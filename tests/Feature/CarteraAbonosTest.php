@@ -2,65 +2,72 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request;
-use Tests\TestCase;
-use App\Http\Controllers\Reportes\CarteraAbonosController;
 use App\Http\Controllers\ReporteCarteraAbonosController;
+use App\Http\Controllers\Reportes\CarteraAbonosController;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+use Tests\Traits\RequiresExternalTables;
 
 class CarteraAbonosTest extends TestCase
 {
     use RefreshDatabase;
+    use RequiresExternalTables;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->requiresTables(['cobranza', 'zona', 'cliente_depurado']);
+    }
 
     /**
      * Test básico del método data de CarteraAbonosController
      */
     public function test_cartera_abonos_data_basic_request()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
             'length' => 10,
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
-            
+
             // Verificar que la respuesta sea JSON válida
             $this->assertJson($response->getContent());
-            
+
             $data = $response->getData(true);
-            
+
             // Verificar estructura básica de respuesta DataTable
             $this->assertArrayHasKey('draw', $data);
             $this->assertArrayHasKey('recordsTotal', $data);
             $this->assertArrayHasKey('recordsFiltered', $data);
             $this->assertArrayHasKey('data', $data);
-            
+
             // Verificar que los datos tienen claves en minúsculas
-            if (!empty($data['data'])) {
+            if (! empty($data['data'])) {
                 $firstRow = $data['data'][0];
                 $expectedKeys = [
                     'plaza', 'tienda', 'fecha', 'fecha_vta', 'concepto',
                     'tipo', 'factura', 'clave', 'rfc', 'nombre',
-                    'monto_fa', 'monto_dv', 'monto_cd', 'dias_cred', 'dias_vencidos'
+                    'monto_fa', 'monto_dv', 'monto_cd', 'dias_cred', 'dias_vencidos',
                 ];
-                
+
                 foreach ($expectedKeys as $key) {
                     $this->assertArrayHasKey($key, $firstRow, "Falta la columna '{$key}' en la respuesta");
                 }
             }
-            
-            $this->printTestResult("✓ CarteraAbonosController::data() - Estructura correcta");
-            
+
+            $this->printTestResult('✓ CarteraAbonosController::data() - Estructura correcta');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ CarteraAbonosController::data() - Error: " . $e->getMessage());
-            $this->fail("Error en CarteraAbonosController::data(): " . $e->getMessage());
+            $this->printTestResult('✗ CarteraAbonosController::data() - Error: '.$e->getMessage());
+            $this->fail('Error en CarteraAbonosController::data(): '.$e->getMessage());
         }
     }
 
@@ -69,26 +76,26 @@ class CarteraAbonosTest extends TestCase
      */
     public function test_cartera_abonos_data_with_search()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
             'length' => 10,
             'search' => ['value' => 'test'],
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            $this->printTestResult("✓ CarteraAbonosController::data() con búsqueda - OK");
-            
+            $this->printTestResult('✓ CarteraAbonosController::data() con búsqueda - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ CarteraAbonosController::data() con búsqueda - Error: " . $e->getMessage());
-            $this->fail("Error en búsqueda: " . $e->getMessage());
+            $this->printTestResult('✗ CarteraAbonosController::data() con búsqueda - Error: '.$e->getMessage());
+            $this->fail('Error en búsqueda: '.$e->getMessage());
         }
     }
 
@@ -97,7 +104,7 @@ class CarteraAbonosTest extends TestCase
      */
     public function test_cartera_abonos_data_with_filters()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
@@ -105,19 +112,19 @@ class CarteraAbonosTest extends TestCase
             'plaza' => '01',
             'tienda' => '001',
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            $this->printTestResult("✓ CarteraAbonosController::data() con filtros - OK");
-            
+            $this->printTestResult('✓ CarteraAbonosController::data() con filtros - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ CarteraAbonosController::data() con filtros - Error: " . $e->getMessage());
-            $this->fail("Error con filtros: " . $e->getMessage());
+            $this->printTestResult('✗ CarteraAbonosController::data() con filtros - Error: '.$e->getMessage());
+            $this->fail('Error con filtros: '.$e->getMessage());
         }
     }
 
@@ -126,25 +133,25 @@ class CarteraAbonosTest extends TestCase
      */
     public function test_reporte_cartera_abonos_data()
     {
-        $controller = new ReporteCarteraAbonosController();
+        $controller = new ReporteCarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
             'length' => 10,
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            $this->printTestResult("✓ ReporteCarteraAbonosController::data() - OK");
-            
+            $this->printTestResult('✓ ReporteCarteraAbonosController::data() - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ ReporteCarteraAbonosController::data() - Error: " . $e->getMessage());
-            $this->fail("Error en ReporteCarteraAbonosController: " . $e->getMessage());
+            $this->printTestResult('✗ ReporteCarteraAbonosController::data() - Error: '.$e->getMessage());
+            $this->fail('Error en ReporteCarteraAbonosController: '.$e->getMessage());
         }
     }
 
@@ -182,13 +189,13 @@ class CarteraAbonosTest extends TestCase
                     LIMIT 10 OFFSET 0";
 
             $rows = DB::select($sql, ['2024-01-01', '2024-01-31']);
-            
+
             $this->assertIsArray($rows);
-            $this->printTestResult("✓ Consulta SQL directa - OK, " . count($rows) . " registros encontrados");
-            
+            $this->printTestResult('✓ Consulta SQL directa - OK, '.count($rows).' registros encontrados');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ Consulta SQL directa - Error: " . $e->getMessage());
-            $this->fail("Error en consulta SQL directa: " . $e->getMessage());
+            $this->printTestResult('✗ Consulta SQL directa - Error: '.$e->getMessage());
+            $this->fail('Error en consulta SQL directa: '.$e->getMessage());
         }
     }
 
@@ -197,26 +204,26 @@ class CarteraAbonosTest extends TestCase
      */
     public function test_pdf_generation()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->pdf($request);
-            
+
             // La respuesta puede ser HTML (fallback) o PDF
             $this->assertContains($response->headers->get('content-type'), [
                 'text/html',
-                'application/pdf'
+                'application/pdf',
             ]);
-            
-            $this->printTestResult("✓ Generación PDF - OK");
-            
+
+            $this->printTestResult('✓ Generación PDF - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ Generación PDF - Error: " . $e->getMessage());
-            $this->fail("Error en generación PDF: " . $e->getMessage());
+            $this->printTestResult('✗ Generación PDF - Error: '.$e->getMessage());
+            $this->fail('Error en generación PDF: '.$e->getMessage());
         }
     }
 
@@ -225,21 +232,21 @@ class CarteraAbonosTest extends TestCase
      */
     public function test_parameter_validation()
     {
-        $controller = new CarteraAbonosController();
-        
+        $controller = new CarteraAbonosController;
+
         // Test sin parámetros obligatorios
         $request = new Request([]);
-        
+
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            $this->printTestResult("✓ Validación de parámetros sin datos - OK");
-            
+            $this->printTestResult('✓ Validación de parámetros sin datos - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ Validación de parámetros - Error: " . $e->getMessage());
-            $this->fail("Error en validación: " . $e->getMessage());
+            $this->printTestResult('✗ Validación de parámetros - Error: '.$e->getMessage());
+            $this->fail('Error en validación: '.$e->getMessage());
         }
     }
 
@@ -248,7 +255,7 @@ class CarteraAbonosTest extends TestCase
      */
     private function printTestResult($message)
     {
-        echo "\n" . $message . "\n";
+        echo "\n".$message."\n";
     }
 
     /**
@@ -259,20 +266,20 @@ class CarteraAbonosTest extends TestCase
         try {
             // Verificar que existan las tablas principales
             $tables = ['cobranza', 'zona', 'cliente_depurado'];
-            
+
             foreach ($tables as $table) {
                 try {
                     $count = DB::table($table)->count();
                     $this->printTestResult("✓ Tabla '{$table}' existe, {$count} registros");
                 } catch (\Exception $e) {
-                    $this->printTestResult("✗ Error en tabla '{$table}': " . $e->getMessage());
-                    $this->fail("Tabla '{$table}' no accesible: " . $e->getMessage());
+                    $this->printTestResult("✗ Error en tabla '{$table}': ".$e->getMessage());
+                    $this->fail("Tabla '{$table}' no accesible: ".$e->getMessage());
                 }
             }
-            
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ Error verificando estructura: " . $e->getMessage());
-            $this->fail("Error en estructura de tablas: " . $e->getMessage());
+            $this->printTestResult('✗ Error verificando estructura: '.$e->getMessage());
+            $this->fail('Error en estructura de tablas: '.$e->getMessage());
         }
     }
 
@@ -284,10 +291,10 @@ class CarteraAbonosTest extends TestCase
         try {
             $columns = DB::getSchemaBuilder()->getColumnListing('cobranza');
             $requiredColumns = [
-                'cplaza', 'ctienda', 'fecha', 'concepto', 'tipo_ref', 
-                'no_ref', 'IMPORTE', 'cargo_ab', 'estado', 'cborrado', 'clave_cl'
+                'cplaza', 'ctienda', 'fecha', 'concepto', 'tipo_ref',
+                'no_ref', 'IMPORTE', 'cargo_ab', 'estado', 'cborrado', 'clave_cl',
             ];
-            
+
             foreach ($requiredColumns as $column) {
                 if (in_array($column, $columns)) {
                     $this->printTestResult("✓ Columna 'cobranza.{$column}' existe");
@@ -296,10 +303,10 @@ class CarteraAbonosTest extends TestCase
                     $this->fail("Columna requerida no existe: cobranza.{$column}");
                 }
             }
-            
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ Error verificando columnas: " . $e->getMessage());
-            $this->fail("Error verificando columnas: " . $e->getMessage());
+            $this->printTestResult('✗ Error verificando columnas: '.$e->getMessage());
+            $this->fail('Error verificando columnas: '.$e->getMessage());
         }
     }
 }

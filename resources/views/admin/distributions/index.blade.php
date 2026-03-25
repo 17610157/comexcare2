@@ -4,6 +4,17 @@
 
 @section('title', 'Distributions')
 
+@once
+    @push('scripts')
+        @vite(['resources/js/app.js'])
+        <script>
+            window.Laravel = window.Laravel || {};
+            window.Laravel.broadcastingPort = 6001;
+            window.Laravel.broadcastingHost = window.location.hostname;
+        </script>
+    @endpush
+@endonce
+
 @section('content_header')
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <h1>Distributions</h1>
@@ -435,7 +446,187 @@
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap4.min.js"></script>
 <script>
+// Polling intervals (fallback)
+let pollingIntervals = {};
+const POLL_INTERVAL = 3000; // 3 seconds
+
+// WebSocket connection tracking
+const wsSubscriptions = new Set();
+
+function updateDistributionProgressUI(data) {
+    const distributionId = data.distribution_id;
+    
+    // Update main table row
+    const row = $('#distributionsTable tbody tr').filter(function() {
+        return $(this).find('td:first').text() == distributionId;
+    });
+    
+    if (row.length) {
+        // Update progress bar
+        const progressBar = row.find('.progress-bar');
+        progressBar.css('width', data.percent + '%').attr('aria-valuenow', data.percent);
+        progressBar.text(data.percent + '%');
+        
+        // Update small text
+        row.find('td:nth-child(7) small').text(data.completed_targets + '/' + data.total_targets + ' completed');
+        
+        // Update status badge
+        const statusCell = row.find('td:nth-child(4)');
+        let statusBadge = '';
+        switch(data.distribution_status) {
+            case 'completed':
+                statusBadge = '<span class="badge badge-success">Completed</span>';
+                break;
+            case 'in_progress':
+                statusBadge = '<span class="badge badge-primary">In Progress</span>';
+                break;
+            case 'pending':
+                statusBadge = '<span class="badge badge-warning">Pending</span>';
+                break;
+            case 'failed':
+                statusBadge = '<span class="badge badge-danger">Failed</span>';
+                break;
+            case 'stopped':
+                statusBadge = '<span class="badge badge-secondary">Stopped</span>';
+                break;
+            default:
+                statusBadge = '<span class="badge badge-secondary">' + data.distribution_status + '</span>';
+        }
+        statusCell.html(statusBadge);
+        
+        // Update view modal if open
+        const modal = $('#viewDistributionModal' + distributionId);
+        if (modal.length && modal.is(':visible')) {
+            const modalProgressBar = modal.find('.modal-body .progress-bar');
+            if (modalProgressBar.length) {
+                modalProgressBar.css('width', data.percent + '%');
+            }
+            modal.find('.modal-body small').text(data.completed_targets + '/' + data.total_targets + ' completed');
+        }
+    }
+}
+
+function subscribeToDistribution(distributionId) {
+    if (wsSubscriptions.has(distributionId)) return;
+    
+    const channelName = 'distribution.' + distributionId;
+    console.log('Subscribing to WebSocket channel:', channelName);
+    
+    window.Echo.private(channelName)
+        .listen('.distribution.progress', (data) => {
+            console.log('WebSocket event received:', data);
+            updateDistributionProgressUI(data);
+            
+            // Stop WebSocket if completed or failed
+            if (data.distribution_status === 'completed' || data.distribution_status === 'failed') {
+                setTimeout(() => {
+                    window.Echo.leave(channelName);
+                    wsSubscriptions.delete(distributionId);
+                }, 2000);
+            }
+        })
+        .error((error) => {
+            console.error('WebSocket error for distribution', distributionId, error);
+            // Fallback to polling on WebSocket error
+            startPollingDistribution(distributionId);
+        });
+    
+    wsSubscriptions.add(distributionId);
+}
+
+function subscribeToAllDistributions() {
+    @foreach($distributions as $distribution)
+        @if($distribution->status === 'pending' || $distribution->status === 'in_progress')
+            subscribeToDistribution({{ $distribution->id }});
+        @endif
+    @endforeach
+}
+
+function updateDistributionProgress(distributionId) {
+    $.ajax({
+        url: '/admin/distributions/' + distributionId + '/progress',
+        type: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(data) {
+            // Update main table row
+            const row = $('#distributionsTable tbody tr').filter(function() {
+                return $(this).find('td:first').text() == data.id;
+            });
+            
+            if (row.length) {
+                // Update progress bar
+                const progressBar = row.find('.progress-bar');
+                progressBar.css('width', data.percent + '%').attr('aria-valuenow', data.percent);
+                progressBar.text(data.percent + '%');
+                
+                // Update small text
+                row.find('td:nth-child(7) small').text(data.completed + '/' + data.total + ' completed');
+                
+                // Update status badge
+                const statusCell = row.find('td:nth-child(4)');
+                let statusBadge = '';
+                switch(data.status) {
+                    case 'completed':
+                        statusBadge = '<span class="badge badge-success">Completed</span>';
+                        break;
+                    case 'in_progress':
+                        statusBadge = '<span class="badge badge-primary">In Progress</span>';
+                        break;
+                    case 'pending':
+                        statusBadge = '<span class="badge badge-warning">Pending</span>';
+                        break;
+                    case 'failed':
+                        statusBadge = '<span class="badge badge-danger">Failed</span>';
+                        break;
+                    case 'stopped':
+                        statusBadge = '<span class="badge badge-secondary">Stopped</span>';
+                        break;
+                    default:
+                        statusBadge = '<span class="badge badge-secondary">' + data.status + '</span>';
+                }
+                statusCell.html(statusBadge);
+            }
+            
+            // Stop polling if completed or failed
+            if (data.status === 'completed' || data.status === 'failed') {
+                if (pollingIntervals[distributionId]) {
+                    clearInterval(pollingIntervals[distributionId]);
+                    delete pollingIntervals[distributionId];
+                }
+            }
+        },
+        error: function(xhr) {
+            console.error('Error fetching distribution progress:', xhr);
+        }
+    });
+}
+
+function startPollingDistribution(distributionId) {
+    // Clear existing interval if any
+    if (pollingIntervals[distributionId]) {
+        clearInterval(pollingIntervals[distributionId]);
+    }
+    
+    // Start new polling interval
+    pollingIntervals[distributionId] = setInterval(function() {
+        updateDistributionProgress(distributionId);
+    }, POLL_INTERVAL);
+    
+    // Initial update
+    updateDistributionProgress(distributionId);
+}
+
+function stopPollingDistribution(distributionId) {
+    if (pollingIntervals[distributionId]) {
+        clearInterval(pollingIntervals[distributionId]);
+        delete pollingIntervals[distributionId];
+    }
+}
+
 $(document).ready(function() {
+    // Initialize DataTable
     $('#distributionsTable').DataTable({
         "order": [[0, "desc"]],
         "language": {
@@ -463,6 +654,22 @@ $(document).ready(function() {
             }
         }
     });
+    
+    // Try WebSocket first, fallback to polling if WebSocket fails
+    @foreach($distributions as $distribution)
+        @if($distribution->status === 'pending' || $distribution->status === 'in_progress')
+            subscribeToDistribution({{ $distribution->id }});
+        @endif
+    @endforeach
+    
+    // Fallback polling check every 30 seconds in case WebSocket misses events
+    setInterval(function() {
+        @foreach($distributions as $distribution)
+            @if($distribution->status === 'pending' || $distribution->status === 'in_progress')
+                updateDistributionProgress({{ $distribution->id }});
+            @endif
+        @endforeach
+    }, 30000);
 
     // File input change
     $('#fileInput').change(function() {
@@ -569,6 +776,7 @@ function deleteDistribution(id, name) {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
+            stopPollingDistribution(id);
             $.ajax({
                 url: '/admin/distributions/' + id,
                 type: 'POST',
@@ -611,6 +819,7 @@ function stopDistribution(id, name) {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
+            stopPollingDistribution(id);
             $.ajax({
                 url: '/admin/distributions/' + id + '/stop',
                 type: 'POST',
@@ -650,6 +859,7 @@ function startDistribution(id, name) {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
+            startPollingDistribution(id);
             $.ajax({
                 url: '/admin/distributions/' + id + '/start',
                 type: 'POST',
@@ -678,7 +888,7 @@ function startDistribution(id, name) {
 }
 
 function refreshDistribution(id) {
-    location.reload();
+    updateDistributionProgress(id);
 }
 
 function editDistribution(id, name, type, description, scheduledAt) {
