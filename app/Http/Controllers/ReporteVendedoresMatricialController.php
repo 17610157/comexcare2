@@ -27,9 +27,9 @@ class ReporteVendedoresMatricialController extends Controller
             return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
         }
 
-        // Fechas por defecto - usar rango con datos disponibles
-        $fecha_inicio = $request->input('fecha_inicio', '2026-02-01');
-        $fecha_fin = $request->input('fecha_fin', '2026-02-21');
+        // Fechas por defecto - usar mes actual
+        $fecha_inicio = $request->input('fecha_inicio', now()->startOfMonth()->toDateString());
+        $fecha_fin = $request->input('fecha_fin', now()->toDateString());
         $vendedor = $request->input('vendedor', '');
 
         // Obtener listas para filtros usando el helper

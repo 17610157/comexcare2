@@ -21,15 +21,15 @@ class ReporteVendedoresController extends Controller
     {
         $userFilter = RoleHelper::getUserFilter();
 
-        if (!$userFilter['allowed']) {
+        if (! $userFilter['allowed']) {
             return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
         }
 
-        $startDefault = Carbon::parse('first day of previous month')->toDateString();
-        $endDefault = Carbon::parse('last day of previous month')->toDateString();
+        $startDefault = Carbon::parse('first day of this month')->toDateString();
+        $endDefault = Carbon::now()->toDateString();
 
         $listas = RoleHelper::getListasParaFiltros();
-        
+
         $plazas = $listas['plazas'];
         $tiendas = $listas['tiendas'];
 
@@ -43,7 +43,7 @@ class ReporteVendedoresController extends Controller
     {
         $userFilter = RoleHelper::getUserFilter();
 
-        if (!$userFilter['allowed']) {
+        if (! $userFilter['allowed']) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -77,11 +77,11 @@ class ReporteVendedoresController extends Controller
                 'vendedor' => '',
             ];
 
-            if (!empty($plazasPermitidas)) {
+            if (! empty($plazasPermitidas)) {
                 $filtros['plaza'] = implode(',', $plazasPermitidas);
             }
 
-            if (!empty($tiendasPermitidas)) {
+            if (! empty($tiendasPermitidas)) {
                 $filtros['tienda'] = implode(',', $tiendasPermitidas);
             }
 
@@ -89,7 +89,7 @@ class ReporteVendedoresController extends Controller
                 $plazaFilter = $request->input('plaza');
                 if (is_array($plazaFilter) && count($plazaFilter) > 0) {
                     $filtros['plaza'] = implode(',', $plazaFilter);
-                } elseif (!is_array($plazaFilter)) {
+                } elseif (! is_array($plazaFilter)) {
                     $filtros['plaza'] = trim($plazaFilter);
                 }
             }
@@ -98,7 +98,7 @@ class ReporteVendedoresController extends Controller
                 $tiendaFilter = $request->input('tienda');
                 if (is_array($tiendaFilter) && count($tiendaFilter) > 0) {
                     $filtros['tienda'] = implode(',', $tiendaFilter);
-                } elseif (!is_array($tiendaFilter)) {
+                } elseif (! is_array($tiendaFilter)) {
                     $filtros['tienda'] = trim($tiendaFilter);
                 }
             }
@@ -109,9 +109,10 @@ class ReporteVendedoresController extends Controller
 
             $resultados = ReportService::getVendedoresReport($filtros);
 
-            if (!empty($search)) {
+            if (! empty($search)) {
                 $resultados = $resultados->filter(function ($item) use ($search) {
                     $searchLower = strtolower($search);
+
                     return str_contains(strtolower($item['tienda_vendedor'] ?? ''), $searchLower)
                         || str_contains(strtolower($item['vendedor_dia'] ?? ''), $searchLower)
                         || str_contains(strtolower($item['plaza_ajustada'] ?? ''), $searchLower)
@@ -216,7 +217,7 @@ class ReporteVendedoresController extends Controller
                 $file = fopen('php://output', 'w');
 
                 fputcsv($file, [
-                    'Tienda-Vendedor', 'Vendedor-Día', 'Plaza Ajustada', 'Tienda', 'Vendedor', 'Fecha', 'Venta Total', 'Devolución', 'Venta Neta'
+                    'Tienda-Vendedor', 'Vendedor-Día', 'Plaza Ajustada', 'Tienda', 'Vendedor', 'Fecha', 'Venta Total', 'Devolución', 'Venta Neta',
                 ]);
 
                 foreach ($resultados as $row) {
@@ -290,10 +291,10 @@ class ReporteVendedoresController extends Controller
         try {
             $type = $request->input('type', 'lastMonth');
             $append = $request->input('append', false);
-            
+
             $start = '';
             $end = date('Y-m-d');
-            
+
             if ($type === 'lastMonth') {
                 $start = Carbon::parse('first day of previous month')->toDateString();
                 $end = Carbon::parse('last day of previous month')->toDateString();
@@ -310,7 +311,7 @@ class ReporteVendedoresController extends Controller
                 $start = '2000-01-01';
             }
 
-            if (!$append) {
+            if (! $append) {
                 DB::statement('TRUNCATE TABLE vendedores_cache RESTART IDENTITY CASCADE');
             }
 
@@ -349,14 +350,15 @@ class ReporteVendedoresController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Sincronización completada. Total de registros: {$count}"
+                'message' => "Sincronización completada. Total de registros: {$count}",
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error sincronizando vendedores_cache: ' . $e->getMessage());
+            Log::error('Error sincronizando vendedores_cache: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al sincronizar: ' . $e->getMessage()
+                'message' => 'Error al sincronizar: '.$e->getMessage(),
             ], 500);
         }
     }

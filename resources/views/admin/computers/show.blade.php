@@ -30,6 +30,10 @@
                         <tr><th>MAC:</th><td>{{ $computer->mac_address }}</td></tr>
                         <tr><th>IP:</th><td>{{ $computer->ip_address }}</td></tr>
                         <tr><th>Versión Agente:</th><td>{{ $computer->agent_version ?? 'N/A' }}</td></tr>
+                        <tr><th>Windows:</th><td>{{ $computer->windows_version ?? 'N/A' }}</td></tr>
+                        <tr><th>Arquitectura:</th><td>{{ $computer->architecture ?? 'N/A' }}</td></tr>
+                        <tr><th>RAM Total:</th><td>{{ $computer->total_ram ? round($computer->total_ram / 1073741824) . ' GB' : 'N/A' }}</td></tr>
+                        <tr><th>Disco Total:</th><td>{{ $computer->total_disk_space ? round($computer->total_disk_space / 1073741824) . ' GB' : 'N/A' }}</td></tr>
                         <tr><th>Grupo:</th><td>{{ $computer->group->name ?? 'N/A' }}</td></tr>
                         <tr><th>Ruta de Descarga:</th><td><small>{{ $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files' }}</small></td></tr>
                         @php $additionalPaths = array_slice($computer->getAllDownloadPaths(), 1); @endphp
@@ -152,6 +156,9 @@
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-list"></i> Logs en Tiempo Real</h3>
             <div class="card-tools">
+                <button type="button" class="btn btn-tool btn-success btn-sm" onclick="downloadLogs()">
+                    <i class="fas fa-download"></i> Descargar Logs
+                </button>
                 <button type="button" class="btn btn-tool" onclick="clearLogs()">
                     <i class="fas fa-trash"></i> Limpiar
                 </button>
@@ -201,6 +208,47 @@ function toggleAutoScroll() {
 function clearLogs() {
     document.getElementById('logsContent').innerHTML = '<div style="color: #6a9955;">// Logs cleared...</div>';
     lastLogId = 0;
+}
+
+function downloadLogs() {
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Descargando...';
+    btn.disabled = true;
+
+    fetch(`/admin/computers/${computerId}/logs?last_id=0&all=1`)
+        .then(response => response.json())
+        .then(data => {
+            let logsText = `=== LOGS DEL AGENTE - Computadora ID ${computerId} - ${new Date().toISOString()} ===\n\n`;
+            if (data.logs && data.logs.length > 0) {
+                data.logs.forEach(log => {
+                    logsText += `[${log.time}] [${log.level.toUpperCase()}] ${log.message}\n`;
+                });
+            } else {
+                logsText += 'No hay logs disponibles.\n';
+            }
+            
+            const blob = new Blob([logsText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'logs_computer_' + computerId + '_' + new Date().toISOString().slice(0, 10) + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            btn.innerHTML = '<i class="fas fa-times"></i> Error';
+            btn.disabled = false;
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        });
 }
 
 function appendLog(type, message, timestamp) {

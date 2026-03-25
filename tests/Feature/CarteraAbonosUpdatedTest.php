@@ -2,65 +2,71 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\ReporteCarteraAbonosController;
+use App\Http\Controllers\Reportes\CarteraAbonosController;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Tests\TestCase;
-use App\Http\Controllers\Reportes\CarteraAbonosController;
-use App\Http\Controllers\ReporteCarteraAbonosController;
+use Tests\Traits\RequiresExternalTables;
 
 class CarteraAbonosUpdatedTest extends TestCase
 {
     use RefreshDatabase;
+    use RequiresExternalTables;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->requiresTables(['cobranza', 'zona', 'cliente_depurado']);
+    }
 
     /**
      * Test básico del reporte con nueva columna vendedor
      */
     public function test_cartera_abonos_data_with_vendedor()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
             'length' => 10,
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
-            
+
             // Verificar que la respuesta sea JSON válida
             $this->assertJson($response->getContent());
-            
+
             $data = $response->getData(true);
-            
+
             // Verificar estructura básica de respuesta DataTable
             $this->assertArrayHasKey('draw', $data);
             $this->assertArrayHasKey('recordsTotal', $data);
             $this->assertArrayHasKey('recordsFiltered', $data);
             $this->assertArrayHasKey('data', $data);
-            
+
             // Verificar que los datos tienen claves en minúsculas incluyendo vendedor
-            if (!empty($data['data'])) {
+            if (! empty($data['data'])) {
                 $firstRow = $data['data'][0];
                 $expectedKeys = [
                     'plaza', 'tienda', 'fecha', 'fecha_vta', 'concepto',
                     'tipo', 'factura', 'clave', 'rfc', 'nombre', 'vendedor',
-                    'monto_fa', 'monto_dv', 'monto_cd', 'dias_cred', 'dias_vencidos'
+                    'monto_fa', 'monto_dv', 'monto_cd', 'dias_cred', 'dias_vencidos',
                 ];
-                
+
                 foreach ($expectedKeys as $key) {
                     $this->assertArrayHasKey($key, $firstRow, "Falta la columna '{$key}' en la respuesta");
                 }
             }
-            
-            $this->printTestResult("✓ CarteraAbonosController::data() con columna vendedor - Estructura correcta");
-            
+
+            $this->printTestResult('✓ CarteraAbonosController::data() con columna vendedor - Estructura correcta');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ CarteraAbonosController::data() con vendedor - Error: " . $e->getMessage());
-            $this->fail("Error en CarteraAbonosController::data(): " . $e->getMessage());
+            $this->printTestResult('✗ CarteraAbonosController::data() con vendedor - Error: '.$e->getMessage());
+            $this->fail('Error en CarteraAbonosController::data(): '.$e->getMessage());
         }
     }
 
@@ -69,26 +75,26 @@ class CarteraAbonosUpdatedTest extends TestCase
      */
     public function test_cartera_abonos_data_with_vendedor_filter()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
             'length' => 10,
             'vendedor' => 'VEN001',
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            $this->printTestResult("✓ CarteraAbonosController::data() con filtro vendedor - OK");
-            
+            $this->printTestResult('✓ CarteraAbonosController::data() con filtro vendedor - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ CarteraAbonosController::data() con filtro vendedor - Error: " . $e->getMessage());
-            $this->fail("Error con filtro vendedor: " . $e->getMessage());
+            $this->printTestResult('✗ CarteraAbonosController::data() con filtro vendedor - Error: '.$e->getMessage());
+            $this->fail('Error con filtro vendedor: '.$e->getMessage());
         }
     }
 
@@ -97,7 +103,7 @@ class CarteraAbonosUpdatedTest extends TestCase
      */
     public function test_cartera_abonos_data_with_combined_filters()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
@@ -106,19 +112,19 @@ class CarteraAbonosUpdatedTest extends TestCase
             'tienda' => '001',
             'vendedor' => 'VEN001',
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            $this->printTestResult("✓ CarteraAbonosController::data() con filtros combinados - OK");
-            
+            $this->printTestResult('✓ CarteraAbonosController::data() con filtros combinados - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ CarteraAbonosController::data() con filtros combinados - Error: " . $e->getMessage());
-            $this->fail("Error con filtros combinados: " . $e->getMessage());
+            $this->printTestResult('✗ CarteraAbonosController::data() con filtros combinados - Error: '.$e->getMessage());
+            $this->fail('Error con filtros combinados: '.$e->getMessage());
         }
     }
 
@@ -127,26 +133,26 @@ class CarteraAbonosUpdatedTest extends TestCase
      */
     public function test_cartera_abonos_data_with_search_including_vendedor()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
             'length' => 10,
             'search' => ['value' => 'nombre_vendedor'],
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            $this->printTestResult("✓ CarteraAbonosController::data() con búsqueda en vendedor - OK");
-            
+            $this->printTestResult('✓ CarteraAbonosController::data() con búsqueda en vendedor - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ CarteraAbonosController::data() con búsqueda en vendedor - Error: " . $e->getMessage());
-            $this->fail("Error en búsqueda en vendedor: " . $e->getMessage());
+            $this->printTestResult('✗ CarteraAbonosController::data() con búsqueda en vendedor - Error: '.$e->getMessage());
+            $this->fail('Error en búsqueda en vendedor: '.$e->getMessage());
         }
     }
 
@@ -155,33 +161,33 @@ class CarteraAbonosUpdatedTest extends TestCase
      */
     public function test_reporte_cartera_abonos_with_vendedor()
     {
-        $controller = new ReporteCarteraAbonosController();
+        $controller = new ReporteCarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
             'length' => 10,
             'vendedor' => 'VEN001',
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            
+
             // Verificar que la columna vendedor esté presente
-            if (!empty($data['data'])) {
+            if (! empty($data['data'])) {
                 $firstRow = $data['data'][0];
                 $this->assertArrayHasKey('vendedor', $firstRow);
             }
-            
-            $this->printTestResult("✓ ReporteCarteraAbonosController::data() con vendedor - OK");
-            
+
+            $this->printTestResult('✓ ReporteCarteraAbonosController::data() con vendedor - OK');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ ReporteCarteraAbonosController::data() con vendedor - Error: " . $e->getMessage());
-            $this->fail("Error en ReporteCarteraAbonosController: " . $e->getMessage());
+            $this->printTestResult('✗ ReporteCarteraAbonosController::data() con vendedor - Error: '.$e->getMessage());
+            $this->fail('Error en ReporteCarteraAbonosController: '.$e->getMessage());
         }
     }
 
@@ -224,12 +230,12 @@ class CarteraAbonosUpdatedTest extends TestCase
             $this->assertStringContainsString('LEFT JOIN vendedores v', $sql);
             $this->assertStringContainsString('COALESCE(v.vendedor_nombre, \'SIN VENDEDOR\')', $sql);
             $this->assertStringContainsString('AS vendedor', $sql);
-            
-            $this->printTestResult("✓ SQL con vendedor - Sintaxis correcta");
-            
+
+            $this->printTestResult('✓ SQL con vendedor - Sintaxis correcta');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ SQL con vendedor - Error: " . $e->getMessage());
-            $this->fail("Error en SQL con vendedor: " . $e->getMessage());
+            $this->printTestResult('✗ SQL con vendedor - Error: '.$e->getMessage());
+            $this->fail('Error en SQL con vendedor: '.$e->getMessage());
         }
     }
 
@@ -246,7 +252,7 @@ class CarteraAbonosUpdatedTest extends TestCase
             'tienda' => '001',
             'vendedor' => 'VEN001',
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         // Verificar que los parámetros se procesen correctamente
@@ -256,7 +262,7 @@ class CarteraAbonosUpdatedTest extends TestCase
         $this->assertEquals('2024-01-01', $request->input('period_start'));
         $this->assertEquals('2024-01-31', $request->input('period_end'));
 
-        $this->printTestResult("✓ Validación de parámetros con vendedor - OK");
+        $this->printTestResult('✓ Validación de parámetros con vendedor - OK');
     }
 
     /**
@@ -274,9 +280,9 @@ class CarteraAbonosUpdatedTest extends TestCase
                     'tienda' => '001',
                     'fecha' => '2024-01-01',
                     'nombre' => 'Test Cliente',
-                    'vendedor' => 'VEN001 - Test Vendedor'
-                ]
-            ]
+                    'vendedor' => 'VEN001 - Test Vendedor',
+                ],
+            ],
         ];
 
         // Verificar estructura de respuesta DataTable
@@ -284,14 +290,14 @@ class CarteraAbonosUpdatedTest extends TestCase
         $this->assertArrayHasKey('recordsTotal', $mockResponse);
         $this->assertArrayHasKey('recordsFiltered', $mockResponse);
         $this->assertArrayHasKey('data', $mockResponse);
-        
+
         // Verificar que data es un array
         $this->assertIsArray($mockResponse['data']);
-        
+
         // Verificar que el primer registro tenga vendedor
         $this->assertArrayHasKey('vendedor', $mockResponse['data'][0]);
 
-        $this->printTestResult("✓ Estructura de respuesta con vendedor - DataTable correcta");
+        $this->printTestResult('✓ Estructura de respuesta con vendedor - DataTable correcta');
     }
 
     /**
@@ -299,7 +305,7 @@ class CarteraAbonosUpdatedTest extends TestCase
      */
     private function printTestResult($message)
     {
-        echo "\n" . $message . "\n";
+        echo "\n".$message."\n";
     }
 
     /**
@@ -307,26 +313,26 @@ class CarteraAbonosUpdatedTest extends TestCase
      */
     public function test_no_range_filter_in_view()
     {
-        $controller = new CarteraAbonosController();
+        $controller = new CarteraAbonosController;
         $request = new Request([
             'draw' => 1,
             'start' => 0,
             'length' => 10,
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
             // No se incluye 'period_range'
         ]);
 
         try {
             $response = $controller->data($request);
             $data = $response->getData(true);
-            
+
             $this->assertArrayHasKey('data', $data);
-            $this->printTestResult("✓ Reporte sin filtro de rango - Funciona correctamente");
-            
+            $this->printTestResult('✓ Reporte sin filtro de rango - Funciona correctamente');
+
         } catch (\Exception $e) {
-            $this->printTestResult("✗ Reporte sin filtro de rango - Error: " . $e->getMessage());
-            $this->fail("Error sin filtro de rango: " . $e->getMessage());
+            $this->printTestResult('✗ Reporte sin filtro de rango - Error: '.$e->getMessage());
+            $this->fail('Error sin filtro de rango: '.$e->getMessage());
         }
     }
 }

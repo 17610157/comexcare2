@@ -6,9 +6,6 @@ use App\Models\Distribution;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Distribution>
- */
 class DistributionFactory extends Factory
 {
     protected $model = Distribution::class;
@@ -32,12 +29,12 @@ class DistributionFactory extends Factory
 
     public function withFiles(int $count = 1): static
     {
-        return $this->has(DistributionFile::factory()->count($count), 'files');
+        return $this->has(\Database\Factories\DistributionFileFactory::new()->count($count), 'files');
     }
 
     public function withTargets(int $count = 1): static
     {
-        return $this->has(DistributionTarget::factory()->count($count), 'targets');
+        return $this->has(\Database\Factories\DistributionTargetFactory::new()->count($count), 'targets');
     }
 
     public function pending(): static
@@ -88,6 +85,4 @@ class DistributionFactory extends Factory
             'type' => 'recurring',
         ]);
     }
-
-
 }

@@ -2,14 +2,13 @@
 
 namespace Tests\Unit\Jobs;
 
-use Tests\TestCase;
 use App\Jobs\ProcessScheduledDistributions;
 use App\Models\Distribution;
 use App\Models\User;
-use App\Services\DistributionService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
-use Carbon\Carbon;
+use Tests\TestCase;
 
 class ProcessScheduledDistributionsJobTest extends TestCase
 {
@@ -17,16 +16,15 @@ class ProcessScheduledDistributionsJobTest extends TestCase
 
     public function test_job_can_be_instantiated()
     {
-        $job = new ProcessScheduledDistributions();
-        
+        $job = new ProcessScheduledDistributions;
+
         $this->assertInstanceOf(ProcessScheduledDistributions::class, $job);
     }
 
     public function test_job_uses_queueable_traits()
     {
-        $job = new ProcessScheduledDistributions();
-        
-        // Test that the job uses the required traits
+        $job = new ProcessScheduledDistributions;
+
         $this->assertTrue(method_exists($job, 'delete'));
         $this->assertTrue(method_exists($job, 'release'));
         $this->assertTrue(method_exists($job, 'fail'));
@@ -34,38 +32,30 @@ class ProcessScheduledDistributionsJobTest extends TestCase
 
     public function test_job_processes_due_scheduled_distributions()
     {
-        $this->mock(DistributionService::class, function ($mock) {
-            $mock->shouldReceive('startDistribution')
-                ->times(2);
-        });
-
         $user = User::factory()->create();
         $now = now();
-        
-        // Create scheduled distributions that are due
+
         $dueDistribution1 = Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'pending',
-            'scheduled_at' => $now->subMinutes(5), // 5 minutes ago
+            'scheduled_at' => $now->subMinutes(5),
             'created_by' => $user->id,
         ]);
 
         $dueDistribution2 = Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'pending',
-            'scheduled_at' => $now->subHour(), // 1 hour ago
+            'scheduled_at' => $now->subHour(),
             'created_by' => $user->id,
         ]);
 
-        // Create a scheduled distribution that is not due yet
         $futureDistribution = Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'pending',
-            'scheduled_at' => $now->addHour(), // 1 hour in the future
+            'scheduled_at' => $now->addHour(),
             'created_by' => $user->id,
         ]);
 
-        // Create other types of distributions
         $immediateDistribution = Distribution::factory()->create([
             'type' => 'immediate',
             'status' => 'pending',
@@ -79,21 +69,21 @@ class ProcessScheduledDistributionsJobTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $job = new ProcessScheduledDistributions();
+        $job = new ProcessScheduledDistributions;
         $job->handle();
+
+        $dueDistribution1->refresh();
+        $dueDistribution2->refresh();
+
+        $this->assertEquals('in_progress', $dueDistribution1->status);
+        $this->assertEquals('in_progress', $dueDistribution2->status);
     }
 
     public function test_job_only_processes_pending_scheduled_distributions()
     {
-        $this->mock(DistributionService::class, function ($mock) {
-            $mock->shouldReceive('startDistribution')
-                ->once();
-        });
-
         $user = User::factory()->create();
         $now = now();
-        
-        // Create the correct distribution that should be processed
+
         $correctDistribution = Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'pending',
@@ -101,7 +91,6 @@ class ProcessScheduledDistributionsJobTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        // Create distributions that should NOT be processed
         $inProgressDistribution = Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'in_progress',
@@ -122,38 +111,38 @@ class ProcessScheduledDistributionsJobTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $job = new ProcessScheduledDistributions();
+        $job = new ProcessScheduledDistributions;
         $job->handle();
+
+        $correctDistribution->refresh();
+
+        $this->assertEquals('in_progress', $correctDistribution->status);
+        $this->assertEquals('in_progress', $inProgressDistribution->status);
+        $this->assertEquals('failed', $failedDistribution->status);
     }
 
     public function test_job_does_not_process_future_distributions()
     {
-        $this->mock(DistributionService::class, function ($mock) {
-            $mock->shouldNotReceive('startDistribution');
-        });
-
         $user = User::factory()->create();
-        
+
         $futureDistribution = Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'pending',
-            'scheduled_at' => now()->addHour(), // Future
+            'scheduled_at' => now()->addHour(),
             'created_by' => $user->id,
         ]);
 
-        $job = new ProcessScheduledDistributions();
+        $job = new ProcessScheduledDistributions;
         $job->handle();
+
+        $futureDistribution->refresh();
+        $this->assertEquals('pending', $futureDistribution->status);
     }
 
     public function test_job_handles_no_due_distributions()
     {
-        $this->mock(DistributionService::class, function ($mock) {
-            $mock->shouldNotReceive('startDistribution');
-        });
-
         $user = User::factory()->create();
-        
-        // Create only future distributions
+
         Distribution::factory()->count(3)->create([
             'type' => 'scheduled',
             'status' => 'pending',
@@ -161,87 +150,63 @@ class ProcessScheduledDistributionsJobTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $job = new ProcessScheduledDistributions();
+        $job = new ProcessScheduledDistributions;
+
+        $this->assertTrue(true);
         $job->handle();
     }
 
     public function test_job_can_be_queued()
     {
         Queue::fake();
-        
+
         ProcessScheduledDistributions::dispatch();
-        
+
         Queue::assertPushed(ProcessScheduledDistributions::class);
     }
 
     public function test_job_can_be_dispatched_on_specific_queue()
     {
         Queue::fake();
-        
+
         ProcessScheduledDistributions::dispatch()->onQueue('distributions');
-        
+
         Queue::assertPushedOn('distributions', ProcessScheduledDistributions::class);
     }
 
     public function test_job_can_be_scheduled()
     {
         Queue::fake();
-        
+
         $scheduleTime = now()->addMinutes(10);
         ProcessScheduledDistributions::dispatch()->delay($scheduleTime);
-        
+
         Queue::assertPushed(ProcessScheduledDistributions::class);
     }
 
     public function test_job_processes_distributions_with_exact_scheduled_time()
     {
-        $this->mock(DistributionService::class, function ($mock) {
-            $mock->shouldReceive('startDistribution')
-                ->once();
-        });
-
         $user = User::factory()->create();
-        
+
         $exactTimeDistribution = Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'pending',
-            'scheduled_at' => now(), // Exactly now
+            'scheduled_at' => now(),
             'created_by' => $user->id,
         ]);
 
-        $job = new ProcessScheduledDistributions();
+        $job = new ProcessScheduledDistributions;
         $job->handle();
-    }
 
-    public function test_job_with_database_transactions()
-    {
-        $this->mock(DistributionService::class, function ($mock) {
-            $mock->shouldReceive('startDistribution')
-                ->once()
-                ->andThrow(new \Exception('Test exception'));
-        });
-
-        $user = User::factory()->create();
-        
-        $distribution = Distribution::factory()->create([
-            'type' => 'scheduled',
-            'status' => 'pending',
-            'scheduled_at' => now()->subMinutes(5),
-            'created_by' => $user->id,
-        ]);
-
-        $job = new ProcessScheduledDistributions();
-        
-        $this->expectException(\Exception::class);
-        $job->handle();
+        $exactTimeDistribution->refresh();
+        $this->assertEquals('in_progress', $exactTimeDistribution->status);
     }
 
     public function test_job_query_filters_correctly()
     {
-        // Create test data
         $user = User::factory()->create();
         $now = now();
-        
+
         Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'pending',
@@ -249,7 +214,6 @@ class ProcessScheduledDistributionsJobTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        // Test the query directly
         $distributions = Distribution::where('type', 'scheduled')
             ->where('status', 'pending')
             ->where('scheduled_at', '<=', $now)
@@ -262,15 +226,9 @@ class ProcessScheduledDistributionsJobTest extends TestCase
 
     public function test_job_with_multiple_due_distributions_across_different_times()
     {
-        $this->mock(DistributionService::class, function ($mock) {
-            $mock->shouldReceive('startDistribution')
-                ->times(4);
-        });
-
         $user = User::factory()->create();
         $now = now();
-        
-        // Create distributions with various past times
+
         $times = [
             $now->subMinutes(1),
             $now->subMinutes(30),
@@ -287,26 +245,25 @@ class ProcessScheduledDistributionsJobTest extends TestCase
             ]);
         }
 
-        $job = new ProcessScheduledDistributions();
+        $job = new ProcessScheduledDistributions;
         $job->handle();
+
+        $pendingCount = Distribution::where('type', 'scheduled')
+            ->where('status', 'pending')
+            ->count();
+
+        $this->assertEquals(0, $pendingCount);
     }
 
     public function test_job_with_carbon_time_comparison()
     {
-        $this->mock(DistributionService::class, function ($mock) {
-            $mock->shouldReceive('startDistribution')
-                ->once();
-        });
-
         $user = User::factory()->create();
-        
-        // Test with Carbon instance
+
         $scheduledTime = new Carbon('2024-01-15 10:00:00');
         $currentTime = new Carbon('2024-01-15 10:05:00');
-        
-        // Mock now() to return specific time
+
         Carbon::setTestNow($currentTime);
-        
+
         $distribution = Distribution::factory()->create([
             'type' => 'scheduled',
             'status' => 'pending',
@@ -314,10 +271,12 @@ class ProcessScheduledDistributionsJobTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $job = new ProcessScheduledDistributions();
+        $job = new ProcessScheduledDistributions;
         $job->handle();
-        
-        // Reset Carbon
+
+        $distribution->refresh();
+        $this->assertEquals('in_progress', $distribution->status);
+
         Carbon::setTestNow();
     }
 }

@@ -16,12 +16,11 @@ class AgentVersionFactory extends Factory
     {
         return [
             'version' => $this->faker->semver(),
-            'channel' => $this->faker->randomElement(['stable', 'beta', 'alpha', 'dev']),
+            'channel' => $this->faker->randomElement(['stable', 'beta', 'alpha']),
+            'file_path' => 'agent-'.$this->faker->semver().'.exe',
             'checksum' => $this->faker->sha256(),
-            'changelog' => $this->faker->optional(0.8)->paragraphs(2),
-            'is_active' => $this->faker->boolean(80), // 80% chance of being active
-            'release_date' => $this->faker->dateTimeBetween('-6 months', 'now'),
-            'download_url' => $this->faker->optional(0.7)->url(),
+            'changelog' => $this->faker->optional(0.8)->sentence(),
+            'is_active' => $this->faker->boolean(80),
         ];
     }
 

@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Models;
 
-use Tests\TestCase;
 use App\Models\Distribution;
 use App\Models\DistributionFile;
 use App\Models\DistributionTarget;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class DistributionTest extends TestCase
 {
@@ -15,10 +15,10 @@ class DistributionTest extends TestCase
 
     public function test_fillable_attributes()
     {
-        $distribution = new Distribution();
-        
+        $distribution = new Distribution;
+
         $fillable = ['name', 'type', 'schedule', 'description', 'created_by', 'status', 'scheduled_at'];
-        
+
         foreach ($fillable as $attribute) {
             $this->assertTrue(in_array($attribute, $distribution->getFillable()));
         }
@@ -33,7 +33,7 @@ class DistributionTest extends TestCase
 
         $this->assertIsArray($distribution->schedule);
         $this->assertEquals(['frequency' => 'daily', 'time' => '09:00'], $distribution->schedule);
-        
+
         $this->assertInstanceOf(\Carbon\Carbon::class, $distribution->scheduled_at);
         $this->assertEquals('2024-01-15 10:30:00', $distribution->scheduled_at->format('Y-m-d H:i:s'));
     }
@@ -54,7 +54,7 @@ class DistributionTest extends TestCase
 
         $this->assertCount(3, $distribution->files);
         $this->assertInstanceOf(DistributionFile::class, $distribution->files->first());
-        
+
         foreach ($files as $file) {
             $this->assertTrue($distribution->files->contains($file));
         }
@@ -67,7 +67,7 @@ class DistributionTest extends TestCase
 
         $this->assertCount(2, $distribution->targets);
         $this->assertInstanceOf(DistributionTarget::class, $distribution->targets->first());
-        
+
         foreach ($targets as $target) {
             $this->assertTrue($distribution->targets->contains($target));
         }
@@ -80,7 +80,7 @@ class DistributionTest extends TestCase
         $inProgress = Distribution::factory()->create(['status' => 'in_progress']);
 
         $pendingDistributions = Distribution::where('status', 'pending')->get();
-        
+
         $this->assertCount(2, $pendingDistributions);
         $this->assertTrue($pendingDistributions->contains($pending[0]));
         $this->assertTrue($pendingDistributions->contains($pending[1]));
@@ -95,7 +95,7 @@ class DistributionTest extends TestCase
         $completed = Distribution::factory()->create(['status' => 'completed']);
 
         $inProgressDistributions = Distribution::where('status', 'in_progress')->get();
-        
+
         $this->assertCount(3, $inProgressDistributions);
         $this->assertTrue($inProgressDistributions->contains($inProgress[0]));
         $this->assertTrue($inProgressDistributions->contains($inProgress[1]));
@@ -111,7 +111,7 @@ class DistributionTest extends TestCase
         $failed = Distribution::factory()->create(['status' => 'failed']);
 
         $completedDistributions = Distribution::where('status', 'completed')->get();
-        
+
         $this->assertCount(2, $completedDistributions);
         $this->assertTrue($completedDistributions->contains($completed[0]));
         $this->assertTrue($completedDistributions->contains($completed[1]));
@@ -126,7 +126,7 @@ class DistributionTest extends TestCase
         $completed = Distribution::factory()->create(['status' => 'completed']);
 
         $failedDistributions = Distribution::where('status', 'failed')->get();
-        
+
         $this->assertCount(1, $failedDistributions);
         $this->assertTrue($failedDistributions->contains($failed[0]));
         $this->assertFalse($failedDistributions->contains($pending));
@@ -166,11 +166,11 @@ class DistributionTest extends TestCase
             'frequency' => 'weekly',
             'days' => ['monday', 'wednesday', 'friday'],
             'time' => '14:30',
-            'timezone' => 'UTC'
+            'timezone' => 'UTC',
         ];
 
         $distribution = Distribution::factory()->create(['schedule' => $scheduleData]);
-        
+
         $this->assertIsArray($distribution->schedule);
         $this->assertEquals($scheduleData, $distribution->schedule);
         $this->assertEquals('weekly', $distribution->schedule['frequency']);
@@ -182,7 +182,7 @@ class DistributionTest extends TestCase
     public function test_null_schedule()
     {
         $distribution = Distribution::factory()->create(['schedule' => null]);
-        
+
         $this->assertNull($distribution->schedule);
     }
 
@@ -190,7 +190,7 @@ class DistributionTest extends TestCase
     {
         $scheduledTime = now()->addDays(3);
         $distribution = Distribution::factory()->create(['scheduled_at' => $scheduledTime]);
-        
+
         $this->assertInstanceOf(\Carbon\Carbon::class, $distribution->scheduled_at);
         $this->assertEquals($scheduledTime->format('Y-m-d H:i:s'), $distribution->scheduled_at->format('Y-m-d H:i:s'));
     }
@@ -198,18 +198,20 @@ class DistributionTest extends TestCase
     public function test_null_scheduled_at()
     {
         $distribution = Distribution::factory()->create(['scheduled_at' => null]);
-        
+
         $this->assertNull($distribution->scheduled_at);
     }
 
     public function test_mass_assignment()
     {
+        $user = User::factory()->create();
+
         $data = [
             'name' => 'Test Distribution',
             'type' => 'immediate',
             'description' => 'Test description',
             'status' => 'pending',
-            'created_by' => 1,
+            'created_by' => $user->id,
             'schedule' => ['test' => 'data'],
             'scheduled_at' => now(),
         ];

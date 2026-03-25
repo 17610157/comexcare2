@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\DistributionProgressUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\AgentVersion;
 use App\Models\Command;
@@ -82,11 +83,37 @@ class AgentController extends Controller
             'logs' => 'nullable|string',
             'dbf_files' => 'nullable|array',
             'receive_paths' => 'nullable|array',
+            'pvsi_version' => 'nullable|string|max:50',
+            'pvsi_fecha' => 'nullable|string|max:20',
+            'pvsi_hora' => 'nullable|string|max:10',
+            'pvsi_files' => 'nullable|array',
+            'pvsi_files.*.file_name' => 'nullable|string|max:255',
+            'pvsi_files.*.version' => 'nullable|string|max:50',
+            'pvsi_files.*.fecha' => 'nullable|string|max:20',
+            'pvsi_files.*.hora' => 'nullable|string|max:10',
+            'windows_version' => 'nullable|string|max:100',
+            'architecture' => 'nullable|string|max:10',
+            'total_ram' => 'nullable|integer',
+            'total_disk_space' => 'nullable|integer',
+            'bitlocker_status' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
         }
+
+        Log::debug('Heartbeat RAW body', [
+            'raw_content' => $request->getContent(),
+            'all_keys' => array_keys($request->all()),
+            'pvsi_files_raw' => $request->input('pvsi_files'),
+            'bitlocker_status' => $request->input('bitlocker_status'),
+            'logs_present' => $request->has('logs'),
+            'logs_length' => $request->input('logs') ? strlen($request->input('logs')) : 0,
+            'windows_version' => $request->input('windows_version'),
+            'architecture' => $request->input('architecture'),
+            'total_ram' => $request->input('total_ram'),
+            'total_disk_space' => $request->input('total_disk_space'),
+        ]);
 
         $computer = Computer::find($request->computer_id);
 
@@ -115,6 +142,60 @@ class AgentController extends Controller
             $updateData['agent_config'] = array_merge($computer->agent_config ?? [], ['dbf_files' => $request->dbf_files]);
         }
 
+        // Temporal: log de debug para PVSI
+        Log::channel('single')->debug('Heartbeat received', [
+            'computer_id' => $request->computer_id,
+            'agent_version' => $request->agent_version,
+            'pvsi_version' => $request->pvsi_version,
+            'pvsi_fecha' => $request->pvsi_fecha,
+            'pvsi_hora' => $request->pvsi_hora,
+            'pvsi_files' => $request->pvsi_files,
+            'all_params' => $request->all(),
+        ]);
+
+        if ($request->filled('pvsi_files') && is_array($request->pvsi_files)) {
+            $pvsiFiles = json_decode(json_encode($request->pvsi_files), true);
+            $updateData['pvsi_files'] = $pvsiFiles;
+
+            $firstPvsi = reset($pvsiFiles);
+            if ($firstPvsi) {
+                $updateData['pvsi_version'] = $firstPvsi['version'] ?? null;
+                $updateData['pvsi_fecha'] = $firstPvsi['fecha'] ?? null;
+                $updateData['pvsi_hora'] = $firstPvsi['hora'] ?? null;
+            }
+
+            Log::info("PVSI files updated for computer {$computer->id}: ".json_encode($pvsiFiles));
+        } elseif ($request->filled('pvsi_version')) {
+            $oldPvsiVersion = $computer->pvsi_version;
+            $newPvsiVersion = $request->pvsi_version;
+
+            if ($oldPvsiVersion !== $newPvsiVersion) {
+                $updateData['pvsi_version'] = $newPvsiVersion;
+                $updateData['pvsi_fecha'] = $request->pvsi_fecha;
+                $updateData['pvsi_hora'] = $request->pvsi_hora;
+
+                Log::info("PVSI version updated for computer {$computer->id}: {$oldPvsiVersion} -> {$newPvsiVersion}");
+            }
+        }
+
+        if ($request->filled('windows_version')) {
+            $updateData['windows_version'] = $request->windows_version;
+        }
+        if ($request->filled('architecture')) {
+            $updateData['architecture'] = $request->architecture;
+        }
+        if ($request->filled('total_ram')) {
+            $updateData['total_ram'] = $request->total_ram;
+        }
+        if ($request->filled('total_disk_space')) {
+            $updateData['total_disk_space'] = $request->total_disk_space;
+        }
+        if ($request->filled('bitlocker_status') && is_array($request->bitlocker_status)) {
+            $bitlockerData = json_decode(json_encode($request->bitlocker_status), true);
+            $updateData['bitlocker_status'] = $bitlockerData;
+            Log::info('BitLocker status received', ['computer_id' => $computer->id, 'data' => $bitlockerData]);
+        }
+
         // Las receive_paths se configuran ÚNICAMENTE desde el panel de administración
         // El agente NUNCA debe poder modificar estas rutas
         // Solo se guardan si no existen en el servidor Y el agente envía datos por primera vez
@@ -126,6 +207,7 @@ class AgentController extends Controller
 
         // Process logs from the agent
         if ($request->filled('logs')) {
+            $logCount = 0;
             $logLines = explode("\n", $request->logs);
             foreach ($logLines as $line) {
                 $line = trim($line);
@@ -139,12 +221,18 @@ class AgentController extends Controller
                     $level = strtolower($matches[2]);
                 }
 
-                ComputerLog::create([
-                    'computer_id' => $computer->id,
-                    'level' => $level,
-                    'message' => $line,
-                ]);
+                try {
+                    ComputerLog::create([
+                        'computer_id' => $computer->id,
+                        'level' => $level,
+                        'message' => $line,
+                    ]);
+                    $logCount++;
+                } catch (\Exception $e) {
+                    Log::warning('Failed to save log entry: '.$e->getMessage());
+                }
             }
+            Log::info("Saved {$logCount} log entries for computer {$computer->id}");
         }
 
         return response()->json([
@@ -153,7 +241,7 @@ class AgentController extends Controller
             'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
             'download_paths' => $computer->getAllDownloadPaths(),
             'receive_paths' => $computer->receive_paths ?? [],
-            'report_url' => config('app.url').'/api/agent/report',
+            'report_url' => config('app.url').'/api/report',
         ]);
     }
 
@@ -291,6 +379,13 @@ class AgentController extends Controller
                     $target->update($updateData);
 
                     $distribution = $target->distribution;
+
+                    broadcast(new DistributionProgressUpdated(
+                        $distribution->fresh(['targets']),
+                        $target->id,
+                        $target->status,
+                        $request->progress ?? 100
+                    ))->toOthers();
                     $allTargets = $distribution->targets;
                     $completedCount = $allTargets->where('status', 'completed')->count();
                     $failedCount = $allTargets->where('status', 'failed')->count();
@@ -360,7 +455,7 @@ class AgentController extends Controller
         return response()->json([
             'update_available' => true,
             'version' => $latest->version,
-            'download_url' => url('agent-updates/'.$filename),
+            'download_url' => url('storage/'.$latest->file_path),
             'channel' => $latest->channel,
             'checksum' => $latest->checksum,
             'changelog' => $latest->changelog,
@@ -388,7 +483,7 @@ class AgentController extends Controller
         return response()->json([
             'update_available' => true,
             'version' => $latest->version,
-            'download_url' => url('agent-updates/'.$filename),
+            'download_url' => url('storage/'.$latest->file_path),
             'channel' => $latest->channel,
             'checksum' => $latest->checksum,
             'changelog' => $latest->changelog,
@@ -432,6 +527,49 @@ class AgentController extends Controller
         }
 
         return response()->json(['message' => 'Logs received', 'count' => count($request->logs)]);
+    }
+
+    public function pvsiUpdate(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'computer_id' => 'required|integer',
+            'pvsi_version' => 'required|string|max:50',
+            'pvsi_fecha' => 'nullable|string|max:20',
+            'pvsi_hora' => 'nullable|string|max:10',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
+        }
+
+        $computer = Computer::find($request->computer_id);
+
+        if (! $computer) {
+            return response()->json(['error' => 'Computer not found'], 404);
+        }
+
+        $oldVersion = $computer->pvsi_version;
+        $newVersion = $request->pvsi_version;
+
+        if ($oldVersion !== $newVersion) {
+            $computer->update([
+                'pvsi_version' => $newVersion,
+                'pvsi_fecha' => $request->pvsi_fecha,
+                'pvsi_hora' => $request->pvsi_hora,
+                'status' => 'online',
+                'last_seen' => now(),
+            ]);
+
+            Log::info("PVSI version updated for computer {$computer->id}: {$oldVersion} -> {$newVersion}");
+        }
+
+        return response()->json([
+            'message' => 'PVSI version updated',
+            'computer_id' => $computer->id,
+            'pvsi_version' => $computer->pvsi_version,
+            'pvsi_fecha' => $computer->pvsi_fecha,
+            'pvsi_hora' => $computer->pvsi_hora,
+        ]);
     }
 
     public function uploadReception(Request $request)

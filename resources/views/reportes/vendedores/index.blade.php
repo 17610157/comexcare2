@@ -16,8 +16,8 @@
     </div>
     <div class="card-body">
       @php
-        $startDefault = \Carbon\Carbon::parse('first day of previous month')->toDateString();
-        $endDefault = \Carbon\Carbon::parse('last day of previous month')->toDateString();
+        $startDefault = \Carbon\Carbon::parse('first day of this month')->toDateString();
+        $endDefault = \Carbon\Carbon::now()->toDateString();
       @endphp
       
       <div class="row g-2">

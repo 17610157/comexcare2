@@ -7,19 +7,47 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE receptions DROP CONSTRAINT receptions_status_check');
-        DB::statement("ALTER TABLE receptions ADD CONSTRAINT receptions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled', 'stopped'))");
+        $connection = DB::connection()->getDriverName();
 
-        DB::statement('ALTER TABLE distributions DROP CONSTRAINT distributions_status_check');
-        DB::statement("ALTER TABLE distributions ADD CONSTRAINT distributions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled', 'stopped'))");
+        if (! in_array($connection, ['pgsql'])) {
+            return;
+        }
+
+        try {
+            DB::statement('ALTER TABLE receptions DROP CONSTRAINT IF EXISTS receptions_status_check');
+            DB::statement("ALTER TABLE receptions ADD CONSTRAINT receptions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled', 'stopped'))");
+        } catch (\Exception $e) {
+            // Tabla puede no existir
+        }
+
+        try {
+            DB::statement('ALTER TABLE distributions DROP CONSTRAINT IF EXISTS distributions_status_check');
+            DB::statement("ALTER TABLE distributions ADD CONSTRAINT distributions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled', 'stopped'))");
+        } catch (\Exception $e) {
+            // Tabla puede no existir
+        }
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE receptions DROP CONSTRAINT receptions_status_check');
-        DB::statement("ALTER TABLE receptions ADD CONSTRAINT receptions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled'))");
+        $connection = DB::connection()->getDriverName();
 
-        DB::statement('ALTER TABLE distributions DROP CONSTRAINT distributions_status_check');
-        DB::statement("ALTER TABLE distributions ADD CONSTRAINT distributions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed'))");
+        if (! in_array($connection, ['pgsql'])) {
+            return;
+        }
+
+        try {
+            DB::statement('ALTER TABLE receptions DROP CONSTRAINT IF EXISTS receptions_status_check');
+            DB::statement("ALTER TABLE receptions ADD CONSTRAINT receptions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled'))");
+        } catch (\Exception $e) {
+            // Ignorar
+        }
+
+        try {
+            DB::statement('ALTER TABLE distributions DROP CONSTRAINT IF EXISTS distributions_status_check');
+            DB::statement("ALTER TABLE distributions ADD CONSTRAINT distributions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed'))");
+        } catch (\Exception $e) {
+            // Ignorar
+        }
     }
 };

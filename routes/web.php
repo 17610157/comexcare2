@@ -196,6 +196,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::post('distributions/{distribution}/stop', [\App\Http\Controllers\DistributionsController::class, 'stop'])->name('distributions.stop');
     Route::post('distributions/{distribution}/start', [\App\Http\Controllers\DistributionsController::class, 'start'])->name('distributions.start');
     Route::post('distributions/target/{target}/retry', [\App\Http\Controllers\DistributionsController::class, 'retryTarget'])->name('distributions.retry-target');
+    Route::get('distributions/{distribution}/progress', [\App\Http\Controllers\DistributionsController::class, 'progress'])->name('distributions.progress');
 
     Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
     Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');

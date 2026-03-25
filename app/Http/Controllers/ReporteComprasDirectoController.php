@@ -20,7 +20,7 @@ class ReporteComprasDirectoController extends Controller
     {
         $userFilter = RoleHelper::getUserFilter();
 
-        if (!$userFilter['allowed']) {
+        if (! $userFilter['allowed']) {
             return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
         }
 
@@ -29,7 +29,7 @@ class ReporteComprasDirectoController extends Controller
 
         // Obtener listas filtradas por asignaciones del usuario
         $listas = RoleHelper::getListasParaFiltros();
-        
+
         $plazas = $listas['plazas'];
         $tiendas = $listas['tiendas'];
 
@@ -73,12 +73,12 @@ class ReporteComprasDirectoController extends Controller
             $query = DB::table('compras_directo_cache');
 
             // Filtros según el rol del usuario - plazas
-            if (!empty($plazasPermitidas)) {
+            if (! empty($plazasPermitidas)) {
                 $query->whereIn('cplaza', $plazasPermitidas);
             }
 
             // Filtros según el rol del usuario - tiendas específicas
-            if (!empty($tiendasPermitidas)) {
+            if (! empty($tiendasPermitidas)) {
                 $query->whereIn('ctienda', $tiendasPermitidas);
             }
 
@@ -544,7 +544,7 @@ class ReporteComprasDirectoController extends Controller
                         NOW() AS updated_at
                     FROM compras c
                     JOIN partcomp p ON c.ctienda = p.ctienda AND c.cplaza = p.cplaza AND c.tipo_doc = p.tipo_doc AND c.no_referen = p.no_referen
-                    JOIN proveed por ON por.clave_pro = c.clave_pro AND c.ctienda = por.ctienda AND c.cplaza = por.cplaza
+                    LEFT JOIN proveed por ON por.clave_pro = c.clave_pro AND c.ctienda = por.ctienda AND c.cplaza = por.cplaza
                     JOIN grupos pr ON p.clave_art = pr.clave
                     WHERE c.f_emision >= :start AND c.f_emision <= :end";
 

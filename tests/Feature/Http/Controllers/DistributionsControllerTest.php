@@ -2,16 +2,16 @@
 
 namespace Tests\Feature\Http\Controllers;
 
-use Tests\TestCase;
-use App\Http\Controllers\DistributionsController;
 use App\Models\Distribution;
 use App\Models\Group;
 use App\Models\User;
 use App\Services\DistributionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Permission;
+use Tests\TestCase;
 
 class DistributionsControllerTest extends TestCase
 {
@@ -22,7 +22,25 @@ class DistributionsControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        if (! is_writable(storage_path('framework/views'))) {
+            $this->markTestSkipped('Storage views directory is not writable');
+        }
+
+        Permission::firstOrCreate(['name' => 'admin.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'distribution.ver', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'distribution.crear', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'distribution.editar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'distribution.eliminar', 'guard_name' => 'web']);
+
         $this->admin = User::factory()->create();
+        $this->admin->givePermissionTo([
+            'admin.ver',
+            'distribution.ver',
+            'distribution.crear',
+            'distribution.editar',
+            'distribution.eliminar',
+        ]);
         Storage::fake('local');
         Auth::login($this->admin);
     }
@@ -30,8 +48,8 @@ class DistributionsControllerTest extends TestCase
     public function test_index_displays_distributions()
     {
         Distribution::factory()->count(5)->create(['created_by' => $this->admin->id]);
-        
-        $response = $this->get(route('distributions.index'));
+
+        $response = $this->get(route('admin.distributions.index'));
 
         $response->assertStatus(200);
         $response->assertViewIs('admin.distributions.index');
@@ -41,8 +59,8 @@ class DistributionsControllerTest extends TestCase
     public function test_index_paginates_distributions()
     {
         Distribution::factory()->count(25)->create(['created_by' => $this->admin->id]);
-        
-        $response = $this->get(route('distributions.index'));
+
+        $response = $this->get(route('admin.distributions.index'));
 
         $response->assertStatus(200);
         $distributions = $response->viewData('distributions');
@@ -52,8 +70,8 @@ class DistributionsControllerTest extends TestCase
     public function test_create_displays_form_with_groups()
     {
         Group::factory()->count(3)->create();
-        
-        $response = $this->get(route('distributions.create'));
+
+        $response = $this->get(route('admin.distributions.create'));
 
         $response->assertStatus(200);
         $response->assertViewIs('admin.distributions.create');
@@ -80,9 +98,9 @@ class DistributionsControllerTest extends TestCase
             'target_type' => 'all',
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
-        $response->assertRedirect(route('distributions.index'));
+        $response->assertRedirect(route('admin.distributions.index'));
         $response->assertSessionHas('success', 'Distribution created successfully');
     }
 
@@ -103,15 +121,15 @@ class DistributionsControllerTest extends TestCase
             'scheduled_at' => now()->addDay()->format('Y-m-d H:i:s'),
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
-        $response->assertRedirect(route('distributions.index'));
+        $response->assertRedirect(route('admin.distributions.index'));
         $response->assertSessionHas('success', 'Distribution created successfully');
     }
 
     public function test_store_validates_required_fields()
     {
-        $response = $this->post(route('distributions.store'), []);
+        $response = $this->post(route('admin.distributions.store'), []);
 
         $response->assertSessionHasErrors(['name', 'type', 'target_type']);
     }
@@ -123,7 +141,7 @@ class DistributionsControllerTest extends TestCase
             'target_type' => 'all',
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
         $response->assertSessionHasErrors(['name']);
     }
@@ -136,7 +154,7 @@ class DistributionsControllerTest extends TestCase
             'target_type' => 'all',
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
         $response->assertSessionHasErrors(['type']);
     }
@@ -149,7 +167,7 @@ class DistributionsControllerTest extends TestCase
             'target_type' => 'invalid_target',
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
         $response->assertSessionHasErrors(['target_type']);
     }
@@ -163,7 +181,7 @@ class DistributionsControllerTest extends TestCase
             'group_id' => 999, // Non-existent group
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
         $response->assertSessionHasErrors(['group_id']);
     }
@@ -177,7 +195,7 @@ class DistributionsControllerTest extends TestCase
             'scheduled_at' => 'invalid-date',
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
         $response->assertSessionHasErrors(['scheduled_at']);
     }
@@ -191,7 +209,7 @@ class DistributionsControllerTest extends TestCase
             'files' => 'not-an-array',
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
         $response->assertSessionHasErrors(['files']);
     }
@@ -208,7 +226,7 @@ class DistributionsControllerTest extends TestCase
             'files' => [$file],
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
         $response->assertSessionHasErrors(['files.0']);
     }
@@ -234,9 +252,9 @@ class DistributionsControllerTest extends TestCase
             'files' => [$file],
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
-        $response->assertRedirect(route('distributions.index'));
+        $response->assertRedirect(route('admin.distributions.index'));
         $response->assertSessionHas('success', 'Distribution created successfully');
     }
 
@@ -247,12 +265,12 @@ class DistributionsControllerTest extends TestCase
             ->hasTargets(2)
             ->create(['created_by' => $this->admin->id]);
 
-        $response = $this->get(route('distributions.show', $distribution));
+        $response = $this->get(route('admin.distributions.show', $distribution));
 
         $response->assertStatus(200);
         $response->assertViewIs('admin.distributions.show');
         $response->assertViewHas('distribution');
-        
+
         $viewDistribution = $response->viewData('distribution');
         $this->assertTrue($viewDistribution->relationLoaded('files'));
         $this->assertTrue($viewDistribution->relationLoaded('targets'));
@@ -266,7 +284,7 @@ class DistributionsControllerTest extends TestCase
             ->hasTargets(1)
             ->create(['created_by' => $this->admin->id]);
 
-        $response = $this->get(route('distributions.show', $distribution));
+        $response = $this->get(route('admin.distributions.show', $distribution));
 
         $response->assertStatus(200);
         $viewDistribution = $response->viewData('distribution');
@@ -278,11 +296,11 @@ class DistributionsControllerTest extends TestCase
     {
         $distribution = Distribution::factory()->create(['created_by' => $this->admin->id]);
 
-        $response = $this->delete(route('distributions.destroy', $distribution));
+        $response = $this->delete(route('admin.distributions.destroy', $distribution));
 
-        $response->assertRedirect(route('distributions.index'));
+        $response->assertRedirect(route('admin.distributions.index'));
         $response->assertSessionHas('success', 'Distribution deleted');
-        
+
         $this->assertDatabaseMissing('distributions', ['id' => $distribution->id]);
     }
 
@@ -303,9 +321,9 @@ class DistributionsControllerTest extends TestCase
             'targets' => [1, 2, 3],
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
-        $response->assertRedirect(route('distributions.index'));
+        $response->assertRedirect(route('admin.distributions.index'));
         $response->assertSessionHas('success', 'Distribution created successfully');
     }
 
@@ -317,9 +335,9 @@ class DistributionsControllerTest extends TestCase
                 ->once()
                 ->with(
                     \Mockery::on(function ($data) {
-                        return isset($data['name']) && 
-                               isset($data['type']) && 
-                               isset($data['description']) && 
+                        return isset($data['name']) &&
+                               isset($data['type']) &&
+                               isset($data['description']) &&
                                isset($data['target_type']);
                     }),
                     $this->admin->id
@@ -336,8 +354,8 @@ class DistributionsControllerTest extends TestCase
             'target_type' => 'all',
         ];
 
-        $response = $this->post(route('distributions.store'), $data);
+        $response = $this->post(route('admin.distributions.store'), $data);
 
-        $response->assertRedirect(route('distributions.index'));
+        $response->assertRedirect(route('admin.distributions.index'));
     }
 }

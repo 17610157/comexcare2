@@ -1,0 +1,28 @@
+{
+    "server": {
+        "host": "127.0.0.1",
+        "port": 6001,
+        "backends": ["redis://127.0.0.1:6379"]
+    },
+    "database": {
+        "redis": {
+            "host": "127.0.0.1",
+            "port": 6379,
+            "password": null,
+            "database": 0
+        }
+    },
+    "apps": [
+        {
+            "id": "comexcare",
+            "key": "comexcare-key",
+            "secret": "comexcare-secret",
+            "maxConnections": 100,
+            "enableClientMessages": false,
+            "enabled": true
+        }
+    ],
+    "metrics": {
+        "enabled": false
+    }
+}

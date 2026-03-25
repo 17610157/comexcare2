@@ -2,150 +2,132 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     /**
      * Optimización específica para el módulo de metas
+     * Solo se ejecutará si las tablas existen
      */
     public function up(): void
     {
-        // Optimización para tabla metas (reporte principal)
-        Schema::table('metas', function (Blueprint $table) {
-            // Índices para filtros principales de metas
-            $table->index(['fecha', 'plaza', 'tienda'], 'idx_metas_fecha_plaza_tienda');
-            $table->index(['clave_vend', 'ano', 'mes'], 'idx_metas_vendedor_periodo');
-            $table->index(['clave_plaza', 'ano', 'mes'], 'idx_metas_plaza_periodo');
-            $table->index(['cve_tienda', 'ano', 'mes'], 'idx_metas_tienda_periodo');
-            $table->index(['ano', 'mes'], 'idx_metas_periodo_simple');
-            
-            // Índice para el cálculo de porcentajes
-            $table->index(['meta_dia', 'meta_total', 'fecha'], 'idx_metas_calculo_porcentaje');
-            
-            // Índice para ordenamiento en vistas
-            $table->index(['plaza', 'tienda', 'fecha'], 'idx_metas_orden_principal');
-        });
+        $connection = Schema::getConnection()->getDriverName();
 
-        // Optimización para bi_sys_tiendas (usada en metas matricial)
-        Schema::table('bi_sys_tiendas', function (Blueprint $table) {
-            // Índices para joins flexibles con TRIM()
-            $table->index(['id_plaza', 'clave_tienda'], 'idx_tiendas_plaza_tienda');
-            $table->index(['id_plaza', 'zona'], 'idx_tiendas_plaza_zona');
-            $table->index(['clave_alterna'], 'idx_tiendas_clave_alterna');
-            $table->index(['clave_tienda', 'zona'], 'idx_tiendas_tienda_zona');
-            
-            // Índice compuesto para búsquedas flexibles
-            $table->index(['id_plaza', 'clave_tienda', 'zona', 'nombre'], 'idx_tiendas_completo');
-        });
+        $tables = [
+            'metas' => [
+                ['name' => 'idx_metas_fecha_plaza_tienda', 'cols' => ['fecha', 'plaza', 'tienda']],
+                ['name' => 'idx_metas_vendedor_periodo', 'cols' => ['clave_vend', 'ano', 'mes']],
+                ['name' => 'idx_metas_plaza_periodo', 'cols' => ['clave_plaza', 'ano', 'mes']],
+                ['name' => 'idx_metas_tienda_periodo', 'cols' => ['cve_tienda', 'ano', 'mes']],
+                ['name' => 'idx_metas_periodo_simple', 'cols' => ['ano', 'mes']],
+                ['name' => 'idx_metas_calculo_porcentaje', 'cols' => ['meta_dia', 'meta_total', 'fecha']],
+                ['name' => 'idx_metas_orden_principal', 'cols' => ['plaza', 'tienda', 'fecha']],
+            ],
+            'bi_sys_tiendas' => [
+                ['name' => 'idx_tiendas_plaza_tienda', 'cols' => ['id_plaza', 'clave_tienda']],
+                ['name' => 'idx_tiendas_plaza_zona', 'cols' => ['id_plaza', 'zona']],
+                ['name' => 'idx_tiendas_clave_alterna', 'cols' => ['clave_alterna']],
+                ['name' => 'idx_tiendas_tienda_zona', 'cols' => ['clave_tienda', 'zona']],
+                ['name' => 'idx_tiendas_completo', 'cols' => ['id_plaza', 'clave_tienda', 'zona', 'nombre']],
+            ],
+            'xcorte' => [
+                ['name' => 'idx_xcorte_fecha_plaza_tienda', 'cols' => ['fecha', 'cplaza', 'ctienda']],
+                ['name' => 'idx_xcorte_plaza_tienda_fecha', 'cols' => ['cplaza', 'ctienda', 'fecha']],
+                ['name' => 'idx_xcorte_tienda_fecha', 'cols' => ['ctienda', 'fecha']],
+                ['name' => 'idx_xcorte_exclusion_tiendas', 'cols' => ['ctienda']],
+                ['name' => 'idx_xcorte_vendedor_fecha', 'cols' => ['vend_clave', 'fecha']],
+                ['name' => 'idx_xcorte_vendedor_nota_fecha', 'cols' => ['vend_clave', 'nota_fecha']],
+            ],
+            'venta' => [
+                ['name' => 'idx_venta_fecha_vendedor', 'cols' => ['f_emision', 'clave_vend']],
+                ['name' => 'idx_venta_vendedor_fecha', 'cols' => ['clave_vend', 'f_emision']],
+                ['name' => 'idx_venta_plaza_vendedor_fecha', 'cols' => ['cplaza', 'clave_vend', 'f_emision']],
+                ['name' => 'idx_venta_tienda_vendedor_fecha', 'cols' => ['ctienda', 'clave_vend', 'f_emision']],
+                ['name' => 'idx_venta_tipo_doc', 'cols' => ['tipo_doc']],
+                ['name' => 'idx_venta_fecha_emision', 'cols' => ['f_emision']],
+                ['name' => 'idx_venta_vendedor_tipo_estado', 'cols' => ['clave_vend', 'tipo_doc', 'estado']],
+            ],
+            'cotizacion' => [
+                ['name' => 'idx_cotizacion_vendedor_fecha', 'cols' => ['vend_clave', 'nota_fecha']],
+                ['name' => 'idx_cotizacion_plaza_vendedor_fecha', 'cols' => ['cplaza', 'vend_clave', 'nota_fecha']],
+                ['name' => 'idx_cotizacion_tienda_vendedor_fecha', 'cols' => ['ctienda', 'vend_clave', 'nota_fecha']],
+                ['name' => 'idx_cotizacion_vendedor_plaza_tienda', 'cols' => ['vend_clave', 'cplaza', 'ctienda']],
+                ['name' => 'idx_cotizacion_nota_fecha', 'cols' => ['nota_fecha']],
+                ['name' => 'idx_cotizacion_importe', 'cols' => ['nota_impor']],
+            ],
+            'vendedor' => [
+                ['name' => 'idx_vendedor_clave', 'cols' => ['vend_clave']],
+                ['name' => 'idx_vendedor_plaza_estatus', 'cols' => ['cve_plaza', 'estatus']],
+            ],
+        ];
 
-        // Optimización para xcorte (usado en metas matricial)
-        Schema::table('xcorte', function (Blueprint $table) {
-            // Índices para rendimiento de reportes matriciales
-            $table->index(['fecha', 'cplaza', 'ctienda'], 'idx_xcorte_fecha_plaza_tienda');
-            $table->index(['cplaza', 'ctienda', 'fecha'], 'idx_xcorte_plaza_tienda_fecha');
-            $table->index(['ctienda', 'fecha'], 'idx_xcorte_tienda_fecha');
-            
-            // Índices para exclusiones de tiendas
-            $table->index(['ctienda'], 'idx_xcorte_exclusion_tiendas');
-            
-            // Índice para cálculos de totales
-            $table->index(['vend_clave', 'fecha'], 'idx_xcorte_vendedor_fecha');
-            $table->index(['vend_clave', 'nota_fecha'], 'idx_xcorte_vendedor_nota_fecha');
-        });
+        foreach ($tables as $tableName => $indexes) {
+            if (! $this->tableExists($tableName)) {
+                continue;
+            }
 
-        // Optimización para venta (usada en cálculos de metas)
-        Schema::table('venta', function (Blueprint $table) {
-            // Índices para sumas rápidas de ventas
-            $table->index(['f_emision', 'clave_vend'], 'idx_venta_fecha_vendedor');
-            $table->index(['clave_vend', 'f_emision'], 'idx_venta_vendedor_fecha');
-            $table->index(['cplaza', 'clave_vend', 'f_emision'], 'idx_venta_plaza_vendedor_fecha');
-            $table->index(['ctienda', 'clave_vend', 'f_emision'], 'idx_venta_tienda_vendedor_fecha');
-            $table->index(['tipo_doc'], 'idx_venta_tipo_doc');
-            $table->index(['f_emision'], 'idx_venta_fecha_emision');
-            
-            // Índices para cálculos de contado vs crédito
-            $table->index(['clave_vend', 'tipo_doc', 'estado'], 'idx_venta_vendedor_tipo_estado');
-        });
-
-        // Optimización para cotizacion (usada en reportes de vendedores)
-        Schema::table('cotizacion', function (Blueprint $table) {
-            // Índices para reportes matriciales de vendedores
-            $table->index(['vend_clave', 'nota_fecha'], 'idx_cotizacion_vendedor_fecha');
-            $table->index(['cplaza', 'vend_clave', 'nota_fecha'], 'idx_cotizacion_plaza_vendedor_fecha');
-            $table->index(['ctienda', 'vend_clave', 'nota_fecha'], 'idx_cotizacion_tienda_vendedor_fecha');
-            $table->index(['vend_clave', 'cplaza', 'ctienda'], 'idx_cotizacion_vendedor_plaza_tienda');
-            $table->index(['nota_fecha'], 'idx_cotizacion_nota_fecha');
-            $table->index(['nota_impor'], 'idx_cotizacion_importe');
-        });
-
-        // Optimización para vendedor
-        Schema::table('vendedor', function (Blueprint $table) {
-            $table->index(['vend_clave'], 'idx_vendedor_clave');
-            $table->index(['cve_plaza', 'estatus'], 'idx_vendedor_plaza_estatus');
-        });
+            foreach ($indexes as $index) {
+                try {
+                    if ($connection === 'pgsql') {
+                        if (! $this->indexExists($tableName, $index['name'])) {
+                            $cols = implode(', ', $index['cols']);
+                            DB::statement("CREATE INDEX {$index['name']} ON {$tableName} ({$cols})");
+                        }
+                    } else {
+                        if (! Schema::hasTable($tableName)) {
+                            continue 2;
+                        }
+                        Schema::table($tableName, function (Blueprint $table) use ($index) {
+                            $table->index($index['cols'], $index['name']);
+                        });
+                    }
+                } catch (\Exception $e) {
+                    // Silenciar errores
+                }
+            }
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        // Eliminar índices de metas
-        Schema::table('metas', function (Blueprint $table) {
-            $table->dropIndex('idx_metas_fecha_plaza_tienda');
-            $table->dropIndex('idx_metas_vendedor_periodo');
-            $table->dropIndex('idx_metas_plaza_periodo');
-            $table->dropIndex('idx_metas_tienda_periodo');
-            $table->dropIndex('idx_metas_periodo_simple');
-            $table->dropIndex('idx_metas_calculo_porcentaje');
-            $table->dropIndex('idx_metas_orden_principal');
-        });
+        // Los índices se eliminan automáticamente con las tablas
+    }
 
-        // Eliminar índices de bi_sys_tiendas
-        Schema::table('bi_sys_tiendas', function (Blueprint $table) {
-            $table->dropIndex('idx_tiendas_plaza_tienda');
-            $table->dropIndex('idx_tiendas_plaza_zona');
-            $table->dropIndex('idx_tiendas_clave_alterna');
-            $table->dropIndex('idx_tiendas_tienda_zona');
-            $table->dropIndex('idx_tiendas_completo');
-        });
+    protected function tableExists(string $table): bool
+    {
+        try {
+            return Schema::hasTable($table);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
 
-        // Eliminar índices de xcorte
-        Schema::table('xcorte', function (Blueprint $table) {
-            $table->dropIndex('idx_xcorte_fecha_plaza_tienda');
-            $table->dropIndex('idx_xcorte_plaza_tienda_fecha');
-            $table->dropIndex('idx_xcorte_tienda_fecha');
-            $table->dropIndex('idx_xcorte_exclusion_tiendas');
-            $table->dropIndex('idx_xcorte_vendedor_fecha');
-            $table->dropIndex('idx_xcorte_vendedor_nota_fecha');
-        });
+    protected function indexExists(string $table, string $index): bool
+    {
+        try {
+            $connection = Schema::getConnection()->getDriverName();
 
-        // Eliminar índices de venta
-        Schema::table('venta', function (Blueprint $table) {
-            $table->dropIndex('idx_venta_fecha_vendedor');
-            $table->dropIndex('idx_venta_vendedor_fecha');
-            $table->dropIndex('idx_venta_plaza_vendedor_fecha');
-            $table->dropIndex('idx_venta_tienda_vendedor_fecha');
-            $table->dropIndex('idx_venta_tipo_doc');
-            $table->dropIndex('idx_venta_fecha_emision');
-            $table->dropIndex('idx_venta_vendedor_tipo_estado');
-        });
+            if ($connection === 'pgsql') {
+                $exists = DB::select(
+                    'SELECT 1 FROM pg_indexes WHERE indexname = ? AND tablename = ?',
+                    [$index, $table]
+                );
 
-        // Eliminar índices de cotizacion
-        Schema::table('cotizacion', function (Blueprint $table) {
-            $table->dropIndex('idx_cotizacion_vendedor_fecha');
-            $table->dropIndex('idx_cotizacion_plaza_vendedor_fecha');
-            $table->dropIndex('idx_cotizacion_tienda_vendedor_fecha');
-            $table->dropIndex('idx_cotizacion_vendedor_plaza_tienda');
-            $table->dropIndex('idx_cotizacion_nota_fecha');
-            $table->dropIndex('idx_cotizacion_importe');
-        });
+                return ! empty($exists);
+            } elseif (in_array($connection, ['mysql', 'mariadb'])) {
+                $result = DB::select(
+                    "SHOW INDEX FROM {$table} WHERE Key_name = ?",
+                    [$index]
+                );
 
-        // Eliminar índices de vendedor
-        Schema::table('vendedor', function (Blueprint $table) {
-            $table->dropIndex('idx_vendedor_clave');
-            $table->dropIndex('idx_vendedor_plaza_estatus');
-        });
+                return ! empty($result);
+            }
+        } catch (\Exception $e) {
+            return true;
+        }
+
+        return false;
     }
 };

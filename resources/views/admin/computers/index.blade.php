@@ -61,8 +61,8 @@
         </div>
     </div>
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover table-sm" id="computers-table" style="width:100%;">
+        <div class="table-responsive" style="overflow-x: auto;">
+            <table class="table table-bordered table-hover table-sm" id="computers-table" style="min-width: 1500px;">
                 <thead class="table-dark">
                     <tr>
                         <th>Short Key</th>
@@ -72,6 +72,13 @@
                         <th>Status</th>
                         <th>Group</th>
                         <th>Agent Version</th>
+                        <th>PVSI Version</th>
+                        <th>PVSI Files</th>
+                        <th>Windows</th>
+                        <th>Arquitectura</th>
+                        <th>RAM</th>
+                        <th>Disco</th>
+                        <th>BitLocker</th>
                         <th>Download Path</th>
                         <th>Last Seen</th>
                         <th>Actions</th>
@@ -149,6 +156,59 @@
                 { data: 'agent_version', name: 'agent_version', render: function(data) {
                     if (data && data !== '-') {
                         return '<span class="badge bg-secondary">' + jQuery('<div>').text(data).html() + '</span>';
+                    }
+                    return '<span class="text-muted">-</span>';
+                }},
+                { data: 'pvsi_version', name: 'pvsi_version', render: function(data) {
+                    if (data && data !== '-') {
+                        return '<span class="badge bg-primary">' + jQuery('<div>').text(data).html() + '</span>';
+                    }
+                    return '<span class="text-muted">-</span>';
+                }},
+                { data: 'pvsi_files', name: 'pvsi_files', render: function(data) {
+                    if (data && Array.isArray(data) && data.length > 0) {
+                        var html = '<div>';
+                        data.forEach(function(file) {
+                            html += '<span class="badge bg-info" style="margin:2px;">' + (file.file_name || 'N/A') + '</span>';
+                        });
+                        html += '</div>';
+                        return html;
+                    }
+                    return '<span class="text-muted">-</span>';
+                }},
+                { data: 'windows_version', name: 'windows_version', render: function(data) {
+                    if (data && data !== '-') {
+                        return jQuery('<div>').text(data).html();
+                    }
+                    return '<span class="text-muted">-</span>';
+                }},
+                { data: 'architecture', name: 'architecture', render: function(data) {
+                    if (data && data !== '-') {
+                        return '<span class="badge bg-dark">' + jQuery('<div>').text(data).html() + '</span>';
+                    }
+                    return '<span class="text-muted">-</span>';
+                }},
+                { data: 'total_ram', name: 'total_ram', render: function(data) {
+                    if (data && data > 0) {
+                        return Math.round(data / 1073741824) + ' GB';
+                    }
+                    return '<span class="text-muted">-</span>';
+                }},
+                { data: 'total_disk_space', name: 'total_disk_space', render: function(data) {
+                    if (data && data > 0) {
+                        return Math.round(data / 1073741824) + ' GB';
+                    }
+                    return '<span class="text-muted">-</span>';
+                }},
+                { data: 'bitlocker_status', name: 'bitlocker_status', render: function(data) {
+                    if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+                        var html = '';
+                        for (var drive in data) {
+                            var status = data[drive];
+                            var cls = status === 'Enabled' ? 'bg-success' : 'bg-danger';
+                            html += '<span class="badge ' + cls + ' me-1" style="font-size:0.7rem;">' + drive + ' ' + status + '</span>';
+                        }
+                        return html;
                     }
                     return '<span class="text-muted">-</span>';
                 }},
