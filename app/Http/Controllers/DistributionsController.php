@@ -35,6 +35,8 @@ class DistributionsController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:immediate,scheduled,recurring',
+            'distribution_type' => 'nullable|in:file,update',
+            'subfolder' => 'nullable|string|max:255',
             'files' => 'nullable|array',
             'files.*' => 'file|max:204800', // 200MB
             'target_type' => 'required|in:all,group,specific',

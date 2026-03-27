@@ -17,6 +17,8 @@ class DistributionService
         $distribution = Distribution::create([
             'name' => $data['name'],
             'type' => $data['type'],
+            'distribution_type' => $data['distribution_type'] ?? 'file',
+            'subfolder' => $data['subfolder'] ?? null,
             'schedule' => $data['schedule'] ?? null,
             'description' => $data['description'] ?? null,
             'created_by' => $userId,
@@ -72,16 +74,24 @@ class DistributionService
 
     public function sendDownloadCommand(DistributionTarget $target)
     {
-        $files = $target->distribution->files;
+        $distribution = $target->distribution;
+        $files = $distribution->files;
+        $subfolder = $distribution->subfolder;
 
         foreach ($files as $file) {
+            $commandData = [
+                'file_id' => $file->id,
+                'distribution_target_id' => $target->id,
+            ];
+
+            if ($distribution->distribution_type === 'update' && $subfolder) {
+                $commandData['subfolder'] = $subfolder;
+            }
+
             Command::create([
                 'computer_id' => $target->computer_id,
-                'type' => 'download',
-                'data' => [
-                    'file_id' => $file->id,
-                    'distribution_target_id' => $target->id,
-                ],
+                'type' => $distribution->distribution_type === 'update' ? 'update' : 'download',
+                'data' => $commandData,
             ]);
         }
     }

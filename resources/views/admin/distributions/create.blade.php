@@ -104,6 +104,26 @@
                     <textarea name="description" class="form-control" rows="2"></textarea>
                 </div>
 
+                <!-- Tipo de distribución -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Tipo de Distribución *</label>
+                            <select name="distribution_type" class="form-control" id="distributionType">
+                                <option value="file">Archivo Normal</option>
+                                <option value="update">Actualización (Subcarpeta)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6" id="subfolderRow" style="display:none;">
+                        <div class="form-group">
+                            <label>Subcarpeta de Destino *</label>
+                            <input type="text" name="subfolder" class="form-control" placeholder="ej: actualizaciones/2026">
+                            <small class="text-muted">La subcarpeta debe existir en la ruta principal del equipo</small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Archivos -->
                 <div class="card card-info mt-3">
                     <div class="card-header">
@@ -160,44 +180,73 @@
     </div>
 
     <script>
-        document.getElementById('typeSelect').addEventListener('change', function() {
-            document.getElementById('scheduledRow').style.display = this.value === 'scheduled' ? 'flex' : 'none';
-            document.getElementById('recurringRow').style.display = this.value === 'recurring' ? 'flex' : 'none';
-        });
-
-        document.getElementById('recurrenceSelect').addEventListener('change', function() {
-            const recurrence = this.value;
-            document.getElementById('weekDaysRow').style.display = recurrence === 'weekly' ? 'block' : 'none';
-            document.getElementById('frequencyIntervalRow').style.display = (recurrence === 'hourly' || recurrence === 'minutes') ? 'block' : 'none';
-            document.getElementById('hourlyTimeRow').style.display = (recurrence === 'daily' || recurrence === 'weekly' || recurrence === 'monthly') ? 'block' : 'none';
-            
-            const intervalLabel = document.querySelector('#frequencyIntervalRow label');
-            const intervalSelect = document.getElementById('frequencyInterval');
-            intervalSelect.innerHTML = '';
-            
-            if (recurrence === 'hourly') {
-                intervalLabel.textContent = 'Cada cuántas horas:';
-                for (let i = 1; i <= 23; i++) {
-                    const opt = document.createElement('option');
-                    opt.value = i;
-                    opt.textContent = i;
-                    intervalSelect.appendChild(opt);
-                }
-            } else if (recurrence === 'minutes') {
-                intervalLabel.textContent = 'Cada cuántos minutos:';
-                const values = [1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 45, 60];
-                values.forEach(v => {
-                    const opt = document.createElement('option');
-                    opt.value = v;
-                    opt.textContent = v;
-                    intervalSelect.appendChild(opt);
+        document.addEventListener('DOMContentLoaded', function() {
+            var typeSelect = document.getElementById('typeSelect');
+            if (typeSelect) {
+                typeSelect.addEventListener('change', function() {
+                    var scheduledRow = document.getElementById('scheduledRow');
+                    var recurringRow = document.getElementById('recurringRow');
+                    if (scheduledRow) scheduledRow.style.display = this.value === 'scheduled' ? 'flex' : 'none';
+                    if (recurringRow) recurringRow.style.display = this.value === 'recurring' ? 'flex' : 'none';
                 });
             }
-        });
 
-        document.getElementById('targetType').addEventListener('change', function() {
-            document.getElementById('groupsSelect').style.display = this.value === 'group' ? 'block' : 'none';
-            document.getElementById('specificComputers').style.display = this.value === 'specific' ? 'block' : 'none';
+            var recurrenceSelect = document.getElementById('recurrenceSelect');
+            if (recurrenceSelect) {
+                recurrenceSelect.addEventListener('change', function() {
+                    var recurrence = this.value;
+                    var weekDaysRow = document.getElementById('weekDaysRow');
+                    var frequencyIntervalRow = document.getElementById('frequencyIntervalRow');
+                    var hourlyTimeRow = document.getElementById('hourlyTimeRow');
+                    
+                    if (weekDaysRow) weekDaysRow.style.display = recurrence === 'weekly' ? 'block' : 'none';
+                    if (frequencyIntervalRow) frequencyIntervalRow.style.display = (recurrence === 'hourly' || recurrence === 'minutes') ? 'block' : 'none';
+                    if (hourlyTimeRow) hourlyTimeRow.style.display = (recurrence === 'daily' || recurrence === 'weekly' || recurrence === 'monthly') ? 'block' : 'none';
+                    
+                    var intervalLabel = document.querySelector('#frequencyIntervalRow label');
+                    var intervalSelect = document.getElementById('frequencyInterval');
+                    if (intervalSelect) {
+                        intervalSelect.innerHTML = '';
+                        
+                        if (recurrence === 'hourly' && intervalLabel) {
+                            intervalLabel.textContent = 'Cada cuántas horas:';
+                            for (var i = 1; i <= 23; i++) {
+                                var opt = document.createElement('option');
+                                opt.value = i;
+                                opt.textContent = i;
+                                intervalSelect.appendChild(opt);
+                            }
+                        } else if (recurrence === 'minutes' && intervalLabel) {
+                            intervalLabel.textContent = 'Cada cuántos minutos:';
+                            var values = [1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 45, 60];
+                            values.forEach(function(v) {
+                                var opt = document.createElement('option');
+                                opt.value = v;
+                                opt.textContent = v;
+                                intervalSelect.appendChild(opt);
+                            });
+                        }
+                    }
+                });
+            }
+
+            var targetType = document.getElementById('targetType');
+            if (targetType) {
+                targetType.addEventListener('change', function() {
+                    var groupsSelect = document.getElementById('groupsSelect');
+                    var specificComputers = document.getElementById('specificComputers');
+                    if (groupsSelect) groupsSelect.style.display = this.value === 'group' ? 'block' : 'none';
+                    if (specificComputers) specificComputers.style.display = this.value === 'specific' ? 'block' : 'none';
+                });
+            }
+
+            var distributionType = document.getElementById('distributionType');
+            if (distributionType) {
+                distributionType.addEventListener('change', function() {
+                    var subfolderRow = document.getElementById('subfolderRow');
+                    if (subfolderRow) subfolderRow.style.display = this.value === 'update' ? 'block' : 'none';
+                });
+            }
         });
     </script>
 @stop

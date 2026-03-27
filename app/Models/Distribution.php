@@ -12,6 +12,8 @@ class Distribution extends Model
     protected $fillable = [
         'name',
         'type',
+        'distribution_type',
+        'subfolder',
         'schedule',
         'description',
         'created_by',

@@ -19,4 +19,9 @@ return [
     ],
 
     'channel' => env('BROADCAST_CHANNEL', 'distribution'),
+
+    'socket_io' => [
+        'host' => env('SOCKET_IO_HOST', '127.0.0.1'),
+        'port' => env('SOCKET_IO_PORT', 6001),
+    ],
 ];

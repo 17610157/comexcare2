@@ -1,0 +1,16 @@
+[Unit]
+Description=Laravel Scheduler
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/comexcare2
+ExecStart=/usr/bin/php /var/www/comexcare2/artisan schedule:run
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/www/comexcare2/storage/logs/scheduler.log
+StandardError=append:/var/www/comexcare2/storage/logs/scheduler.log
+
+[Install]
+WantedBy=multi-user.target

@@ -228,6 +228,26 @@
                             <label>Description</label>
                             <textarea name="description" class="form-control" rows="3"></textarea>
                         </div>
+
+                        <!-- Tipo de distribución -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Tipo de Distribución</label>
+                                    <select name="distribution_type" class="form-control" id="modalDistributionTypeField">
+                                        <option value="file">Archivo Normal</option>
+                                        <option value="update">Actualización (Subcarpeta)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6" id="modalSubfolderRow" style="display:none;">
+                                <div class="form-group">
+                                    <label>Subcarpeta de Destino</label>
+                                    <input type="text" name="subfolder" class="form-control" placeholder="ej: actualizaciones/2026">
+                                    <small class="text-muted">La subcarpeta debe existir en la ruta principal</small>
+                                </div>
+                            </div>
+                        </div>
                         <div class="form-group">
                             <label>Files *</label>
                             <input type="file" name="files[]" class="form-control" multiple required id="fileInput">
@@ -686,6 +706,11 @@ $(document).ready(function() {
     $('#modalDistributionType').change(function() {
         $('#modalScheduledRow').toggle(this.value === 'scheduled');
         $('#modalRecurringRow').toggle(this.value === 'recurring');
+    });
+
+    // Update type change (modal) - show/hide subfolder
+    $('#modalDistributionTypeField').change(function() {
+        $('#modalSubfolderRow').toggle(this.value === 'update');
     });
 
     // Recurrence change (modal)

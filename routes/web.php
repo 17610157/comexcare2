@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ReporteComprasDirectoController;
+use App\Http\Controllers\ReporteDbfFilesController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
@@ -175,6 +176,14 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
     Route::post('compras-directo/sync', [ReporteComprasDirectoController::class, 'sync'])
         ->middleware('can:reportes.compras-directo.sincronizar')
         ->name('reportes.compras-directo.sync');
+
+    // REPORTE: DBF Files (Computadoras)
+    Route::get('dbf-files', [ReporteDbfFilesController::class, 'index'])
+        ->name('reportes.dbf-files')->middleware('can:reportes.compras-directo.ver');
+    Route::get('dbf-files/data', [ReporteDbfFilesController::class, 'data'])
+        ->name('reportes.dbf-files.data')->middleware('can:reportes.compras-directo.ver');
+    Route::get('dbf-files/export', [ReporteDbfFilesController::class, 'export'])
+        ->name('reportes.dbf-files.export')->middleware('can:reportes.compras-directo.ver');
 
     // Redenciones Club Comex
     Route::get('redenciones-club', [ReporteRedencionesClubController::class, 'index'])

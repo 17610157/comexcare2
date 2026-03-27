@@ -92,6 +92,23 @@
 </div>
 @stop
 
+@section('css')
+<style>
+.status-online {
+    color: #28a745;
+    font-weight: bold;
+}
+.status-offline {
+    color: #dc3545;
+    font-weight: bold;
+}
+.status-pending {
+    color: #ffc107;
+    font-weight: bold;
+}
+</style>
+@stop
+
 @section('js')
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>

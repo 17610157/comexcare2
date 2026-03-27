@@ -1,0 +1,16 @@
+[Unit]
+Description=Laravel Queue Worker - Distributions
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/comexcare2
+ExecStart=/usr/bin/php /var/www/comexcare2/artisan queue:work redis --queue=distributions --sleep=3 --tries=3 --timeout=300
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/www/comexcare2/storage/logs/worker_distributions.log
+StandardError=append:/var/www/comexcare2/storage/logs/worker_distributions.log
+
+[Install]
+WantedBy=multi-user.target
