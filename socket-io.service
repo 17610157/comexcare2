@@ -1,0 +1,16 @@
+[Unit]
+Description=Socket.io WebSocket Server
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/comexcare2
+ExecStart=/usr/bin/node /var/www/comexcare2/socket-server.cjs
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/www/comexcare2/storage/logs/socket-io.log
+StandardError=append:/var/www/comexcare2/storage/logs/socket-io.log
+
+[Install]
+WantedBy=multi-user.target

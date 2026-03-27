@@ -292,6 +292,10 @@ class AgentController extends Controller
 
             if ($command->type === 'distribute' || $command->type === 'update' || $command->type === 'download') {
                 $commandArray['download_paths'] = $computer->getAllDownloadPaths();
+
+                if ($command->type === 'update' && isset($data['subfolder'])) {
+                    $commandArray['subfolder'] = $data['subfolder'];
+                }
             }
 
             // Para comandos de recepción, enviar las rutas de receive_paths y configuración

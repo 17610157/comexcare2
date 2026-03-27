@@ -407,6 +407,12 @@ return [
                     'can' => 'reportes.compras-directo.ver',
                 ],
                 [
+                    'text' => 'Archivos DBF',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/dbf-files',
+                    'can' => 'reportes.compras-directo.ver',
+                ],
+                [
                     'text' => 'Reporte Cargos y Abonos',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/cartera-abonos',
