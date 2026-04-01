@@ -389,15 +389,21 @@ return [
                     'can' => 'reportes.vendedores.matricial.ver',
                 ],
                 [
-                    'text' => 'Reporte Metas Diario',
+                    'text' => 'Metas',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-ventas',
                     'can' => 'reportes.metas-ventas.ver',
                 ],
                 [
-                    'text' => 'Reporte Metas Mensual',
+                    'text' => 'Resumen',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/metas-matricial',
+                    'can' => 'reportes.metas-matricial.ver',
+                ],
+                [
+                    'text' => 'Desglose',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/desglose',
                     'can' => 'reportes.metas-matricial.ver',
                 ],
                 [

@@ -4,7 +4,7 @@
 
 @section('content_header')
 <div class="d-flex justify-content-between align-items-center">
-    <h1><i class="fas fa-chart-bar text-success"></i> Metas de Ventas - Matricial</h1>
+    <h1><i class="fas fa-chart-bar text-success"></i> Reporte Resumen por tienda</h1>
     <div>
         @hasPermission('reportes.metas_matricial.exportar')
         <form id="export-excel-form" method="POST" action="{{ route('reportes.metas-matricial.export') }}" style="display: inline;">
@@ -60,12 +60,14 @@
                     <label>Plazas</label>
                     <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
                         <div class="form-check">
-                            <input type="checkbox" id="select_all_plazas" class="form-check-input">
+                            <input type="checkbox" id="select_all_plazas" class="form-check-input"
+                                   {{ isset($plazas) && is_array($plazas) && isset($plazaArray) && is_array($plazaArray) && count($plazas) === count($plazaArray) ? 'checked' : '' }}>
                             <label for="select_all_plazas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
                         </div>
                         @php
                             $plazaArray = is_array($plaza) ? $plaza : ($plaza ? explode(',', $plaza) : []);
                         @endphp
+                        @if(isset($plazas) && is_array($plazas))
                         @foreach($plazas as $p)
                         <div class="form-check">
                             <input type="checkbox" name="plaza[]" value="{{ $p }}" id="plaza_{{ $p }}" class="form-check-input plaza-checkbox"
@@ -73,18 +75,21 @@
                             <label for="plaza_{{ $p }}" class="form-check-label">{{ $p }}</label>
                         </div>
                         @endforeach
+                        @endif
                     </div>
                 </div>
                 <div class="col-md-2">
                     <label>Tiendas</label>
                     <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
                         <div class="form-check">
-                            <input type="checkbox" id="select_all_tiendas" class="form-check-input">
+                            <input type="checkbox" id="select_all_tiendas" class="form-check-input"
+                                   {{ isset($tiendas) && is_array($tiendas) && isset($tiendaArray) && is_array($tiendaArray) && count($tiendas) === count($tiendaArray) ? 'checked' : '' }}>
                             <label for="select_all_tiendas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
                         </div>
                         @php
                             $tiendaArray = is_array($tienda) ? $tienda : ($tienda ? explode(',', $tienda) : []);
                         @endphp
+                        @if(isset($tiendas) && is_array($tiendas))
                         @foreach($tiendas as $t)
                         <div class="form-check">
                             <input type="checkbox" name="tienda[]" value="{{ $t }}" id="tienda_{{ $t }}" class="form-check-input tienda-checkbox"
@@ -92,11 +97,29 @@
                             <label for="tienda_{{ $t }}" class="form-check-label">{{ $t }}</label>
                         </div>
                         @endforeach
+                        @endif
                     </div>
                 </div>
                 <div class="col-md-2">
                     <label>Zona</label>
-                    <input type="text" name="zona" value="{{ $zona ?? '' }}" class="form-control" placeholder="Opcional">
+                    <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
+                        <div class="form-check">
+                            <input type="checkbox" id="select_all_zonas" class="form-check-input"
+                                   {{ empty($zona) ? 'checked' : '' }}>
+                            <label for="select_all_zonas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
+                        </div>
+                        @php
+                            $zonas = range(1, 10);
+                            $zonaArray = $zona ? explode(',', $zona) : [];
+                        @endphp
+                        @foreach($zonas as $z)
+                        <div class="form-check">
+                            <input type="checkbox" name="zona[]" value="{{ $z }}" id="zona_{{ $z }}" class="form-check-input zona-checkbox"
+                                   {{ in_array((string)$z, $zonaArray) || empty($zonaArray) ? 'checked' : '' }}>
+                            <label for="zona_{{ $z }}" class="form-check-label">{{ $z }}</label>
+                        </div>
+                        @endforeach
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label>&nbsp;</label>
@@ -124,18 +147,17 @@
         <div class="table-responsive">
             <table class="table table-bordered table-sm" id="matriz-metas">
                 <thead class="thead-dark">
-                     <tr>
-                         <th class="text-center" style="min-width: 150px;">Categoría / Fecha</th>
-                         @foreach($datos['tiendas'] as $tienda)
-                             <th class="text-center" style="min-width: 120px;">
-                                 {{ $tienda }}
-                                 <br><small class="text-muted">{{ $datos['matriz']['info'][$tienda]['zona'] }}</small>
-                             </th>
-                         @endforeach
-                         <th class="text-center" style="min-width: 120px;">Total</th>
-                     </tr>
-                </thead>
-                <tbody>
+                      <tr>
+                          <th class="text-center" style="min-width: 150px;">Categoría / Fecha</th>
+                          @foreach($datos['tiendas'] as $tienda)
+                              <th class="text-center" style="min-width: 120px;">
+                                  {{ $tienda }}
+                              </th>
+                          @endforeach
+                          <th class="text-center" style="min-width: 120px;">Total</th>
+                      </tr>
+                  </thead>
+                  <tbody>
                      <!-- Fila 1: Plazas -->
                      <tr class="table-primary">
                          <td class="font-weight-bold">🏢 Plaza</td>
@@ -158,30 +180,30 @@
                          <td class="text-center font-weight-bold">-</td>
                      </tr>
 
-                     <!-- Filas de Totales por Día -->
-                     @foreach($datos['fechas'] as $fecha)
-                         @php
-                             $suma_fecha = 0;
-                             foreach($datos['tiendas'] as $tienda) {
-                                 $suma_fecha += $datos['matriz']['datos'][$tienda][$fecha]['total'] ?? 0;
-                             }
-                         @endphp
-                         <tr>
-                             <td class="font-weight-bold text-right">
-                                 💰 Total {{ \Carbon\Carbon::parse($fecha)->format('d/m') }}
-                             </td>
-                             @foreach($datos['tiendas'] as $tienda)
-                                 <td class="text-right">
-                                     ${{ number_format($datos['matriz']['datos'][$tienda][$fecha]['total'] ?? 0, 2) }}
-                                 </td>
-                             @endforeach
-                             <td class="text-right font-weight-bold">
-                                 ${{ number_format($suma_fecha, 2) }}
-                             </td>
-                         </tr>
-                     @endforeach
+                      <!-- Filas de Totales por Día -->
+                      @foreach($datos['fechas'] as $fecha)
+                          @php
+                              $suma_fecha = 0;
+                              foreach($datos['tiendas'] as $tienda) {
+                                  $suma_fecha += $datos['matriz']['datos'][$tienda][$fecha]['total'] ?? 0;
+                              }
+                          @endphp
+                           <tr>
+                               <td class="font-weight-bold text-right">
+                                   {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}
+                               </td>
+                              @foreach($datos['tiendas'] as $tienda)
+                                  <td class="text-right">
+                                      ${{ number_format($datos['matriz']['datos'][$tienda][$fecha]['total'] ?? 0, 2) }}
+                                  </td>
+                              @endforeach
+                              <td class="text-right font-weight-bold">
+                                  ${{ number_format($suma_fecha, 2) }}
+                              </td>
+                          </tr>
+                      @endforeach
 
-                    <!-- Fila de Suma de los Días Consultados -->
+                    <!-- Fila Venta Real -->
                     @php
                         $suma_totales = 0;
                         foreach($datos['tiendas'] as $tienda) {
@@ -189,7 +211,7 @@
                         }
                     @endphp
                     <tr class="table-warning">
-                        <td class="font-weight-bold">📊 Suma de los Días Consultados</td>
+                        <td class="font-weight-bold">💵 Venta Real</td>
                         @foreach($datos['tiendas'] as $tienda)
                             <td class="text-right font-weight-bold">
                                 ${{ number_format($datos['matriz']['totales'][$tienda]['total'] ?? 0, 2) }}
@@ -223,36 +245,6 @@
                         <td class="text-right font-weight-bold">
                             ${{ number_format($suma_objetivo, 2) }}
                         </td>
-                    </tr>
-
-                    <!-- Fila Suma Valor Día -->
-                    @php
-                        $suma_valor_dia_total = 0;
-                        foreach($datos['tiendas'] as $tienda) {
-                            $suma_valor_dia_total += $datos['matriz']['info'][$tienda]['suma_valor_dia'] ?? 0;
-                        }
-                    @endphp
-                    <tr class="table-secondary">
-                        <td class="font-weight-bold">💵 Suma Valor Día</td>
-                        @foreach($datos['tiendas'] as $tienda)
-                            <td class="text-right font-weight-bold">
-                                ${{ number_format($datos['matriz']['info'][$tienda]['suma_valor_dia'] ?? 0, 2) }}
-                            </td>
-                        @endforeach
-                        <td class="text-right font-weight-bold">
-                            ${{ number_format($suma_valor_dia_total, 2) }}
-                        </td>
-                    </tr>
-
-                    <!-- Fila Días Totales -->
-                    <tr class="table-light">
-                        <td class="font-weight-bold">📅 Días Totales</td>
-                        @foreach($datos['tiendas'] as $tienda)
-                            <td class="text-center font-weight-bold">
-                                {{ $datos['matriz']['info'][$tienda]['dias_totales'] ?? $datos['dias_totales'] }}
-                            </td>
-                        @endforeach
-                        <td class="text-center font-weight-bold">-</td>
                     </tr>
 
                     <!-- Fila Porcentaje Total -->
@@ -316,7 +308,7 @@
     </div>
     <div class="card-footer">
         <small class="text-muted">
-            Matriz jerárquica: Plaza → Zona → Totales Diarios → Suma de los Días Consultados → Objetivo → Suma Valor Día → Días Totales → Porcentaje Total → Meta Total
+            Matriz: Plaza → Zona → Totales Diarios → Venta Real → Objetivo → Porcentaje Total → Meta Total
             | {{ count($datos['tiendas']) }} tiendas | {{ count($datos['fechas']) }} días
         </small>
     </div>
@@ -394,11 +386,24 @@ $(document).ready(function() {
     $('#select_all_tiendas').on('change', function() {
         $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
     });
+
+    $('#select_all_zonas').on('change', function() {
+        $('.zona-checkbox').prop('checked', $(this).prop('checked'));
+    });
     
-    const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
-    const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
-    $('#select_all_plazas').prop('checked', todasPlazas);
-    $('#select_all_tiendas').prop('checked', todasTiendas);
+    function updateSelectAll() {
+        const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
+        $('#select_all_plazas').prop('checked', todasPlazas);
+
+        const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
+        $('#select_all_tiendas').prop('checked', todasTiendas);
+
+        const todasZonas = $('.zona-checkbox').length > 0 && $('.zona-checkbox:checked').length === $('.zona-checkbox').length;
+        $('#select_all_zonas').prop('checked', todasZonas);
+    }
+    
+    $('.plaza-checkbox, .tienda-checkbox, .zona-checkbox').on('change', updateSelectAll);
+    updateSelectAll();
 });
 </script>
 @endsection
