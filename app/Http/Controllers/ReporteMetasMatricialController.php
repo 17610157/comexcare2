@@ -7,6 +7,7 @@ use App\Services\ReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -37,51 +38,72 @@ class ReporteMetasMatricialController extends Controller
         // Fechas por defecto
         $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
         $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
-        $zona = $request->input('zona', '');
+        $zonaInput = $request->input('zona', []);
 
         // Obtener listas para filtros usando el helper
         $listas = RoleHelper::getListasParaFiltros();
-        $plazas = $listas['plazas'];
-        $tiendas = $listas['tiendas'];
+
+        // Agregar todas las plazas y tiendas disponibles si el usuario tiene permiso
+        $user = Auth::user();
+        $hasPermission = $user && $user->can('reportes.metas-matricial.ver');
+
+        // Obtener TODAS las plazas y tiendas (sin filtro de asignaciones) para los filtros
+        $todasPlazas = DB::table('bi_sys_tiendas')
+            ->distinct()
+            ->whereNotNull('id_plaza')
+            ->where('estado', '<>', 'c')
+            ->whereRaw('CAST(id_tipo AS INTEGER) = 1')
+            ->orderBy('id_plaza')
+            ->pluck('id_plaza')
+            ->filter()
+            ->values();
+
+        $todasTiendas = DB::table('bi_sys_tiendas')
+            ->distinct()
+            ->whereNotNull('clave_tienda')
+            ->where('estado', '<>', 'c')
+            ->whereRaw('CAST(id_tipo AS INTEGER) = 1')
+            ->orderBy('clave_tienda')
+            ->pluck('clave_tienda')
+            ->filter()
+            ->values();
+
+        // Usar todas (sin filtro de asignaciones) para los filtros de la vista
+        $plazas = $todasPlazas;
+        $tiendas = $todasTiendas;
         $plazasAsignadas = $listas['plazas_asignadas'];
         $tiendasAsignadas = $listas['tiendas_asignadas'];
-
-        // Si no tiene asignaciones pero tiene permiso, usar todas las disponibles
-        if (empty($plazasAsignadas) && $hasPermission) {
-            $plazasAsignadas = $plazas->toArray();
-        }
-        if (empty($tiendasAsignadas) && $hasPermission) {
-            $tiendasAsignadas = $tiendas->toArray();
-        }
 
         // Procesar valores del request, validando contra asignaciones del usuario
         $plazaInput = $request->input('plaza', '');
         $tiendaInput = $request->input('tienda', '');
 
-        // Si tiene plazas/tiendas asignadas, validar que los valores estén permitidos
+        // Si tiene plazas asignadas, validar que los valores estén permitidos
+        $plaza = '';
         if (! empty($plazasAsignadas)) {
-            if (empty($plazaInput)) {
-                $plazaInput = $plazasAsignadas;
-            } else {
+            if (! empty($plazaInput)) {
                 $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
                 $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
-                $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+                $plaza = ! empty($plazaValues) ? implode(',', array_values($plazaValues)) : '';
             }
         }
 
+        // Si tiene tiendas asignadas, validar que los valores estén permitidos
+        $tienda = '';
         if (! empty($tiendasAsignadas)) {
-            if (empty($tiendaInput)) {
-                $tiendaInput = $tiendasAsignadas;
-            } else {
+            if (! empty($tiendaInput)) {
                 $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
                 $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
-                $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+                $tienda = ! empty($tiendaValues) ? implode(',', array_values($tiendaValues)) : '';
             }
         }
 
-        // Convertir arrays a strings
-        $plaza = is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput;
-        $tienda = is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput;
+        // Procesar zona como array
+        $zona = '';
+        if (! empty($zonaInput)) {
+            $zonaValues = is_array($zonaInput) ? $zonaInput : explode(',', $zonaInput);
+            $zona = implode(',', array_map('trim', $zonaValues));
+        }
 
         $filtros = [
             'fecha_inicio' => $fecha_inicio,
@@ -147,34 +169,39 @@ class ReporteMetasMatricialController extends Controller
             // Obtener datos
             $plazaInput = $request->input('plaza', '');
             $tiendaInput = $request->input('tienda', '');
+            $zonaInput = $request->input('zona', []);
 
             // Validar que los filtros estén dentro de lo asignado al usuario
+            $plaza = '';
             if (! empty($plazasAsignadas)) {
-                if (empty($plazaInput)) {
-                    $plazaInput = $plazasAsignadas;
-                } else {
+                if (! empty($plazaInput)) {
                     $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
                     $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
-                    $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+                    $plaza = ! empty($plazaValues) ? implode(',', array_values($plazaValues)) : '';
                 }
             }
 
+            $tienda = '';
             if (! empty($tiendasAsignadas)) {
-                if (empty($tiendaInput)) {
-                    $tiendaInput = $tiendasAsignadas;
-                } else {
+                if (! empty($tiendaInput)) {
                     $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
                     $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
-                    $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+                    $tienda = ! empty($tiendaValues) ? implode(',', array_values($tiendaValues)) : '';
                 }
+            }
+
+            $zona = '';
+            if (! empty($zonaInput)) {
+                $zonaValues = is_array($zonaInput) ? $zonaInput : explode(',', $zonaInput);
+                $zona = implode(',', array_map('trim', $zonaValues));
             }
 
             $filtros = [
                 'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
                 'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
-                'plaza' => is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput,
-                'tienda' => is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput,
-                'zona' => $request->input('zona', ''),
+                'plaza' => $plaza,
+                'tienda' => $tienda,
+                'zona' => $zona,
             ];
 
             $datos = ReportService::getMetasMatricialReport($filtros);
@@ -366,39 +393,44 @@ class ReporteMetasMatricialController extends Controller
     /**
      * Obtener datos agrupados por plaza para PDF
      */
-    private function obtenerDatosAgrupadosPorPlaza(Request $request, $plazasAsignadas = [], $tiendasAsignadas = [])
+    private function obtenerDatosAgrupadosPorPlaza(Request $request, $plazasAsignadas = [], $tiendasAsignadas = [], $zona = '')
     {
         // Obtener datos básicos
         $plazaInput = $request->input('plaza', '');
         $tiendaInput = $request->input('tienda', '');
+        $zonaInput = $request->input('zona', []);
 
         // Aplicar filtros del usuario si se proporcionaron
+        $plaza = '';
         if (! empty($plazasAsignadas)) {
-            if (empty($plazaInput)) {
-                $plazaInput = $plazasAsignadas;
-            } else {
+            if (! empty($plazaInput)) {
                 $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
                 $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
-                $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+                $plaza = ! empty($plazaValues) ? implode(',', array_values($plazaValues)) : '';
             }
         }
 
+        $tienda = '';
         if (! empty($tiendasAsignadas)) {
-            if (empty($tiendaInput)) {
-                $tiendaInput = $tiendasAsignadas;
-            } else {
+            if (! empty($tiendaInput)) {
                 $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
                 $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
-                $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+                $tienda = ! empty($tiendaValues) ? implode(',', array_values($tiendaValues)) : '';
             }
+        }
+
+        $zonaParam = $zona;
+        if (empty($zonaParam) && ! empty($zonaInput)) {
+            $zonaValues = is_array($zonaInput) ? $zonaInput : explode(',', $zonaInput);
+            $zonaParam = implode(',', array_map('trim', $zonaValues));
         }
 
         $filtros = [
             'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
             'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
-            'plaza' => is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput,
-            'tienda' => is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput,
-            'zona' => $request->input('zona', ''),
+            'plaza' => $plaza,
+            'tienda' => $tienda,
+            'zona' => $zonaParam,
         ];
 
         $datos = ReportService::getMetasMatricialReport($filtros);
@@ -506,29 +538,34 @@ class ReporteMetasMatricialController extends Controller
             // Validar filtros contra asignaciones del usuario
             $plazaInput = $request->input('plaza', '');
             $tiendaInput = $request->input('tienda', '');
+            $zonaInput = $request->input('zona', []);
 
+            $plaza = '';
             if (! empty($plazasAsignadas)) {
-                if (empty($plazaInput)) {
-                    $plazaInput = $plazasAsignadas;
-                } else {
+                if (! empty($plazaInput)) {
                     $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
                     $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
-                    $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+                    $plaza = ! empty($plazaValues) ? implode(',', array_values($plazaValues)) : '';
                 }
             }
 
+            $tienda = '';
             if (! empty($tiendasAsignadas)) {
-                if (empty($tiendaInput)) {
-                    $tiendaInput = $tiendasAsignadas;
-                } else {
+                if (! empty($tiendaInput)) {
                     $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
                     $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
-                    $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+                    $tienda = ! empty($tiendaValues) ? implode(',', array_values($tiendaValues)) : '';
                 }
+            }
+
+            $zona = '';
+            if (! empty($zonaInput)) {
+                $zonaValues = is_array($zonaInput) ? $zonaInput : explode(',', $zonaInput);
+                $zona = implode(',', array_map('trim', $zonaValues));
             }
 
             // Obtener datos agrupados por plaza
-            $datos = $this->obtenerDatosAgrupadosPorPlaza($request, $plazaInput, $tiendaInput);
+            $datos = $this->obtenerDatosAgrupadosPorPlaza($request, $plaza, $tienda, $zona);
 
             // Verificar si hay datos
             if (empty($datos['plazas'])) {

@@ -9,108 +9,88 @@ class ReporteMetasVentas extends Model
 {
     protected $table = 'metas';
 
+    private $tiendasExcluidas = [
+        'ALMAC', 'BODEG', 'ALTAP', 'CXVEA', '00095', 'GALMA', 'B0001', '00027', 'BOVER',
+        '2ORIE', 'ALMAP', 'ALMAR', 'AMAGT', 'APSIV', 'AUTO4', 'BCEDV', 'BMADE', 'BOLGT', 'BPROS',
+        'BRECL', 'BVENA', 'CHIGT', 'CMOBI', 'COAGT', 'CPUBL', 'CRECL', 'CRYST', 'FERRE', 'FUTGT',
+        'GABED', 'GALAM', 'GARBO', 'GATLA', 'GCALL', 'GCATO', 'GCHCV', 'GCIUD', 'GCOLO', 'GCTLA',
+        'GECHE', 'GESTA', 'GGOLF', 'GIGNA', 'GJUNT', 'GLADG', 'GLAZA', 'GLAZB', 'GLAZC', 'GLOMA',
+        'GMAGN', 'GMIRA', 'GMOLI', 'GNIOB', 'GNOGA', 'GPANG', 'GPARQ', 'GPATB', 'GPROS', 'GPUBL',
+        'GSJUA', 'GSPAL', 'GTORR', 'GVALL', 'GVENA', 'GVENB', 'GVENC', 'GVEND', 'GVENE', 'GZAPC',
+        'GZAPO', 'HCENB', 'HCXVE', 'HMORE', 'HNAVA', 'HPUBL', 'HRECL', 'ICORO', 'IGUAL', 'ISLUC',
+        'JUARE', 'JUMAG', 'LUPA', 'LUPAN', 'MASTE', 'MCEDV', 'MINGT', 'MRTGT', 'MTAPE', 'N8SUR',
+        'NCANO', 'NCAOR', 'NCIJA', 'NJINO', 'NMASA', 'NMASB', 'NMATA', 'NMEOR', 'NPESP', 'NVENA',
+        'NVENB', 'NVENC', 'PCEDJ', 'PCEDV', 'PLAKA', 'PMOBI', 'POETA', 'PPUBL', 'PRECL', 'PROGT',
+        'PSJGT', 'PUB08', 'RECLA', 'RETGT', 'REYES', 'ROOGT', 'RVENB', 'RVENC', 'SC2GT', 'SJUGT',
+        'SLCGT', 'SLUGT', 'SUBAL', 'SUMID', 'SUR06', 'T0022', 'T0044', 'T0048', 'TB2B1', 'TCEDV',
+        'TCSUR', 'TPAUL', 'TPKTO', 'TPSER', 'TVEN3', 'TVESP', 'VBCSA', 'VCEDV', 'VEND2', 'VPLAK',
+        'XAUTD', 'XCEDV', 'XCHED', 'XMERA', 'XPIPI',
+    ];
+
     /**
-     * Obtener datos del reporte con filtros - VERSIÓN CORREGIDA
+     * Obtener datos del reporte agrupados por TIENDA
      */
     public static function obtenerReporte($filtros)
     {
+        $self = new self;
+
         $fecha_inicio = $filtros['fecha_inicio'] ?? date('Y-m-01');
         $fecha_fin = $filtros['fecha_fin'] ?? date('Y-m-d');
         $plaza = $filtros['plaza'] ?? '';
         $tienda = $filtros['tienda'] ?? '';
         $zona = $filtros['zona'] ?? '';
 
-        // Obtener datos de metas
-        $datosMetas = self::obtenerDatosMetas($fecha_inicio, $fecha_fin, $plaza, $tienda, $zona);
-
-        // Obtener ventas del período completo (para cálculo de acumulados)
-        $ventasDiarias = self::obtenerVentasDiariasPeriodo($fecha_inicio, $fecha_fin, $plaza, $tienda);
-
-        // Procesar en PHP para calcular acumulados CORRECTAMENTE
-        $resultados = self::procesarAcumulados($datosMetas, $ventasDiarias);
-
-        return $resultados;
-    }
-
-    /**
-     * Obtener todas las ventas diarias del período
-     */
-    private static function obtenerVentasDiariasPeriodo($fecha_inicio, $fecha_fin, $plaza = '', $tienda = '')
-    {
-        // Obtener el primer día del mes de la fecha inicio
+        $periodo = date('Y-m', strtotime($fecha_inicio));
         $primer_dia_mes = date('Y-m-01', strtotime($fecha_inicio));
 
-        $sql = '
-            SELECT
-                cplaza,
-                ctienda as tienda,
-                fecha,
-                SUM((COALESCE(vtacont, 0) - COALESCE(descont, 0)) +
-                    (COALESCE(vtacred, 0) - COALESCE(descred, 0))) as venta_dia
-            FROM xcorte 
-            WHERE fecha BETWEEN ? AND ?
+        $diasInfoQuery = '
+            SELECT DISTINCT dias_mes, 
+                   (SELECT SUM(valor_dia) FROM metas_dias md2 WHERE md2.periodo = metas_dias.periodo AND md2.fecha <= ?) as dias_agotados
+            FROM metas_dias 
+            WHERE periodo = ? 
+            LIMIT 1
         ';
+        $diasInfoResult = DB::select($diasInfoQuery, [$fecha_fin, $periodo]);
 
-        $params = [$primer_dia_mes, $fecha_fin];
+        $dias_mes = ! empty($diasInfoResult) ? floatval($diasInfoResult[0]->dias_mes) : 24;
+        $dias_agotados = ! empty($diasInfoResult) ? floatval($diasInfoResult[0]->dias_agotados ?? 0) : 0;
 
-        if (! empty($plaza)) {
-            if (strpos($plaza, ',') !== false) {
-                $plazas = explode(',', $plaza);
-                $placeholders = implode(',', array_fill(0, count($plazas), '?'));
-                $sql .= " AND cplaza IN ($placeholders)";
-                $params = array_merge($params, $plazas);
-            } else {
-                $sql .= ' AND cplaza = ?';
-                $params[] = $plaza;
-            }
+        $metasMensualQuery = '
+            SELECT plaza, tienda, meta 
+            FROM metas_mensual 
+            WHERE periodo = ?
+        ';
+        $metasMensualData = DB::select($metasMensualQuery, [$periodo]);
+
+        $metasIndex = [];
+        foreach ($metasMensualData as $m) {
+            $metasIndex[$m->plaza.'|'.$m->tienda] = floatval($m->meta);
         }
 
-        if (! empty($tienda)) {
-            if (strpos($tienda, ',') !== false) {
-                $tiendas = explode(',', $tienda);
-                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
-                $sql .= " AND ctienda IN ($placeholders)";
-                $params = array_merge($params, $tiendas);
-            } else {
-                $sql .= ' AND ctienda = ?';
-                $params[] = $tienda;
-            }
+        $whereTienda = "bst.clave_tienda IS NOT NULL AND bst.estado <> 'c' AND CAST(bst.id_tipo AS INTEGER) = 1";
+        foreach ($self->tiendasExcluidas as $t) {
+            $whereTienda .= " AND bst.clave_tienda <> '$t'";
         }
+        $whereTienda .= " AND bst.clave_tienda NOT LIKE '%DESC%' AND bst.clave_tienda NOT LIKE '%CEDI%'";
 
-        $sql .= ' GROUP BY cplaza, ctienda, fecha
-                   ORDER BY cplaza, ctienda, fecha';
-
-        return DB::select($sql, $params);
-    }
-
-    /**
-     * Obtener datos de metas (con meta_total y meta_dia)
-     */
-    private static function obtenerDatosMetas($fecha_inicio, $fecha_fin, $plaza = '', $tienda = '', $zona = '')
-    {
-        $sql = '
+        $sql = "
             SELECT 
                 bst.id_plaza,
                 bst.clave_tienda,
                 bst.nombre AS sucursal,
-                m.fecha,
                 bst.zona,
-                m.meta_total,
-                m.dias_total,
-                m.valor_dia,
-                m.meta_dia
-            FROM metas m
-            LEFT JOIN bi_sys_tiendas bst
-                ON m.plaza = bst.id_plaza
-                AND m.tienda = bst.clave_tienda
-            WHERE m.fecha BETWEEN ? AND ?
-        ';
+                bst.id_tipo,
+                MAX(m.dias_total) as dias_total
+            FROM bi_sys_tiendas bst
+            LEFT JOIN metas m ON bst.id_plaza = m.plaza AND bst.clave_tienda = m.tienda AND m.fecha BETWEEN '$fecha_inicio' AND '$fecha_fin'
+            WHERE $whereTienda
+        ";
 
-        $params = [$fecha_inicio, $fecha_fin];
+        $params = [];
 
         if (! empty($plaza)) {
-            if (strpos($plaza, ',') !== false) {
-                $plazas = explode(',', $plaza);
+            $plazas = array_map('trim', explode(',', $plaza));
+            if (count($plazas) > 1) {
                 $placeholders = implode(',', array_fill(0, count($plazas), '?'));
                 $sql .= " AND bst.id_plaza IN ($placeholders)";
                 $params = array_merge($params, $plazas);
@@ -121,8 +101,8 @@ class ReporteMetasVentas extends Model
         }
 
         if (! empty($tienda)) {
-            if (strpos($tienda, ',') !== false) {
-                $tiendas = explode(',', $tienda);
+            $tiendas = array_map('trim', explode(',', $tienda));
+            if (count($tiendas) > 1) {
                 $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
                 $sql .= " AND bst.clave_tienda IN ($placeholders)";
                 $params = array_merge($params, $tiendas);
@@ -133,140 +113,126 @@ class ReporteMetasVentas extends Model
         }
 
         if (! empty($zona)) {
-            $sql .= ' AND bst.zona = ?';
-            $params[] = $zona;
-        }
-
-        $sql .= ' ORDER BY bst.id_plaza, bst.clave_tienda, m.fecha';
-
-        return DB::select($sql, $params);
-    }
-
-    /**
-     * Procesar acumulados - VERSIÓN CORREGIDA
-     */
-    private static function procesarAcumulados($datosMetas, $ventasDiarias)
-    {
-        // Crear array indexado de ventas diarias para búsqueda rápida
-        $ventasIndexadas = [];
-        foreach ($ventasDiarias as $venta) {
-            $key = $venta->cplaza.'|'.$venta->tienda.'|'.$venta->fecha;
-            $ventasIndexadas[$key] = floatval($venta->venta_dia);
-        }
-
-        // Arrays para acumulados por sucursal
-        $acumuladoVentasPorSucursal = [];
-        $resultados = [];
-
-        foreach ($datosMetas as $index => $meta) {
-            // Crear clave para búsqueda rápida
-            $key = $meta->id_plaza.'|'.$meta->clave_tienda.'|'.$meta->fecha;
-            $sucursalKey = $meta->id_plaza.'|'.$meta->clave_tienda;
-
-            // Obtener venta del día
-            $venta_del_dia = $ventasIndexadas[$key] ?? 0;
-
-            // Inicializar acumulado para esta sucursal si no existe
-            if (! isset($acumuladoVentasPorSucursal[$sucursalKey])) {
-                $acumuladoVentasPorSucursal[$sucursalKey] = 0;
+            $zonas = array_map('trim', explode(',', $zona));
+            if (count($zonas) > 1) {
+                $placeholders = implode(',', array_fill(0, count($zonas), '?'));
+                $sql .= " AND bst.zona IN ($placeholders)";
+                $params = array_merge($params, $zonas);
+            } else {
+                $sql .= ' AND bst.zona = ?';
+                $params[] = $zona;
             }
+        }
 
-            // Acumular venta del día
-            $acumuladoVentasPorSucursal[$sucursalKey] += $venta_del_dia;
-            $venta_acumulada = $acumuladoVentasPorSucursal[$sucursalKey];
+        $sql .= ' GROUP BY bst.id_plaza, bst.clave_tienda, bst.nombre, bst.zona, bst.id_tipo ORDER BY bst.clave_tienda';
 
-            // Calcular porcentaje del día (venta_del_dia / meta_dia)
-            $porcentaje = ($meta->meta_dia > 0) ? ($venta_del_dia / $meta->meta_dia) * 100 : 0;
+        $tiendasData = DB::select($sql, $params);
 
-            // Calcular porcentaje acumulado (venta_acumulada / meta_total)
-            $porcentaje_acumulado = ($meta->meta_total > 0) ? ($venta_acumulada / $meta->meta_total) * 100 : 0;
+        $whereVenta = 'c.ctienda IS NOT NULL';
+        foreach ($self->tiendasExcluidas as $t) {
+            $whereVenta .= " AND c.ctienda <> '$t'";
+        }
+        $whereVenta .= " AND c.ctienda NOT LIKE '%DESC%' AND c.ctienda NOT LIKE '%CEDI%'";
+
+        $ventasSql = "
+            SELECT 
+                cplaza,
+                ctienda,
+                SUM((COALESCE(vtacont, 0) - COALESCE(descont, 0)) + (COALESCE(vtacred, 0) - COALESCE(descred, 0))) as venta_real
+            FROM xcorte c
+            WHERE fecha BETWEEN '$primer_dia_mes' AND '$fecha_fin'
+            AND $whereVenta
+        ";
+
+        $ventasParams = [];
+
+        if (! empty($plaza)) {
+            $plazas = array_map('trim', explode(',', $plaza));
+            if (count($plazas) > 1) {
+                $placeholders = implode(',', array_fill(0, count($plazas), '?'));
+                $ventasSql .= " AND cplaza IN ($placeholders)";
+                $ventasParams = array_merge($ventasParams, $plazas);
+            } else {
+                $ventasSql .= ' AND cplaza = ?';
+                $ventasParams[] = $plaza;
+            }
+        }
+
+        if (! empty($tienda)) {
+            $tiendas = array_map('trim', explode(',', $tienda));
+            if (count($tiendas) > 1) {
+                $placeholders = implode(',', array_fill(0, count($tiendas), '?'));
+                $ventasSql .= " AND ctienda IN ($placeholders)";
+                $ventasParams = array_merge($ventasParams, $tiendas);
+            } else {
+                $ventasSql .= ' AND ctienda = ?';
+                $ventasParams[] = $tienda;
+            }
+        }
+
+        $ventasSql .= ' GROUP BY cplaza, ctienda';
+
+        $ventasData = DB::select($ventasSql, $ventasParams);
+
+        $ventasIndex = [];
+        foreach ($ventasData as $v) {
+            $ventasIndex[$v->cplaza.'|'.$v->ctienda] = floatval($v->venta_real);
+        }
+
+        $resultados = [];
+        foreach ($tiendasData as $row) {
+            $key = $row->id_plaza.'|'.$row->clave_tienda;
+            $venta_real = $ventasIndex[$key] ?? 0;
+            $meta_total = $metasIndex[$key] ?? 0;
+            $meta_parcial = $dias_mes > 0 ? ($meta_total / $dias_mes) * $dias_agotados : 0;
+            $porcentaje = $meta_parcial > 0 ? ($venta_real / $meta_parcial) * 100 : 0;
 
             $resultados[] = (object) [
-                'id_plaza' => $meta->id_plaza,
-                'clave_tienda' => $meta->clave_tienda,
-                'sucursal' => $meta->sucursal,
-                'fecha' => $meta->fecha,
-                'zona' => $meta->zona,
-                'meta_total' => floatval($meta->meta_total),
-                'dias_total' => intval($meta->dias_total),
-                'valor_dia' => floatval($meta->valor_dia),
-                'meta_dia' => floatval($meta->meta_dia),
-                'venta_del_dia' => $venta_del_dia,
-                'venta_acumulada' => $venta_acumulada,
+                'id_plaza' => $row->id_plaza,
+                'clave_tienda' => $row->clave_tienda,
+                'sucursal' => $row->sucursal,
+                'zona' => $row->zona,
+                'meta_total' => $meta_total,
+                'dias_mes' => $dias_mes,
+                'dias_agotados' => $dias_agotados,
+                'meta_parcial' => $meta_parcial,
+                'venta_real' => $venta_real,
                 'porcentaje' => $porcentaje,
-                'porcentaje_acumulado' => $porcentaje_acumulado,
             ];
         }
 
         return $resultados;
     }
 
-    /**
-     * Obtener estadísticas del reporte - VERSIÓN CORREGIDA CON CÁLCULO DE TOTALES
-     */
     public static function obtenerEstadisticas($resultados)
     {
         $estadisticas = [
-            'total_meta_dia' => 0,
-            'total_venta_dia' => 0,
-            'total_venta_acumulada' => 0,
-            'porcentaje_promedio' => 0,
-            'porcentaje_acumulado_global' => 0, // NUEVO: % acumulado global
-            'total_registros' => 0,
             'total_meta_total' => 0,
+            'total_venta_real' => 0,
+            'total_meta_parcial' => 0,
+            'porcentaje_promedio' => 0,
+            'total_registros' => 0,
         ];
 
         if (count($resultados) > 0) {
-            $total_meta_dia = 0;
-            $total_venta_dia = 0;
+            $total_meta_total = 0;
+            $total_venta_real = 0;
+            $total_meta_parcial = 0;
             $porcentaje_total = 0;
-            $contador = 0;
-
-            // Para acumulados y meta total, tomamos el valor más reciente por sucursal
-            $acumulados_por_sucursal = [];
-            $meta_total_por_sucursal = [];
 
             foreach ($resultados as $item) {
-                $total_meta_dia += $item->meta_dia;
-                $total_venta_dia += $item->venta_del_dia;
+                $total_meta_total += $item->meta_total;
+                $total_venta_real += $item->venta_real;
+                $total_meta_parcial += $item->meta_parcial;
                 $porcentaje_total += $item->porcentaje;
-                $contador++;
-
-                // Para venta acumulada, tomamos el valor más reciente por sucursal
-                $key = $item->id_plaza.'-'.$item->clave_tienda;
-                if (! isset($acumulados_por_sucursal[$key]) ||
-                    strtotime($item->fecha) > strtotime($acumulados_por_sucursal[$key]['fecha'])) {
-                    $acumulados_por_sucursal[$key] = [
-                        'fecha' => $item->fecha,
-                        'venta_acumulada' => $item->venta_acumulada,
-                    ];
-                }
-
-                // Para meta total, solo tomamos una vez por sucursal
-                if (! isset($meta_total_por_sucursal[$key])) {
-                    $meta_total_por_sucursal[$key] = $item->meta_total;
-                }
             }
 
-            // Sumar las ventas acumuladas de cada sucursal (última fecha)
-            $total_venta_acumulada = 0;
-            foreach ($acumulados_por_sucursal as $sucursal) {
-                $total_venta_acumulada += $sucursal['venta_acumulada'];
-            }
+            $contador = count($resultados);
 
-            // Sumar meta total de cada sucursal (sin duplicar)
-            $total_meta_total = array_sum($meta_total_por_sucursal);
-
-            // Calcular % acumulado GLOBAL: (Total Venta Acumulada / Total Meta Día) × 100
-            $porcentaje_acumulado_global = ($total_meta_dia > 0) ?
-                ($total_venta_acumulada / $total_meta_dia) * 100 : 0;
-
-            $estadisticas['total_meta_dia'] = $total_meta_dia;
-            $estadisticas['total_venta_dia'] = $total_venta_dia;
-            $estadisticas['total_venta_acumulada'] = $total_venta_acumulada;
             $estadisticas['total_meta_total'] = $total_meta_total;
+            $estadisticas['total_venta_real'] = $total_venta_real;
+            $estadisticas['total_meta_parcial'] = $total_meta_parcial;
             $estadisticas['porcentaje_promedio'] = $contador > 0 ? $porcentaje_total / $contador : 0;
-            $estadisticas['porcentaje_acumulado_global'] = $porcentaje_acumulado_global; // Esto es lo que necesitas
             $estadisticas['total_registros'] = $contador;
         }
 

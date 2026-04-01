@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Exports\MetasVentasExport;
 use App\Helpers\RoleHelper;
+use App\Models\ReporteMetasVentas;
 use App\Services\ReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
@@ -27,15 +29,42 @@ class ReporteMetasVentasController extends Controller
         // Fechas por defecto (mes actual)
         $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
         $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
-        $zonaInput = $request->input('zona', '');
+        $zonaInput = $request->input('zona', []);
 
         // Vista dinámica según el tipo de visualización
         $vista_tipo = $request->input('vista_tipo', 'card'); // 'card' por defecto, 'tabla' para tabla
 
         // Obtener listas para filtros usando el helper
         $listas = RoleHelper::getListasParaFiltros();
-        $plazas = $listas['plazas'];
-        $tiendas = $listas['tiendas'];
+
+        // Agregar todas las plazas y tiendas disponibles si el usuario tiene permiso
+        $user = Auth::user();
+        $hasPermission = $user && $user->can('reportes.metas-ventas.ver');
+
+        // Obtener TODAS las plazas y tiendas (sin filtro de asignaciones) para los filtros
+        $todasPlazas = DB::table('bi_sys_tiendas')
+            ->distinct()
+            ->whereNotNull('id_plaza')
+            ->where('estado', '<>', 'c')
+            ->whereRaw('CAST(id_tipo AS INTEGER) = 1')
+            ->orderBy('id_plaza')
+            ->pluck('id_plaza')
+            ->filter()
+            ->values();
+
+        $todasTiendas = DB::table('bi_sys_tiendas')
+            ->distinct()
+            ->whereNotNull('clave_tienda')
+            ->where('estado', '<>', 'c')
+            ->whereRaw('CAST(id_tipo AS INTEGER) = 1')
+            ->orderBy('clave_tienda')
+            ->pluck('clave_tienda')
+            ->filter()
+            ->values();
+
+        // Usar todas (sin filtro de asignaciones) para los filtros de la vista
+        $plazas = $todasPlazas;
+        $tiendas = $todasTiendas;
         $plazasAsignadas = $listas['plazas_asignadas'];
         $tiendasAsignadas = $listas['tiendas_asignadas'];
 
@@ -53,31 +82,32 @@ class ReporteMetasVentasController extends Controller
         $plazaInput = $request->input('plaza', '');
         $tiendaInput = $request->input('tienda', '');
 
-        // Si tiene plazas/tiendas asignadas, validar que los valores estén permitidos
+        // Si tiene plazas asignadas, validar que los valores estén permitidos
+        $plaza = '';
         if (! empty($plazasAsignadas)) {
-            if (empty($plazaInput)) {
-                $plazaInput = $plazasAsignadas;
-            } else {
+            if (! empty($plazaInput)) {
                 $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
                 $plazaValues = array_filter($plazaValues, fn ($p) => in_array($p, $plazasAsignadas));
-                $plazaInput = ! empty($plazaValues) ? array_values($plazaValues) : $plazasAsignadas;
+                $plaza = ! empty($plazaValues) ? implode(',', array_values($plazaValues)) : '';
             }
         }
 
+        // Si tiene tiendas asignadas, validar que los valores estén permitidos
+        $tienda = '';
         if (! empty($tiendasAsignadas)) {
-            if (empty($tiendaInput)) {
-                $tiendaInput = $tiendasAsignadas;
-            } else {
+            if (! empty($tiendaInput)) {
                 $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
                 $tiendaValues = array_filter($tiendaValues, fn ($t) => in_array($t, $tiendasAsignadas));
-                $tiendaInput = ! empty($tiendaValues) ? array_values($tiendaValues) : $tiendasAsignadas;
+                $tienda = ! empty($tiendaValues) ? implode(',', array_values($tiendaValues)) : '';
             }
         }
 
-        // Convertir arrays a strings
-        $plaza = is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput;
-        $tienda = is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput;
-        $zona = is_array($zonaInput) ? implode(',', $zonaInput) : $zonaInput;
+        // Procesar zona como array
+        $zona = '';
+        if (! empty($zonaInput)) {
+            $zonaValues = is_array($zonaInput) ? $zonaInput : explode(',', $zonaInput);
+            $zona = implode(',', array_map('trim', $zonaValues));
+        }
 
         // Vista dinámica según el tipo de visualización
         $vista_tipo = $request->input('vista_tipo', 'card');
@@ -139,14 +169,32 @@ class ReporteMetasVentasController extends Controller
     {
         $plazaInput = $request->input('plaza', '');
         $tiendaInput = $request->input('tienda', '');
-        $zonaInput = $request->input('zona', '');
+        $zonaInput = $request->input('zona', []);
+
+        $plaza = '';
+        if (! empty($plazaInput)) {
+            $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
+            $plaza = implode(',', array_map('trim', $plazaValues));
+        }
+
+        $tienda = '';
+        if (! empty($tiendaInput)) {
+            $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
+            $tienda = implode(',', array_map('trim', $tiendaValues));
+        }
+
+        $zona = '';
+        if (! empty($zonaInput)) {
+            $zonaValues = is_array($zonaInput) ? $zonaInput : explode(',', $zonaInput);
+            $zona = implode(',', array_map('trim', $zonaValues));
+        }
 
         $filtros = [
             'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
             'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
-            'plaza' => is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput,
-            'tienda' => is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput,
-            'zona' => is_array($zonaInput) ? implode(',', $zonaInput) : $zonaInput,
+            'plaza' => $plaza,
+            'tienda' => $tienda,
+            'zona' => $zona,
         ];
 
         return Excel::download(new MetasVentasExport($filtros),
@@ -161,14 +209,32 @@ class ReporteMetasVentasController extends Controller
     {
         $plazaInput = $request->input('plaza', '');
         $tiendaInput = $request->input('tienda', '');
-        $zonaInput = $request->input('zona', '');
+        $zonaInput = $request->input('zona', []);
+
+        $plaza = '';
+        if (! empty($plazaInput)) {
+            $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
+            $plaza = implode(',', array_map('trim', $plazaValues));
+        }
+
+        $tienda = '';
+        if (! empty($tiendaInput)) {
+            $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
+            $tienda = implode(',', array_map('trim', $tiendaValues));
+        }
+
+        $zona = '';
+        if (! empty($zonaInput)) {
+            $zonaValues = is_array($zonaInput) ? $zonaInput : explode(',', $zonaInput);
+            $zona = implode(',', array_map('trim', $zonaValues));
+        }
 
         $filtros = [
             'fecha_inicio' => $request->input('fecha_inicio', date('Y-m-01')),
             'fecha_fin' => $request->input('fecha_fin', date('Y-m-d')),
-            'plaza' => is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput,
-            'tienda' => is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput,
-            'zona' => is_array($zonaInput) ? implode(',', $zonaInput) : $zonaInput,
+            'plaza' => $plaza,
+            'tienda' => $tienda,
+            'zona' => $zona,
         ];
 
         $datos = ReportService::getMetasVentasReport($filtros);
@@ -185,18 +251,19 @@ class ReporteMetasVentasController extends Controller
             $file = fopen('php://output', 'w');
 
             fputcsv($file, [
-                'Plaza', 'Tienda', 'Zona', 'Meta Total', 'Venta Total', 'Porcentaje', 'Días Trabajados'
+                'CLAVE', 'NOMBRE', 'META', 'DIAS MES', 'DIAS AGOTADOS', 'META PARCIAL', 'VENTA REAL', 'PORCENTAJE',
             ]);
 
             foreach ($resultados as $row) {
                 fputcsv($file, [
-                    $row['plaza'] ?? '',
-                    $row['tienda'] ?? '',
-                    $row['zona'] ?? '',
-                    $row['meta_total'] ?? 0,
-                    $row['venta_total'] ?? 0,
-                    $row['porcentaje'] ?? 0,
-                    $row['dias_trabajados'] ?? 0,
+                    $row->clave_tienda ?? '',
+                    $row->sucursal ?? '',
+                    $row->meta_total ?? 0,
+                    $row->dias_mes ?? 0,
+                    $row->dias_agotados ?? 0,
+                    $row->meta_parcial ?? 0,
+                    $row->venta_real ?? 0,
+                    $row->porcentaje ?? 0,
                 ]);
             }
 
@@ -212,42 +279,43 @@ class ReporteMetasVentasController extends Controller
     public function exportPdf(Request $request)
     {
         try {
-            // Obtener datos directamente desde la base de datos
             $fecha_inicio = $request->input('fecha_inicio', date('Y-m-01'));
             $fecha_fin = $request->input('fecha_fin', date('Y-m-d'));
             $plazaInput = $request->input('plaza', '');
             $tiendaInput = $request->input('tienda', '');
-            $zonaInput = $request->input('zona', '');
-            $vista_tipo = $request->input('vista_tipo', 'card');
+            $zonaInput = $request->input('zona', []);
 
-            $plaza = is_array($plazaInput) ? implode(',', $plazaInput) : $plazaInput;
-            $tienda = is_array($tiendaInput) ? implode(',', $tiendaInput) : $tiendaInput;
-            $zona = is_array($zonaInput) ? implode(',', $zonaInput) : $zonaInput;
+            $plaza = '';
+            if (! empty($plazaInput)) {
+                $plazaValues = is_array($plazaInput) ? $plazaInput : explode(',', $plazaInput);
+                $plaza = implode(',', array_map('trim', $plazaValues));
+            }
 
-            // Usar misma lógica que el método index
+            $tienda = '';
+            if (! empty($tiendaInput)) {
+                $tiendaValues = is_array($tiendaInput) ? $tiendaInput : explode(',', $tiendaInput);
+                $tienda = implode(',', array_map('trim', $tiendaValues));
+            }
+
+            $zona = '';
+            if (! empty($zonaInput)) {
+                $zonaValues = is_array($zonaInput) ? $zonaInput : explode(',', $zonaInput);
+                $zona = implode(',', array_map('trim', $zonaValues));
+            }
+
             $filtros = [
                 'fecha_inicio' => $fecha_inicio,
                 'fecha_fin' => $fecha_fin,
                 'plaza' => $plaza,
                 'tienda' => $tienda,
                 'zona' => $zona,
-                'vista_tipo' => $vista_tipo,
             ];
 
-            $datos = ReportService::getMetasVentasReport($filtros);
-            $resultados = $datos['resultados'];
-            $estadisticas = $datos['estadisticas'];
+            $resultados = ReporteMetasVentas::obtenerReporte($filtros);
+            $estadisticas = ReporteMetasVentas::obtenerEstadisticas($resultados);
 
-            // Generar PDF usando la misma librería
-            $pdf = \Barryvdh\DomPDF\PDF::loadView('reportes.metas_ventas_pdf', compact(
-                'resultados',
-                'fecha_inicio',
-                'fecha_fin',
-                'plaza',
-                'tienda',
-                'zona',
-                'estadisticas'
-            ))->setPaper('a4')->setOrientation('landscape');
+            $html = view('reportes.metas_ventas_pdf', compact('resultados', 'estadisticas', 'fecha_inicio', 'fecha_fin'))->render();
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'landscape');
 
             return $pdf->download('Reporte_Metas_Ventas_'.date('Ymd_His').'.pdf');
 

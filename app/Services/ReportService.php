@@ -331,7 +331,7 @@ class ReportService
         $cacheKey = 'metas_ventas_report_'.md5(serialize($filtros));
 
         try {
-            return Cache::remember($cacheKey, 3600, function () use ($filtros) {
+            return Cache::remember($cacheKey, 300, function () use ($filtros) {
                 // Usar el modelo existente que ya está optimizado
                 $resultados = \App\Models\ReporteMetasVentas::obtenerReporte($filtros);
                 $estadisticas = \App\Models\ReporteMetasVentas::obtenerEstadisticas($resultados);
@@ -486,6 +486,30 @@ class ReportService
         $tienda = $filtros['tienda'] ?? '';
         $zona = $filtros['zona'] ?? '';
 
+        $tiendasExcluidas = [
+            'ALMAC', 'BODEG', 'ALTAP', 'CXVEA', '00095', 'GALMA', 'B0001', '00027', 'BOVER',
+            '2ORIE', 'ALMAP', 'ALMAR', 'AMAGT', 'APSIV', 'AUTO4', 'BCEDV', 'BMADE', 'BOLGT', 'BPROS',
+            'BRECL', 'BVENA', 'CHIGT', 'CMOBI', 'COAGT', 'CPUBL', 'CRECL', 'CRYST', 'FERRE', 'FUTGT',
+            'GABED', 'GALAM', 'GARBO', 'GATLA', 'GCALL', 'GCATO', 'GCHCV', 'GCIUD', 'GCOLO', 'GCTLA',
+            'GECHE', 'GESTA', 'GGOLF', 'GIGNA', 'GJUNT', 'GLADG', 'GLAZA', 'GLAZB', 'GLAZC', 'GLOMA',
+            'GMAGN', 'GMIRA', 'GMOLI', 'GNIOB', 'GNOGA', 'GPANG', 'GPARQ', 'GPATB', 'GPROS', 'GPUBL',
+            'GSJUA', 'GSPAL', 'GTORR', 'GVALL', 'GVENA', 'GVENB', 'GVENC', 'GVEND', 'GVENE', 'GZAPC',
+            'GZAPO', 'HCENB', 'HCXVE', 'HMORE', 'HNAVA', 'HPUBL', 'HRECL', 'ICORO', 'IGUAL', 'ISLUC',
+            'JUARE', 'JUMAG', 'LUPA', 'LUPAN', 'MASTE', 'MCEDV', 'MINGT', 'MRTGT', 'MTAPE', 'N8SUR',
+            'NCANO', 'NCAOR', 'NCIJA', 'NJINO', 'NMASA', 'NMASB', 'NMATA', 'NMEOR', 'NPESP', 'NVENA',
+            'NVENB', 'NVENC', 'PCEDJ', 'PCEDV', 'PLAKA', 'PMOBI', 'POETA', 'PPUBL', 'PRECL', 'PROGT',
+            'PSJGT', 'PUB08', 'RECLA', 'RETGT', 'REYES', 'ROOGT', 'RVENB', 'RVENC', 'SC2GT', 'SJUGT',
+            'SLCGT', 'SLUGT', 'SUBAL', 'SUMID', 'SUR06', 'T0022', 'T0044', 'T0048', 'TB2B1', 'TCEDV',
+            'TCSUR', 'TPAUL', 'TPKTO', 'TPSER', 'TVEN3', 'TVESP', 'VBCSA', 'VCEDV', 'VEND2', 'VPLAK',
+            'XAUTD', 'XCEDV', 'XCHED', 'XMERA', 'XPIPI',
+        ];
+
+        $whereTienda = "bst.clave_tienda IS NOT NULL AND bst.estado <> 'c'";
+        foreach ($tiendasExcluidas as $t) {
+            $whereTienda .= " AND bst.clave_tienda <> '$t'";
+        }
+        $whereTienda .= ' AND CAST(bst.id_tipo AS INTEGER) = 1';
+
         // Consulta SQL optimizada
         $sql = "
         SELECT
@@ -511,9 +535,7 @@ class ReportService
         FROM xcorte xc
         LEFT JOIN bi_sys_tiendas bst ON xc.ctienda = bst.clave_tienda OR xc.ctienda LIKE bst.clave_tienda || '%' OR xc.ctienda = bst.clave_alterna
         LEFT JOIN metas m ON TRIM(COALESCE(bst.clave_tienda, xc.ctienda)) = TRIM(m.tienda) AND xc.fecha = m.fecha
-        WHERE xc.ctienda NOT IN ('ALMAC','BODEG','CXVEA','GALMA','B0001','00027')
-          AND xc.ctienda NOT LIKE '%DESC%'
-          AND xc.ctienda NOT LIKE '%CEDI%'
+        WHERE $whereTienda
           AND xc.fecha BETWEEN ? AND ?
         ";
 
@@ -593,8 +615,15 @@ class ReportService
             }
         }
         if (! empty($zona)) {
-            $sql .= ' AND bst.zona = ?';
-            $params[] = $zona;
+            $zonasArray = array_map('trim', explode(',', $zona));
+            if (count($zonasArray) > 1) {
+                $placeholders = implode(',', array_fill(0, count($zonasArray), '?'));
+                $sql .= " AND bst.zona IN ($placeholders)";
+                $params = array_merge($params, $zonasArray);
+            } else {
+                $sql .= ' AND bst.zona = ?';
+                $params[] = $zona;
+            }
         }
 
         $sql .= ' ORDER BY xc.cplaza, bst.zona, xc.ctienda, xc.fecha';

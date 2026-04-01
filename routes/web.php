@@ -3,6 +3,7 @@
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteDbfFilesController;
+use App\Http\Controllers\ReporteDesgloseController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
@@ -104,6 +105,10 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
     // NUEVO REPORTE: Metas Matricial
     Route::get('metas-matricial', [ReporteMetasMatricialController::class, 'index'])
         ->name('reportes.metas-matricial.index')->middleware('can:reportes.metas-matricial.ver');
+
+    // NUEVO REPORTE: Desglose
+    Route::get('desglose', [ReporteDesgloseController::class, 'index'])
+        ->name('reportes.desglose.index')->middleware('can:reportes.metas-matricial.ver');
 
     // API REST para consulta personalizada de metas
     Route::post('metas/consultar-datos', [ReporteMetasVentasController::class, 'consultarDatosPersonalizados'])
@@ -217,6 +222,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::post('reception/{reception}/start', [\App\Http\Controllers\ReceptionController::class, 'start'])->name('reception.start');
     Route::post('reception/target/{target}/retry', [\App\Http\Controllers\ReceptionController::class, 'retryTarget'])->name('reception.retry-target');
     Route::get('reception/computer/{computer}', [\App\Http\Controllers\ReceptionController::class, 'showComputer'])->name('reception.computer');
+    Route::resource('reception', \App\Http\Controllers\ReceptionController::class);
 
     // File Reception (Subida de archivos)
     Route::resource('file-receptions', \App\Http\Controllers\FileReceptionController::class);

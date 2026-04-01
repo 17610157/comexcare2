@@ -4,48 +4,20 @@
 
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
-        <h1><i class="fas fa-chart-line text-primary"></i> Reporte de Metas de Ventas</h1>
+        <h1><i class="fas fa-chart-line text-primary"></i> Reporte de Metas</h1>
         <div>
-            @hasPermission('reportes.metas_ventas.exportar')
-            <form method="POST" action="{{ route('reportes.metas-ventas.export') }}" style="display: inline;" id="export-excel-form">
-                @csrf
-                <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
-                <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
-                <input type="hidden" name="plaza" value="{{ $plaza }}">
-                <input type="hidden" name="tienda" value="{{ $tienda }}">
-                <input type="hidden" name="zona" value="{{ $zona }}">
-                <button type="button" class="btn btn-success" id="btn-export-excel">
-                    <i class="fas fa-file-excel"></i> Excel
-                </button>
-            </form>
-            <form method="POST" action="{{ route('reportes.metas-ventas.export.pdf') }}" style="display: inline;" id="export-pdf-form">
-                @csrf
-                <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
-                <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
-                <input type="hidden" name="plaza" value="{{ $plaza }}">
-                <input type="hidden" name="tienda" value="{{ $tienda }}">
-                <input type="hidden" name="zona" value="{{ $zona }}">
-                <button type="button" class="btn btn-danger ml-2" id="btn-export-pdf">
-                    <i class="fas fa-file-pdf"></i> PDF
-                </button>
-            </form>
-            <form method="POST" action="{{ route('reportes.metas-ventas.export.csv') }}" style="display: inline;" id="export-csv-form">
-                @csrf
-                <input type="hidden" name="fecha_inicio" value="{{ $fecha_inicio }}">
-                <input type="hidden" name="fecha_fin" value="{{ $fecha_fin }}">
-                <input type="hidden" name="plaza" value="{{ $plaza }}">
-                <input type="hidden" name="tienda" value="{{ $tienda }}">
-                <input type="hidden" name="zona" value="{{ $zona }}">
-                <button type="button" class="btn btn-warning ml-2" id="btn-export-csv">
-                    <i class="fas fa-file-csv"></i> CSV
-                </button>
-            </form>
-            @endhasPermission
-            @hasPermission('reportes.metas_ventas.ver')
+            <button type="button" class="btn btn-success" onclick="exportExcel()">
+                <i class="fas fa-file-excel"></i> Excel
+            </button>
+            <button type="button" class="btn btn-danger ml-2" onclick="exportPdf()">
+                <i class="fas fa-file-pdf"></i> PDF
+            </button>
+            <button type="button" class="btn btn-warning ml-2" onclick="exportCsv()">
+                <i class="fas fa-file-csv"></i> CSV
+            </button>
             <a href="{{ url()->current() }}" class="btn btn-primary ml-2">
                 <i class="fas fa-sync-alt"></i> Recargar
             </a>
-            @endhasPermission
         </div>
     </div>
 @stop
@@ -78,16 +50,22 @@
                             <label>Plazas</label>
                             <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
                                 <div class="form-check">
-                                    <input type="checkbox" id="select_all_plazas" class="form-check-input">
+                                    <input type="checkbox" id="select_all_plazas" class="form-check-input"
+                                           {{ isset($plazas) && is_array($plazas) && isset($plazaArray) && is_array($plazaArray) && count($plazas) === count($plazaArray) ? 'checked' : '' }}>
                                     <label for="select_all_plazas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
                                 </div>
+                                @php
+                                    $plazaArray = is_array($plaza) ? $plaza : ($plaza ? explode(',', $plaza) : []);
+                                @endphp
+                                @if(isset($plazas) && is_array($plazas))
                                 @foreach($plazas as $p)
                                 <div class="form-check">
                                     <input type="checkbox" name="plaza[]" value="{{ $p }}" id="plaza_{{ $p }}" class="form-check-input plaza-checkbox"
-                                           {{ is_array($plaza) && in_array($p, $plaza) ? 'checked' : '' }}>
+                                           {{ in_array($p, $plazaArray) ? 'checked' : '' }}>
                                     <label for="plaza_{{ $p }}" class="form-check-label">{{ $p }}</label>
                                 </div>
                                 @endforeach
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -96,16 +74,22 @@
                             <label>Tiendas</label>
                             <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
                                 <div class="form-check">
-                                    <input type="checkbox" id="select_all_tiendas" class="form-check-input">
+                                    <input type="checkbox" id="select_all_tiendas" class="form-check-input"
+                                           {{ isset($tiendas) && is_array($tiendas) && isset($tiendaArray) && is_array($tiendaArray) && count($tiendas) === count($tiendaArray) ? 'checked' : '' }}>
                                     <label for="select_all_tiendas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
                                 </div>
+                                @php
+                                    $tiendaArray = is_array($tienda) ? $tienda : ($tienda ? explode(',', $tienda) : []);
+                                @endphp
+                                @if(isset($tiendas) && is_array($tiendas))
                                 @foreach($tiendas as $t)
                                 <div class="form-check">
                                     <input type="checkbox" name="tienda[]" value="{{ $t }}" id="tienda_{{ $t }}" class="form-check-input tienda-checkbox"
-                                           {{ is_array($tienda) && in_array($t, $tienda) ? 'checked' : '' }}>
+                                           {{ in_array($t, $tiendaArray) ? 'checked' : '' }}>
                                     <label for="tienda_{{ $t }}" class="form-check-label">{{ $t }}</label>
                                 </div>
                                 @endforeach
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -117,13 +101,18 @@
                                     <input type="checkbox" id="select_all_zonas" class="form-check-input">
                                     <label for="select_all_zonas" class="form-check-label font-weight-bold"><strong>Todas</strong></label>
                                 </div>
+                                @php
+                                    $zonaArray = is_array($zona) ? $zona : ($zona ? explode(',', $zona) : []);
+                                @endphp
+                                @if(isset($zonas) && is_array($zonas))
                                 @foreach($zonas as $z)
                                 <div class="form-check">
                                     <input type="checkbox" name="zona[]" value="{{ $z }}" id="zona_{{ $z }}" class="form-check-input zona-checkbox"
-                                           {{ is_array($zona) && in_array($z, $zona) ? 'checked' : '' }}>
+                                           {{ in_array($z, $zonaArray) ? 'checked' : '' }}>
                                     <label for="zona_{{ $z }}" class="form-check-label">{{ $z }}</label>
                                 </div>
                                 @endforeach
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -160,18 +149,18 @@
                 <div class="small-box bg-info">
                     <div class="inner">
                         <h3>{{ number_format($estadisticas['total_registros']) }}</h3>
-                        <p>Registros</p>
+                        <p>Tiendas</p>
                     </div>
                     <div class="icon">
-                        <i class="fas fa-list-ol"></i>
+                        <i class="fas fa-store"></i>
                     </div>
                 </div>
             </div>
             <div class="col-lg-3 col-6">
                 <div class="small-box bg-warning">
                     <div class="inner">
-                        <h3>${{ number_format($estadisticas['total_meta_dia'], 2) }}</h3>
-                        <p>Meta Día Total</p>
+                        <h3>${{ number_format($estadisticas['total_meta_total'], 2) }}</h3>
+                        <p>Meta Total</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-bullseye"></i>
@@ -181,8 +170,8 @@
             <div class="col-lg-3 col-6">
                 <div class="small-box bg-success">
                     <div class="inner">
-                        <h3>${{ number_format($estadisticas['total_venta_dia'], 2) }}</h3>
-                        <p>Venta del Día</p>
+                        <h3>${{ number_format($estadisticas['total_venta_real'], 2) }}</h3>
+                        <p>Venta Real</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-dollar-sign"></i>
@@ -192,8 +181,8 @@
             <div class="col-lg-3 col-6">
                 <div class="small-box bg-primary">
                     <div class="inner">
-                        <h3>{{ number_format($estadisticas['porcentaje_acumulado_global'], 2) }}%</h3>
-                        <p>% Acumulado Total</p>
+                        <h3>{{ number_format($estadisticas['porcentaje_promedio'], 2) }}%</h3>
+                        <p>% Cumplimiento</p>
                     </div>
                     <div class="icon">
                         <i class="fas fa-percentage"></i>
@@ -222,37 +211,26 @@
                     <table class="table table-hover table-bordered table-striped" id="tabla-reportes">
                         <thead class="thead-dark">
                             <tr>
-                                <th width="40">#</th>
-                                <th width="80">Plaza</th>
-                                <th width="80">Tienda</th>
-                                <th width="120">Sucursal</th>
-                                <th width="90">Fecha</th>
-                                <th width="80">Zona</th>
-                                <th width="90" class="text-right">Meta Total</th>
-                                <th width="80" class="text-right">Días Total</th>
-                                <th width="90" class="text-right">Valor Día</th>
-                                <th width="90" class="text-right bg-info">Meta Día</th>
-                                <th width="100" class="text-right bg-warning">Venta Día</th>
-                                <th width="100" class="text-right bg-success">Venta Acum.</th>
-                                <th width="100" class="text-right">% Cumplimiento</th>
-                                <th width="100" class="text-right bg-secondary">% Acumulado</th>
+                                <th width="80">CLAVE</th>
+                                <th width="150">NOMBRE</th>
+                                <th width="100" class="text-right">META</th>
+                                <th width="90" class="text-center">DÍAS MES</th>
+                                <th width="100" class="text-center">DÍAS AGOTADOS</th>
+                                <th width="110" class="text-right">META PARCIAL</th>
+                                <th width="110" class="text-right">VENTA REAL</th>
+                                <th width="100" class="text-right">PORCENTAJE</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($resultados as $index => $item)
+                            @foreach($resultados as $item)
                             <tr>
-                                <td class="text-center">{{ $index + 1 }}</td>
-                                <td>{{ $item->id_plaza }}</td>
                                 <td>{{ $item->clave_tienda }}</td>
                                 <td>{{ $item->sucursal }}</td>
-                                <td>{{ \Carbon\Carbon::parse($item->fecha)->format('d/m/Y') }}</td>
-                                <td>{{ $item->zona }}</td>
                                 <td class="text-right">${{ number_format($item->meta_total, 2) }}</td>
-                                <td class="text-right">{{ $item->dias_total }}</td>
-                                <td class="text-right">${{ number_format($item->valor_dia, 2) }}</td>
-                                <td class="text-right font-weight-bold bg-info-light">${{ number_format($item->meta_dia, 2) }}</td>
-                                <td class="text-right font-weight-bold bg-warning-light">${{ number_format($item->venta_del_dia, 2) }}</td>
-                                <td class="text-right font-weight-bold bg-success-light">${{ number_format($item->venta_acumulada, 2) }}</td>
+                                <td class="text-center">{{ number_format($item->dias_mes, 1) }}</td>
+                                <td class="text-center">{{ number_format($item->dias_agotados, 2) }}</td>
+                                <td class="text-right">${{ number_format($item->meta_parcial, 2) }}</td>
+                                <td class="text-right">${{ number_format($item->venta_real, 2) }}</td>
                                 <td class="text-right font-weight-bold">
                                     @php
                                         $porcentaje = floatval($item->porcentaje);
@@ -260,37 +238,23 @@
                                     @endphp
                                     <span class="{{ $color }}">{{ number_format($porcentaje, 2) }}%</span>
                                 </td>
-                                <td class="text-right font-weight-bold bg-secondary-light">
-                                    @php
-                                        $porcentaje_acumulado = floatval($item->porcentaje_acumulado);
-                                        $color_acum = $porcentaje_acumulado >= 100 ? 'text-success' : ($porcentaje_acumulado >= 80 ? 'text-warning' : 'text-danger');
-                                    @endphp
-                                    <span class="{{ $color_acum }}">{{ number_format($porcentaje_acumulado, 2) }}%</span>
-                                </td>
                             </tr>
                             @endforeach
                         </tbody>
                         <tfoot class="bg-light">
                             <tr>
-                                <td colspan="9" class="text-right font-weight-bold">TOTALES:</td>
-                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_meta_dia'], 2) }}</td>
-                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_venta_dia'], 2) }}</td>
-                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_venta_acumulada'], 2) }}</td>
+                                <td colspan="2" class="text-right font-weight-bold">TOTALES:</td>
+                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_meta_total'], 2) }}</td>
+                                <td class="text-center">-</td>
+                                <td class="text-center">-</td>
+                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_meta_parcial'], 2) }}</td>
+                                <td class="text-right font-weight-bold">${{ number_format($estadisticas['total_venta_real'], 2) }}</td>
                                 <td class="text-right font-weight-bold">
                                     @php
                                         $porcentaje_total = $estadisticas['porcentaje_promedio'];
                                         $color_total = $porcentaje_total >= 100 ? 'text-success' : ($porcentaje_total >= 80 ? 'text-warning' : 'text-danger');
                                     @endphp
                                     <span class="{{ $color_total }}">{{ number_format($porcentaje_total, 2) }}%</span>
-                                </td>
-                                <td class="text-right font-weight-bold">
-                                    @php
-                                        // ¡IMPORTANTE! Aquí calculamos el % acumulado TOTAL de la tabla
-                                        // (Total Venta Acumulada / Total Meta Día) × 100
-                                        $porcentaje_acumulado_total = $estadisticas['porcentaje_acumulado_global'];
-                                        $color_acum_total = $porcentaje_acumulado_total >= 100 ? 'text-success' : ($porcentaje_acumulado_total >= 80 ? 'text-warning' : 'text-danger');
-                                    @endphp
-                                    <span class="{{ $color_acum_total }}">{{ number_format($porcentaje_acumulado_total, 2) }}%</span>
                                 </td>
                             </tr>
                         </tfoot>
@@ -393,56 +357,71 @@
 
             // Botón exportar Excel
             $('#btn-export-excel').on('click', function() {
-                Swal.fire({
-                    title: 'Exportar a Excel',
-                    text: '¿Desea descargar el archivo Excel?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, descargar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#export-excel-form').submit();
-                    }
+                var form = $('<form>', {
+                    method: 'POST',
+                    action: '{{ route("reportes.metas-ventas.export") }}'
                 });
+                form.append('@csrf');
+                form.append($('<input>', { type: 'hidden', name: 'fecha_inicio', value: $('input[name="fecha_inicio"]').val() }));
+                form.append($('<input>', { type: 'hidden', name: 'fecha_fin', value: $('input[name="fecha_fin"]').val() }));
+                
+                $('.plaza-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'plaza[]', value: $(this).val() }));
+                });
+                $('.tienda-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'tienda[]', value: $(this).val() }));
+                });
+                $('.zona-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'zona[]', value: $(this).val() }));
+                });
+                
+                form.appendTo('body').submit();
             });
 
             // Botón exportar CSV
             $('#btn-export-csv').on('click', function() {
-                Swal.fire({
-                    title: 'Exportar a CSV',
-                    text: '¿Desea descargar el archivo CSV?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ffc107',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, descargar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#export-csv-form').submit();
-                    }
+                var form = $('<form>', {
+                    method: 'POST',
+                    action: '{{ route("reportes.metas-ventas.export.csv") }}'
                 });
+                form.append('@csrf');
+                form.append($('<input>', { type: 'hidden', name: 'fecha_inicio', value: $('input[name="fecha_inicio"]').val() }));
+                form.append($('<input>', { type: 'hidden', name: 'fecha_fin', value: $('input[name="fecha_fin"]').val() }));
+                
+                $('.plaza-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'plaza[]', value: $(this).val() }));
+                });
+                $('.tienda-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'tienda[]', value: $(this).val() }));
+                });
+                $('.zona-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'zona[]', value: $(this).val() }));
+                });
+                
+                form.appendTo('body').submit();
             });
 
             // Botón exportar PDF
             $('#btn-export-pdf').on('click', function() {
-                Swal.fire({
-                    title: 'Exportar a PDF',
-                    text: '¿Desea descargar el archivo PDF?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, descargar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#export-pdf-form').submit();
-                    }
+                var form = $('<form>', {
+                    method: 'POST',
+                    action: '{{ route("reportes.metas-ventas.export.pdf") }}'
                 });
+                form.append('@csrf');
+                form.append($('<input>', { type: 'hidden', name: 'fecha_inicio', value: $('input[name="fecha_inicio"]').val() }));
+                form.append($('<input>', { type: 'hidden', name: 'fecha_fin', value: $('input[name="fecha_fin"]').val() }));
+                
+                $('.plaza-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'plaza[]', value: $(this).val() }));
+                });
+                $('.tienda-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'tienda[]', value: $(this).val() }));
+                });
+                $('.zona-checkbox:checked').each(function() {
+                    form.append($('<input>', { type: 'hidden', name: 'zona[]', value: $(this).val() }));
+                });
+                
+                form.appendTo('body').submit();
             });
 
             // Validar fechas
@@ -489,17 +468,180 @@
             $('#select_all_tiendas').on('change', function() {
                 $('.tienda-checkbox').prop('checked', $(this).prop('checked'));
             });
-            
+
             $('#select_all_zonas').on('change', function() {
                 $('.zona-checkbox').prop('checked', $(this).prop('checked'));
             });
             
-            const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
-            const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
-            const todasZonas = $('.zona-checkbox').length > 0 && $('.zona-checkbox:checked').length === $('.zona-checkbox').length;
-            $('#select_all_plazas').prop('checked', todasPlazas);
-            $('#select_all_tiendas').prop('checked', todasTiendas);
-            $('#select_all_zonas').prop('checked', todasZonas);
+            function updateSelectAll() {
+                const todasPlazas = $('.plaza-checkbox').length > 0 && $('.plaza-checkbox:checked').length === $('.plaza-checkbox').length;
+                $('#select_all_plazas').prop('checked', todasPlazas);
+
+                const todasTiendas = $('.tienda-checkbox').length > 0 && $('.tienda-checkbox:checked').length === $('.tienda-checkbox').length;
+                $('#select_all_tiendas').prop('checked', todasTiendas);
+
+                const todasZonas = $('.zona-checkbox').length > 0 && $('.zona-checkbox:checked').length === $('.zona-checkbox').length;
+                $('#select_all_zonas').prop('checked', todasZonas);
+            }
+            
+            $('.plaza-checkbox, .tienda-checkbox, .zona-checkbox').on('change', updateSelectAll);
+            updateSelectAll();
         });
+
+        window.exportExcel = function() {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("reportes.metas-ventas.export") }}';
+            form.style.display = 'none';
+            
+            var csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+            
+            var fechaInicio = document.createElement('input');
+            fechaInicio.type = 'hidden';
+            fechaInicio.name = 'fecha_inicio';
+            fechaInicio.value = document.querySelector('input[name="fecha_inicio"]').value;
+            form.appendChild(fechaInicio);
+            
+            var fechaFin = document.createElement('input');
+            fechaFin.type = 'hidden';
+            fechaFin.name = 'fecha_fin';
+            fechaFin.value = document.querySelector('input[name="fecha_fin"]').value;
+            form.appendChild(fechaFin);
+            
+            document.querySelectorAll('.plaza-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'plaza[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.querySelectorAll('.tienda-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'tienda[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.querySelectorAll('.zona-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'zona[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        window.exportCsv = function() {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("reportes.metas-ventas.export.csv") }}';
+            form.style.display = 'none';
+            
+            var csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+            
+            var fechaInicio = document.createElement('input');
+            fechaInicio.type = 'hidden';
+            fechaInicio.name = 'fecha_inicio';
+            fechaInicio.value = document.querySelector('input[name="fecha_inicio"]').value;
+            form.appendChild(fechaInicio);
+            
+            var fechaFin = document.createElement('input');
+            fechaFin.type = 'hidden';
+            fechaFin.name = 'fecha_fin';
+            fechaFin.value = document.querySelector('input[name="fecha_fin"]').value;
+            form.appendChild(fechaFin);
+            
+            document.querySelectorAll('.plaza-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'plaza[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.querySelectorAll('.tienda-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'tienda[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.querySelectorAll('.zona-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'zona[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        window.exportPdf = function() {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("reportes.metas-ventas.export.pdf") }}';
+            form.style.display = 'none';
+            
+            var csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+            
+            var fechaInicio = document.createElement('input');
+            fechaInicio.type = 'hidden';
+            fechaInicio.name = 'fecha_inicio';
+            fechaInicio.value = document.querySelector('input[name="fecha_inicio"]').value;
+            form.appendChild(fechaInicio);
+            
+            var fechaFin = document.createElement('input');
+            fechaFin.type = 'hidden';
+            fechaFin.name = 'fecha_fin';
+            fechaFin.value = document.querySelector('input[name="fecha_fin"]').value;
+            form.appendChild(fechaFin);
+            
+            document.querySelectorAll('.plaza-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'plaza[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.querySelectorAll('.tienda-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'tienda[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.querySelectorAll('.zona-checkbox:checked').forEach(function(cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'zona[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
     </script>
 @stop

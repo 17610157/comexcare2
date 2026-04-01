@@ -4,114 +4,89 @@ namespace App\Exports;
 
 use App\Models\ReporteMetasVentas;
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class MetasVentasExport implements FromArray, WithHeadings, WithStyles, WithColumnWidths
+class MetasVentasExport implements FromArray, WithColumnWidths, WithHeadings, WithStyles
 {
     protected $filtros;
+
     protected $resultados;
+
     protected $estadisticas;
-    
+
     public function __construct($filtros)
     {
         $this->filtros = $filtros;
         $this->resultados = ReporteMetasVentas::obtenerReporte($filtros);
         $this->estadisticas = ReporteMetasVentas::obtenerEstadisticas($this->resultados);
     }
-    
+
     public function array(): array
     {
         $data = [];
-        $contador = 0;
-        
+
         foreach ($this->resultados as $item) {
-            $contador++;
-            
             $porcentaje = floatval($item->porcentaje);
-            $porcentaje_acumulado = floatval($item->porcentaje_acumulado);
-            
+
             $data[] = [
-                $contador,
-                $item->id_plaza ?? '',
                 $item->clave_tienda ?? '',
                 $item->sucursal ?? '',
-                \Carbon\Carbon::parse($item->fecha)->format('d/m/Y'),
-                $item->zona ?? '',
                 number_format($item->meta_total ?? 0, 2),
-                $item->dias_total ?? 0,
-                number_format($item->valor_dia ?? 0, 2),
-                number_format($item->meta_dia ?? 0, 2),
-                number_format($item->venta_del_dia ?? 0, 2),
-                number_format($item->venta_acumulada ?? 0, 2),
-                number_format($porcentaje, 2) . '%',
-                number_format($porcentaje_acumulado, 2) . '%',
+                number_format($item->dias_mes ?? 0, 1),
+                number_format($item->dias_agotados ?? 0, 2),
+                number_format($item->meta_parcial ?? 0, 2),
+                number_format($item->venta_real ?? 0, 2),
+                number_format($porcentaje, 2).'%',
             ];
         }
-        
-        // Agregar fila de totales CON CÁLCULO CORRECTO
+
         if (count($data) > 0) {
             $data[] = [
                 'TOTALES',
                 '',
-                '',
-                '',
-                '',
-                '',
                 number_format($this->estadisticas['total_meta_total'], 2),
-                round($this->estadisticas['total_registros'] > 0 ? 
-                    array_sum(array_column($this->resultados, 'dias_total')) / $this->estadisticas['total_registros'] : 0, 2),
-                number_format($this->estadisticas['total_registros'] > 0 ? 
-                    array_sum(array_column($this->resultados, 'valor_dia')) / $this->estadisticas['total_registros'] : 0, 2),
-                number_format($this->estadisticas['total_meta_dia'], 2),
-                number_format($this->estadisticas['total_venta_dia'], 2),
-                number_format($this->estadisticas['total_venta_acumulada'], 2),
-                number_format($this->estadisticas['porcentaje_promedio'], 2) . '%',
-                // ¡IMPORTANTE! Aquí calculamos el % acumulado TOTAL de la tabla
-                number_format($this->estadisticas['porcentaje_acumulado_global'], 2) . '%',
+                '',
+                '',
+                number_format($this->estadisticas['total_meta_parcial'], 2),
+                number_format($this->estadisticas['total_venta_real'], 2),
+                number_format($this->estadisticas['porcentaje_promedio'], 2).'%',
             ];
         }
-        
+
         return $data;
     }
-    
+
     public function headings(): array
     {
         return [
-            '#',
-            'Plaza',
-            'Tienda',
-            'Sucursal',
-            'Fecha',
-            'Zona',
-            'Meta Total',
-            'Días Total',
-            'Valor Día',
-            'Meta Día',
-            'Venta del Día',
-            'Venta Acumulada',
-            '% Cumplimiento',
-            '% Acumulado',
+            'CLAVE',
+            'NOMBRE',
+            'META',
+            'DIAS MES',
+            'DIAS AGOTADOS',
+            'META PARCIAL',
+            'VENTA REAL',
+            'PORCENTAJE',
         ];
     }
-    
+
     public function styles(Worksheet $sheet)
     {
-        $lastRow = count($this->resultados) + 2; // +1 para encabezado, +1 para totales
-        
+        $lastRow = count($this->resultados) + 2;
+
         $styles = [
-            // Estilo para el encabezado
             1 => [
                 'font' => [
-                    'bold' => true, 
+                    'bold' => true,
                     'color' => ['rgb' => 'FFFFFF'],
-                    'size' => 11
+                    'size' => 11,
                 ],
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '343A40']
+                    'startColor' => ['rgb' => '343A40'],
                 ],
                 'alignment' => [
                     'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
@@ -124,23 +99,15 @@ class MetasVentasExport implements FromArray, WithHeadings, WithStyles, WithColu
                     ],
                 ],
             ],
-            
-            // Estilo para columnas numéricas
-            'G:N' => [
-                'alignment' => [
-                    'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT,
-                ],
-            ],
-            
-            // Estilo para la fila de totales
+
             $lastRow => [
                 'font' => [
                     'bold' => true,
-                    'size' => 11
+                    'size' => 11,
                 ],
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'F8F9FA']
+                    'startColor' => ['rgb' => 'F8F9FA'],
                 ],
                 'borders' => [
                     'top' => [
@@ -150,55 +117,21 @@ class MetasVentasExport implements FromArray, WithHeadings, WithStyles, WithColu
                 ],
             ],
         ];
-        
-        // Aplicar colores de fondo y condicionales
+
         for ($row = 2; $row <= $lastRow - 1; $row++) {
-            // Meta Día (columna J) - bg-info
-            $sheet->getStyle("J{$row}")->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('E6F3FF');
-            
-            // Venta del Día (columna K) - bg-warning
-            $sheet->getStyle("K{$row}")->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('FFF3CD');
-            
-            // Venta Acumulada (columna L) - bg-success
-            $sheet->getStyle("L{$row}")->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('D4EDDA');
-            
-            // % Cumplimiento (columna M) - colores condicionales
-            $percentageCell = $sheet->getCell("M{$row}")->getValue();
+            $percentageCell = $sheet->getCell("H{$row}")->getValue();
             $percentage = floatval(str_replace(['%', ','], '', $percentageCell));
-            
+
             if ($percentage >= 100) {
-                $sheet->getStyle("M{$row}")->getFont()->getColor()->setARGB('28A745');
+                $sheet->getStyle("H{$row}")->getFont()->getColor()->setARGB('28A745');
             } elseif ($percentage >= 80) {
-                $sheet->getStyle("M{$row}")->getFont()->getColor()->setARGB('FFC107');
+                $sheet->getStyle("H{$row}")->getFont()->getColor()->setARGB('FFC107');
             } else {
-                $sheet->getStyle("M{$row}")->getFont()->getColor()->setARGB('DC3545');
-            }
-            
-            // % Acumulado (columna N) - bg-secondary y colores condicionales
-            $sheet->getStyle("N{$row}")->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('E2E3E5');
-            
-            $percentageAcumCell = $sheet->getCell("N{$row}")->getValue();
-            $percentageAcum = floatval(str_replace(['%', ','], '', $percentageAcumCell));
-            
-            if ($percentageAcum >= 100) {
-                $sheet->getStyle("N{$row}")->getFont()->getColor()->setARGB('28A745');
-            } elseif ($percentageAcum >= 80) {
-                $sheet->getStyle("N{$row}")->getFont()->getColor()->setARGB('FFC107');
-            } else {
-                $sheet->getStyle("N{$row}")->getFont()->getColor()->setARGB('DC3545');
+                $sheet->getStyle("H{$row}")->getFont()->getColor()->setARGB('DC3545');
             }
         }
-        
-        // Aplicar bordes a todas las celdas
-        $sheet->getStyle("A1:N{$lastRow}")->applyFromArray([
+
+        $sheet->getStyle("A1:H{$lastRow}")->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
@@ -206,30 +139,23 @@ class MetasVentasExport implements FromArray, WithHeadings, WithStyles, WithColu
                 ],
             ],
         ]);
-        
-        // Ajustar altura de filas
+
         $sheet->getRowDimension(1)->setRowHeight(25);
-        
+
         return $styles;
     }
-    
+
     public function columnWidths(): array
     {
         return [
-            'A' => 8,    // #
-            'B' => 12,   // Plaza
-            'C' => 12,   // Tienda
-            'D' => 20,   // Sucursal
-            'E' => 12,   // Fecha
-            'F' => 12,   // Zona
-            'G' => 12,   // Meta Total
-            'H' => 12,   // Días Total
-            'I' => 12,   // Valor Día
-            'J' => 12,   // Meta Día
-            'K' => 15,   // Venta del Día
-            'L' => 15,   // Venta Acumulada
-            'M' => 15,   // % Cumplimiento
-            'N' => 15,   // % Acumulado
+            'A' => 12,
+            'B' => 25,
+            'C' => 15,
+            'D' => 12,
+            'E' => 15,
+            'F' => 15,
+            'G' => 15,
+            'H' => 12,
         ];
     }
 }
