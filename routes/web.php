@@ -10,6 +10,7 @@ use App\Http\Controllers\Reportes\CarteraAbonosController;
 use App\Http\Controllers\Reportes\ClubComexController;
 use App\Http\Controllers\Reportes\NotasCompletasController;
 use App\Http\Controllers\Reportes\ReporteRedencionesClubController;
+use App\Http\Controllers\ReporteVendedoresB2bController;
 use App\Http\Controllers\ReporteVendedoresController;
 use App\Http\Controllers\ReporteVendedoresMatricialController;
 use App\Http\Controllers\RoleController;
@@ -81,6 +82,22 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
 
     Route::post('vendedores/sync', [ReporteVendedoresController::class, 'sync'])
         ->name('reportes.vendedores.sync')->middleware('can:reportes.vendedores.editar');
+
+    // Reporte Vendedores B2B/VDT
+    Route::get('vendedores-b2b', [ReporteVendedoresB2bController::class, 'index'])
+        ->name('reportes.vendedores.b2b')->middleware('can:reportes.vendedores.ver');
+
+    Route::get('vendedores-b2b/data', [ReporteVendedoresB2bController::class, 'data'])
+        ->name('reportes.vendedores.b2b.data')->middleware('can:reportes.vendedores.ver');
+
+    Route::post('vendedores-b2b/export', [ReporteVendedoresB2bController::class, 'export'])
+        ->name('reportes.vendedores.b2b.export')->middleware('can:reportes.vendedores.editar');
+
+    Route::post('vendedores-b2b/export-csv', [ReporteVendedoresB2bController::class, 'exportCsv'])
+        ->name('reportes.vendedores.b2b.export.csv')->middleware('can:reportes.vendedores.editar');
+
+    Route::post('vendedores-b2b/export-pdf', [ReporteVendedoresB2bController::class, 'exportPdf'])
+        ->name('reportes.vendedores.b2b.export.pdf')->middleware('can:reportes.vendedores.editar');
 
     Route::get('vendedores-matricial', [ReporteVendedoresMatricialController::class, 'index'])
         ->name('reportes.vendedores.matricial')->middleware('can:reportes.vendedores.matricial.ver');
@@ -215,6 +232,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
     Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');
     Route::get('computers/{computer}/status', [\App\Http\Controllers\ComputersController::class, 'status'])->name('computers.status');
+    Route::get('groups/export', [\App\Http\Controllers\GroupsController::class, 'export'])->name('groups.export');
+    Route::post('groups/import-excel', [\App\Http\Controllers\GroupsController::class, 'importExcel'])->name('groups.import-excel');
     Route::resource('groups', \App\Http\Controllers\GroupsController::class);
     Route::resource('agent-versions', \App\Http\Controllers\AgentVersionsController::class);
 

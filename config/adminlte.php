@@ -383,6 +383,12 @@ return [
                     'can' => 'reportes.vendedores.ver',
                 ],
                 [
+                    'text' => 'Reporte Vendedores B2B/VDT',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/vendedores-b2b',
+                    'can' => 'reportes.vendedores.ver',
+                ],
+                [
                     'text' => 'Reporte Vendedores Matriz',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/vendedores-matricial',
