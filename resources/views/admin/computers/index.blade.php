@@ -2,112 +2,221 @@
 
 @section('title', 'Computers')
 
-@section('content_header')
-    <h1>Computers</h1>
-@stop
-
 @section('css')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+@endsection
+
+@push('styles')
 <style>
-    .table-responsive {
-        overflow-x: auto;
-    }
-    .table-responsive table {
-        min-width: 900px;
-    }
-    .status-online { color: #28a745; font-weight: bold; }
-    .status-offline { color: #dc3545; }
-    .status-pending { color: #ffc107; }
-    .filters-card {
-        background: #f8f9fa;
-        border-radius: 4px;
+    .computers-table-container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         padding: 15px;
-        margin-bottom: 15px;
+    }
+    
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: capitalize;
+        display: inline-block;
+        min-width: 70px;
+        text-align: center;
+    }
+    
+    .status-online { 
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); 
+        color: #155724; 
+        border: 1px solid #c3e6cb;
+    }
+    .status-offline { 
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); 
+        color: #721c24; 
+        border: 1px solid #f5c6cb;
+    }
+    .status-pending { 
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); 
+        color: #856404; 
+        border: 1px solid #ffeeba;
+    }
+    
+    .info-badge {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 500;
+        margin: 1px;
+        display: inline-block;
+    }
+    
+    .table {
+        font-size: 0.8rem;
+    }
+    
+    .table thead th {
+        background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+        color: white;
+        font-size: 0.75rem;
+        padding: 12px 8px;
+        white-space: nowrap;
+        border: none;
+        text-align: center;
+    }
+    
+    .table thead th:first-child {
+        border-top-left-radius: 8px;
+    }
+    .table thead th:last-child {
+        border-top-right-radius: 8px;
+    }
+    
+    .table tbody td {
+        padding: 10px 8px;
+        vertical-align: middle;
+        white-space: nowrap;
+        text-align: center;
+    }
+    
+    .table tbody tr:hover {
+        background-color: rgba(0,123,255,.05);
+    }
+    
+    .table td:first-child {
+        text-align: left;
+    }
+    .table td:nth-child(2) {
+        text-align: left;
+    }
+    .table td:nth-child(3) {
+        text-align: left;
+        font-family: monospace;
+        font-size: 0.7rem;
+    }
+    .table td:nth-child(15) {
+        text-align: left;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .short-key-badge {
+        background: #0d6efd;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    .group-badge {
+        background: #6c757d;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.65rem;
+    }
+    
+    .btn-action {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        border-radius: 4px;
+    }
+    
+    .table-responsive {
+        border-radius: 8px;
+    }
+    
+    .dataTables_wrapper .dt-buttons {
+        margin-bottom: 10px;
+    }
+    
+    .dataTables_wrapper .dataTables_length select {
+        border-radius: 4px;
+    }
+    
+    .dataTables_wrapper .dataTables_filter input {
+        border-radius: 20px;
+        padding: 5px 15px;
+    }
+
+    .bitlocker-item {
+        display: inline-block;
+        margin: 2px;
+    }
+    
+    .pvsi-files {
+        font-size: 0.65rem;
+        color: #6c757d;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+        .computers-table-container {
+            padding: 10px;
+        }
+        
+        .table {
+            font-size: 0.7rem;
+        }
+        
+        .table thead th, .table tbody td {
+            padding: 6px 4px;
+        }
+        
+        .status-badge {
+            padding: 2px 6px;
+            font-size: 0.6rem;
+            min-width: 50px;
+        }
+        
+        .short-key-badge {
+            font-size: 0.6rem;
+            padding: 2px 5px;
+        }
     }
 </style>
-@stop
+@endpush
 
 @section('content')
-<div class="card">
-    <div class="card-header">
-        <div class="row filters-card">
-            <div class="col-md-3">
-                <label>Short Key</label>
-                <input type="text" id="filterShortKey" class="form-control" placeholder="Buscar...">
-            </div>
-            <div class="col-md-3">
-                <label>Grupo</label>
-                <select id="filterGroup" class="form-select">
-                    <option value="">Todos</option>
-                    @foreach($groups as $group)
-                        <option value="{{ $group->id }}">{{ $group->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label>Status</label>
-                <select id="filterStatus" class="form-select">
-                    <option value="">Todos</option>
-                    @foreach($statuses as $status)
-                        <option value="{{ $status }}">{{ $status }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="button" id="btnClearFilters" class="btn btn-secondary btn-sm w-100">
-                    <i class="fas fa-times"></i> Limpiar
-                </button>
-            </div>
-        </div>
+<div class="computers-table-container">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h5 class="mb-0"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h5>
+        <div class="dt-buttons-container"></div>
     </div>
-    <div class="card-body">
-        <div class="table-responsive" style="overflow-x: auto;">
-            <table class="table table-bordered table-hover table-sm" id="computers-table" style="min-width: 1500px;">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Short Key</th>
-                        <th>Name</th>
-                        <th>MAC</th>
-                        <th>IP</th>
-                        <th>Status</th>
-                        <th>Group</th>
-                        <th>Agent Version</th>
-                        <th>PVSI Version</th>
-                        <th>PVSI Files</th>
-                        <th>Windows</th>
-                        <th>Arquitectura</th>
-                        <th>RAM</th>
-                        <th>Disco</th>
-                        <th>BitLocker</th>
-                        <th>Download Path</th>
-                        <th>Last Seen</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover table-sm" id="computers-table" style="width: 100%;">
+        <thead class="table-dark">
+            <tr>
+                <th>Short Key</th>
+                <th>Nombre</th>
+                <th>MAC</th>
+                <th>IP</th>
+                <th>Status</th>
+                <th>Grupo</th>
+                <th>Agent</th>
+                <th>PVSI</th>
+                <th>PVSI Files</th>
+                <th>Windows</th>
+                <th>Arq.</th>
+                <th>RAM</th>
+                <th>Disco</th>
+                <th>BitLocker</th>
+                <th>Download Path</th>
+                <th>Última Actividad</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
     </div>
 </div>
-@stop
-
-@section('css')
-<style>
-.status-online {
-    color: #28a745;
-    font-weight: bold;
-}
-.status-offline {
-    color: #dc3545;
-    font-weight: bold;
-}
-.status-pending {
-    color: #ffc107;
-    font-weight: bold;
-}
-</style>
-@stop
+@endsection
 
 @section('js')
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
@@ -128,7 +237,7 @@
     
     function initTable() {
         table = jQuery('#computers-table').DataTable({
-            processing: true,
+            processing: false,
             serverSide: true,
             ajax: {
                 url: '{{ route('admin.computers.index') }}',
@@ -136,13 +245,9 @@
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                data: function(d) {
-                    d.short_key = jQuery('#filterShortKey').val();
-                    d.group_id = jQuery('#filterGroup').val();
-                    d.status = jQuery('#filterStatus').val();
-                },
                 error: function(xhr, error, thrown) {
-                    console.error('AJAX Error:', thrown);
+                    console.log('Ajax Error:', xhr.responseText);
+                    alert('Error: ' + xhr.status + ' - ' + xhr.statusText);
                 }
             },
             columns: [
@@ -151,7 +256,7 @@
                     name: 'short_key',
                     render: function(data) {
                         if (data && data !== '-') {
-                            return '<span class="badge bg-info">' + jQuery('<div>').text(data).html() + '</span>';
+                            return '<span class="badge bg-primary">' + jQuery('<div>').text(data).html() + '</span>';
                         }
                         return '<span class="text-muted">-</span>';
                     }
@@ -166,69 +271,87 @@
                         var cls = 'status-offline';
                         if (data === 'online') cls = 'status-online';
                         else if (data === 'pending') cls = 'status-pending';
-                        return '<span class="' + cls + '">' + jQuery('<div>').text(data).html() + '</span>';
+                        return '<span class="status-badge ' + cls + '">' + jQuery('<div>').text(data).html() + '</span>';
                     }
                 },
                 { data: 'group_name', name: 'group_name' },
-                { data: 'agent_version', name: 'agent_version', render: function(data) {
-                    if (data && data !== '-') {
-                        return '<span class="badge bg-secondary">' + jQuery('<div>').text(data).html() + '</span>';
-                    }
-                    return '<span class="text-muted">-</span>';
-                }},
-                { data: 'pvsi_version', name: 'pvsi_version', render: function(data) {
-                    if (data && data !== '-') {
-                        return '<span class="badge bg-primary">' + jQuery('<div>').text(data).html() + '</span>';
-                    }
-                    return '<span class="text-muted">-</span>';
-                }},
-                { data: 'pvsi_files', name: 'pvsi_files', render: function(data) {
-                    if (data && Array.isArray(data) && data.length > 0) {
-                        var html = '<div>';
-                        data.forEach(function(file) {
-                            html += '<span class="badge bg-info" style="margin:2px;">' + (file.file_name || 'N/A') + '</span>';
-                        });
-                        html += '</div>';
-                        return html;
-                    }
-                    return '<span class="text-muted">-</span>';
-                }},
-                { data: 'windows_version', name: 'windows_version', render: function(data) {
-                    if (data && data !== '-') {
-                        return jQuery('<div>').text(data).html();
-                    }
-                    return '<span class="text-muted">-</span>';
-                }},
-                { data: 'architecture', name: 'architecture', render: function(data) {
-                    if (data && data !== '-') {
-                        return '<span class="badge bg-dark">' + jQuery('<div>').text(data).html() + '</span>';
-                    }
-                    return '<span class="text-muted">-</span>';
-                }},
-                { data: 'total_ram', name: 'total_ram', render: function(data) {
-                    if (data && data > 0) {
-                        return Math.round(data / 1073741824) + ' GB';
-                    }
-                    return '<span class="text-muted">-</span>';
-                }},
-                { data: 'total_disk_space', name: 'total_disk_space', render: function(data) {
-                    if (data && data > 0) {
-                        return Math.round(data / 1073741824) + ' GB';
-                    }
-                    return '<span class="text-muted">-</span>';
-                }},
-                { data: 'bitlocker_status', name: 'bitlocker_status', render: function(data) {
-                    if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-                        var html = '';
-                        for (var drive in data) {
-                            var status = data[drive];
-                            var cls = status === 'Enabled' ? 'bg-success' : 'bg-danger';
-                            html += '<span class="badge ' + cls + ' me-1" style="font-size:0.7rem;">' + drive + ' ' + status + '</span>';
+                { 
+                    data: 'agent_version', 
+                    name: 'agent_version', 
+                    render: function(data) {
+                        if (data && data !== '-') {
+                            return '<span class="info-badge bg-secondary">' + jQuery('<div>').text(data).html() + '</span>';
                         }
-                        return html;
+                        return '<span class="text-muted">-</span>';
                     }
-                    return '<span class="text-muted">-</span>';
-                }},
+                },
+                { 
+                    data: 'pvsi_version', 
+                    name: 'pvsi_version', 
+                    render: function(data) {
+                        if (data && data !== '-') {
+                            return '<span class="info-badge bg-info">' + jQuery('<div>').text(data).html() + '</span>';
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                { 
+                    data: 'pvsi_files', 
+                    name: 'pvsi_files',
+                    render: function(data) {
+                        if (data && Array.isArray(data) && data.length > 0) {
+                            return data.map(function(f) { return f.file_name || 'N/A'; }).join(', ');
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                { data: 'windows_version', name: 'windows_version' },
+                { 
+                    data: 'architecture', 
+                    name: 'architecture', 
+                    render: function(data) {
+                        if (data && data !== '-') {
+                            return '<span class="info-badge bg-dark">' + jQuery('<div>').text(data).html() + '</span>';
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                { 
+                    data: 'total_ram', 
+                    name: 'total_ram', 
+                    render: function(data) {
+                        if (data && data > 0) {
+                            return Math.round(data / 1073741824) + ' GB';
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                { 
+                    data: 'total_disk_space', 
+                    name: 'total_disk_space', 
+                    render: function(data) {
+                        if (data && data > 0) {
+                            return Math.round(data / 1073741824) + ' GB';
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                { 
+                    data: 'bitlocker_status', 
+                    name: 'bitlocker_status', 
+                    render: function(data) {
+                        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+                            var html = '';
+                            for (var drive in data) {
+                                var status = data[drive];
+                                var cls = status === 'Enabled' ? 'bg-success' : 'bg-danger';
+                                html += '<span class="info-badge ' + cls + '">' + drive + ' ' + status + '</span> ';
+                            }
+                            return html;
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
                 { data: 'download_path', name: 'download_path' },
                 { data: 'last_seen', name: 'last_seen' },
                 { 
@@ -237,14 +360,27 @@
                     render: function(data) {
                         var showUrl = '{{ url('admin/computers') }}/' + data;
                         var editUrl = showUrl + '/edit';
-                        return '<a href="' + showUrl + '" class="btn btn-info btn-sm">View</a> ' +
-                               '<a href="' + editUrl + '" class="btn btn-warning btn-sm">Edit</a>';
+                        return '<a href="' + showUrl + '" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a> ' +
+                               '<a href="' + editUrl + '" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>';
                     }
                 }
             ],
             dom: 'lBfrtip',
+            responsive: true,
+            autoWidth: false,
             buttons: [
-                'copy', 'csv', 'excel', 'pdf', 'print'
+                {
+                    extend: 'collection',
+                    text: '<i class="fas fa-download"></i> Exportar',
+                    className: 'btn btn-primary btn-sm',
+                    buttons: [
+                        { extend: 'copy', text: 'Copiar', className: 'btn btn-outline-secondary btn-sm' },
+                        { extend: 'csv', text: 'CSV', className: 'btn btn-outline-secondary btn-sm' },
+                        { extend: 'excel', text: 'Excel', className: 'btn btn-outline-secondary btn-sm' },
+                        { extend: 'pdf', text: 'PDF', className: 'btn btn-outline-secondary btn-sm' },
+                        { extend: 'print', text: 'Imprimir', className: 'btn btn-outline-secondary btn-sm' }
+                    ]
+                }
             ],
             pageLength: 25,
             lengthMenu: [[10, 25, 50, 100], ['10', '25', '50', '100']],
@@ -267,34 +403,8 @@
         });
     }
     
-    function bindFilters() {
-        function triggerSearch() {
-            table.draw();
-        }
-        
-        jQuery('#filterShortKey').on('keyup', function() {
-            triggerSearch();
-        });
-        
-        jQuery('#filterGroup').on('change', function() {
-            triggerSearch();
-        });
-        
-        jQuery('#filterStatus').on('change', function() {
-            triggerSearch();
-        });
-        
-        jQuery('#btnClearFilters').on('click', function() {
-            jQuery('#filterShortKey').val('');
-            jQuery('#filterGroup').val('');
-            jQuery('#filterStatus').val('');
-            triggerSearch();
-        });
-    }
-    
     jQuery(document).ready(function() {
         initTable();
-        bindFilters();
     });
 })();
 </script>

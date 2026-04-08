@@ -40,7 +40,17 @@ class ComputersController extends Controller
             }
 
             $start = $request->input('start', 0);
-            $length = $request->input('length', 10);
+            $length = $request->input('length', 100);
+            
+            $allowedLengths = [10, 25, 50, 100, 500, 1000];
+            if (! in_array($length, $allowedLengths)) {
+                $length = 100;
+            }
+            
+            $maxLength = 1000;
+            if ($length > $maxLength) {
+                $length = $maxLength;
+            }
 
             $total = $query->count();
 
@@ -54,8 +64,6 @@ class ComputersController extends Controller
                     'id' => $computer->id,
                     'short_key' => $computer->short_key ?? '-',
                     'computer_name' => $computer->computer_name,
-                    'mac_address' => $computer->mac_address,
-                    'ip_address' => $computer->ip_address,
                     'status' => $computer->status,
                     'group_name' => $computer->group->name ?? 'N/A',
                     'group_id' => $computer->group_id,
@@ -69,6 +77,8 @@ class ComputersController extends Controller
                     'total_ram' => $computer->total_ram,
                     'total_disk_space' => $computer->total_disk_space,
                     'bitlocker_status' => $computer->bitlocker_status ? json_decode($computer->bitlocker_status, true) : null,
+                    'mac_address' => $computer->mac_address,
+                    'ip_address' => $computer->ip_address,
                     'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
                     'last_seen' => $computer->last_seen ? $computer->last_seen->diffForHumans() : 'Never',
                     'last_seen_raw' => $computer->last_seen ? $computer->last_seen->toIso8601String() : null,

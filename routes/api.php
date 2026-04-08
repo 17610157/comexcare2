@@ -31,6 +31,7 @@ Route::middleware('api')->group(function () {
     Route::post('/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory']);
     Route::post('/logs', [App\Http\Controllers\Api\AgentController::class, 'logs']);
     Route::patch('/pvsi-update', [App\Http\Controllers\Api\AgentController::class, 'pvsiUpdate']);
+    Route::get('/computer/{computer_id}/config', [App\Http\Controllers\Api\AgentController::class, 'getComputerConfig']);
     Route::post('/getComputerId', function (Request $request) {
         $mac = $request->input('mac_address');
         $computer = \App\Models\Computer::where('mac_address', $mac)->first();
