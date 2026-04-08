@@ -100,6 +100,8 @@ class ReportService
                 $tienda = $filtros['tienda'] ?? '';
                 $vendedor = $filtros['vendedor'] ?? '';
 
+                $devolucionSQL = "(SELECT COALESCE(SUM(v.total_brut + v.impuesto), 0) FROM venta v WHERE v.f_emision::date = c.nota_fecha::date AND v.clave_vend = c.vend_clave AND v.cplaza = c.cplaza AND v.ctienda = c.ctienda AND v.tipo_doc = 'DV' AND v.estado NOT LIKE '%C%' AND EXISTS (SELECT 1 FROM partvta p WHERE v.no_referen = p.no_referen AND v.cplaza = p.cplaza AND v.ctienda = p.ctienda AND p.clave_art NOT LIKE '%CAMBIODOC%' AND p.totxpart IS NOT NULL))";
+
                 $query = DB::table('canota as c')
                     ->select([
                         'c.cplaza',
@@ -114,8 +116,8 @@ class ReportService
                         DB::raw("c.ctienda || '-' || c.vend_clave AS tienda_vendedor"),
                         DB::raw("c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha::date)::text AS vendedor_dia"),
                         DB::raw('SUM(c.nota_impor) AS venta_total'),
-                        DB::raw('0 AS devolucion'),
-                        DB::raw('SUM(c.nota_impor) AS venta_neta'),
+                        DB::raw($devolucionSQL.' AS devolucion'),
+                        DB::raw('SUM(c.nota_impor) - '.$devolucionSQL.' AS venta_neta'),
                     ])
                     ->join('asesores_vvt as a', function ($join) {
                         $join->on('a.plaza', '=', 'c.cplaza')
