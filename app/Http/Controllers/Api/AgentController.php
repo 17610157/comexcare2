@@ -9,6 +9,7 @@ use App\Models\Command;
 use App\Models\Computer;
 use App\Models\ComputerLog;
 use App\Models\DistributionFile;
+use App\Models\Group;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -32,6 +33,7 @@ class AgentController extends Controller
                 'agent_version' => 'required|string',
                 'system_info' => 'nullable|array',
                 'download_path' => 'nullable|string',
+                'short_key' => 'nullable|string|max:50',
             ]);
 
             if ($validator->fails()) {
@@ -40,9 +42,24 @@ class AgentController extends Controller
 
             $existingWithMac = Computer::withTrashed()->where('mac_address', $data['mac_address'])->first();
 
+            $groupId = null;
+            if (! empty($data['short_key'])) {
+                $group = Group::findByShortKey(strtoupper($data['short_key']));
+                if ($group) {
+                    $groupId = $group->id;
+                    Log::info('Agent registered with short_key', [
+                        'short_key' => $data['short_key'],
+                        'group_id' => $group->id,
+                        'group_name' => $group->name,
+                    ]);
+                } else {
+                    Log::info('Agent short_key not found', ['short_key' => $data['short_key']]);
+                }
+            }
+
             if ($existingWithMac) {
                 $existingWithMac->restore();
-                $existingWithMac->update([
+                $updateData = [
                     'computer_name' => $data['computer_name'],
                     'ip_address' => $request->ip(),
                     'agent_version' => $data['agent_version'],
@@ -51,10 +68,17 @@ class AgentController extends Controller
                     'system_info' => $data['system_info'] ?? null,
                     'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
                     'deleted_at' => null,
-                ]);
+                ];
+                if (! empty($data['short_key'])) {
+                    $updateData['short_key'] = strtoupper($data['short_key']);
+                }
+                if ($groupId && ! $existingWithMac->group_id) {
+                    $updateData['group_id'] = $groupId;
+                }
+                $existingWithMac->update($updateData);
                 $computer = $existingWithMac->fresh();
             } else {
-                $computer = Computer::create([
+                $createData = [
                     'computer_name' => $data['computer_name'],
                     'mac_address' => $data['mac_address'],
                     'ip_address' => $request->ip(),
@@ -63,10 +87,23 @@ class AgentController extends Controller
                     'last_seen' => now(),
                     'system_info' => $data['system_info'] ?? null,
                     'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
-                ]);
+                ];
+                if (! empty($data['short_key'])) {
+                    $createData['short_key'] = strtoupper($data['short_key']);
+                }
+                if ($groupId) {
+                    $createData['group_id'] = $groupId;
+                }
+                $computer = Computer::create($createData);
             }
 
-            return response()->json(['id' => $computer->id, 'message' => 'Registered successfully']);
+            return response()->json([
+                'id' => $computer->id,
+                'message' => 'Registered successfully',
+                'group_id' => $computer->group_id,
+                'group_name' => $computer->group?->name,
+                'short_key' => $computer->short_key,
+            ]);
         } catch (\Exception $e) {
             Log::error('Registration error', ['exception' => $e->getMessage(), 'data' => $data ?? null]);
 
@@ -102,18 +139,18 @@ class AgentController extends Controller
             return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
         }
 
-        Log::debug('Heartbeat RAW body', [
-            'raw_content' => $request->getContent(),
-            'all_keys' => array_keys($request->all()),
-            'pvsi_files_raw' => $request->input('pvsi_files'),
-            'bitlocker_status' => $request->input('bitlocker_status'),
-            'logs_present' => $request->has('logs'),
-            'logs_length' => $request->input('logs') ? strlen($request->input('logs')) : 0,
-            'windows_version' => $request->input('windows_version'),
-            'architecture' => $request->input('architecture'),
-            'total_ram' => $request->input('total_ram'),
-            'total_disk_space' => $request->input('total_disk_space'),
-        ]);
+        // Log::debug('Heartbeat RAW body', [
+        //     'raw_content' => $request->getContent(),
+        //     'all_keys' => array_keys($request->all()),
+        //     'pvsi_files_raw' => $request->input('pvsi_files'),
+        //     'bitlocker_status' => $request->input('bitlocker_status'),
+        //     'logs_present' => $request->has('logs'),
+        //     'logs_length' => $request->input('logs') ? strlen($request->input('logs')) : 0,
+        //     'windows_version' => $request->input('windows_version'),
+        //     'architecture' => $request->input('architecture'),
+        //     'total_ram' => $request->input('total_ram'),
+        //     'total_disk_space' => $request->input('total_disk_space'),
+        // ]);
 
         $computer = Computer::find($request->computer_id);
 
@@ -143,15 +180,15 @@ class AgentController extends Controller
         }
 
         // Temporal: log de debug para PVSI
-        Log::channel('single')->debug('Heartbeat received', [
-            'computer_id' => $request->computer_id,
-            'agent_version' => $request->agent_version,
-            'pvsi_version' => $request->pvsi_version,
-            'pvsi_fecha' => $request->pvsi_fecha,
-            'pvsi_hora' => $request->pvsi_hora,
-            'pvsi_files' => $request->pvsi_files,
-            'all_params' => $request->all(),
-        ]);
+        // Log::channel('single')->debug('Heartbeat received', [
+        //     'computer_id' => $request->computer_id,
+        //     'agent_version' => $request->agent_version,
+        //     'pvsi_version' => $request->pvsi_version,
+        //     'pvsi_fecha' => $request->pvsi_fecha,
+        //     'pvsi_hora' => $request->pvsi_hora,
+        //     'pvsi_files' => $request->pvsi_files,
+        //     'all_params' => $request->all(),
+        // ]);
 
         if ($request->filled('pvsi_files') && is_array($request->pvsi_files)) {
             $pvsiFiles = json_decode(json_encode($request->pvsi_files), true);
@@ -164,7 +201,7 @@ class AgentController extends Controller
                 $updateData['pvsi_hora'] = $firstPvsi['hora'] ?? null;
             }
 
-            Log::info("PVSI files updated for computer {$computer->id}: ".json_encode($pvsiFiles));
+            // Log::info("PVSI files updated for computer {$computer->id}: ".json_encode($pvsiFiles));
         } elseif ($request->filled('pvsi_version')) {
             $oldPvsiVersion = $computer->pvsi_version;
             $newPvsiVersion = $request->pvsi_version;
@@ -174,7 +211,7 @@ class AgentController extends Controller
                 $updateData['pvsi_fecha'] = $request->pvsi_fecha;
                 $updateData['pvsi_hora'] = $request->pvsi_hora;
 
-                Log::info("PVSI version updated for computer {$computer->id}: {$oldPvsiVersion} -> {$newPvsiVersion}");
+                // Log::info("PVSI version updated for computer {$computer->id}: {$oldPvsiVersion} -> {$newPvsiVersion}");
             }
         }
 
@@ -193,7 +230,7 @@ class AgentController extends Controller
         if ($request->filled('bitlocker_status') && is_array($request->bitlocker_status)) {
             $bitlockerData = json_decode(json_encode($request->bitlocker_status), true);
             $updateData['bitlocker_status'] = $bitlockerData;
-            Log::info('BitLocker status received', ['computer_id' => $computer->id, 'data' => $bitlockerData]);
+            // Log::info('BitLocker status received', ['computer_id' => $computer->id, 'data' => $bitlockerData]);
         }
 
         // Las receive_paths se configuran ÚNICAMENTE desde el panel de administración
@@ -232,7 +269,7 @@ class AgentController extends Controller
                     Log::warning('Failed to save log entry: '.$e->getMessage());
                 }
             }
-            Log::info("Saved {$logCount} log entries for computer {$computer->id}");
+            // Log::info("Saved {$logCount} log entries for computer {$computer->id}");
         }
 
         return response()->json([
@@ -247,7 +284,7 @@ class AgentController extends Controller
 
     public function getCommands(Request $request, $id)
     {
-        Log::info('getCommands request', ['computer_id' => $id]);
+        // Log::info('getCommands request', ['computer_id' => $id]);
 
         $computer = Computer::findOrFail($id);
 
@@ -262,7 +299,7 @@ class AgentController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        Log::info('Commands found', ['count' => $commands->count(), 'computer_id' => $id]);
+        // Log::info('Commands found', ['count' => $commands->count(), 'computer_id' => $id]);
 
         $commandsArray = [];
 
@@ -325,27 +362,35 @@ class AgentController extends Controller
         Log::info('Report received', $request->all());
 
         $validator = Validator::make($request->all(), [
-            'computer_id' => 'required|integer|exists:computers,id',
-            'command_id' => 'nullable|integer|exists:commands,id',
-            'distribution_target_id' => 'nullable|integer|exists:distribution_targets,id',
-            'reception_target_id' => 'nullable|integer|exists:reception_targets,id',
-            'file_id' => 'nullable|integer|exists:distribution_files,id',
-            'status' => 'required|in:completed,failed',
+            'computer_id' => 'nullable|integer',
+            'command_id' => 'nullable|integer',
+            'distribution_target_id' => 'nullable|integer',
+            'reception_target_id' => 'nullable|integer',
+            'file_id' => 'nullable|integer',
+            'status' => 'required|string',
             'progress' => 'nullable|integer|min:0|max:100',
             'response' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Report validation failed', ['errors' => $validator->errors()->toArray()]);
             return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
         }
 
+        $computerId = $request->computer_id;
+        if ($computerId && ! Computer::where('id', $computerId)->exists()) {
+            Log::warning('Report received for unknown computer', ['computer_id' => $computerId]);
+        }
+
         if ($request->command_id) {
-            $command = Command::find($request->command_id);
-            $command->update([
-                'status' => $request->status,
-                'completed_at' => now(),
-                'response' => $request->response,
-            ]);
+            $command = Command::where('id', $request->command_id)->first();
+            if ($command) {
+                $command->update([
+                    'status' => $request->status,
+                    'completed_at' => now(),
+                    'response' => $request->response,
+                ]);
+            }
         }
 
         if ($request->progress !== null) {
@@ -573,6 +618,24 @@ class AgentController extends Controller
             'pvsi_version' => $computer->pvsi_version,
             'pvsi_fecha' => $computer->pvsi_fecha,
             'pvsi_hora' => $computer->pvsi_hora,
+        ]);
+    }
+
+    public function getComputerConfig(Request $request, $computer_id)
+    {
+        $computer = Computer::find($computer_id);
+
+        if (! $computer) {
+            return response()->json(['error' => 'Computer not found'], 404);
+        }
+
+        return response()->json([
+            'computer_id' => $computer->id,
+            'computer_name' => $computer->computer_name,
+            'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
+            'download_paths' => $computer->getAllDownloadPaths(),
+            'receive_paths' => $computer->receive_paths ?? [],
+            'agent_config' => $computer->agent_config ?? [],
         ]);
     }
 

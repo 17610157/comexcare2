@@ -185,7 +185,7 @@ $(function() {
       zeroRecords: "No se encontraron resultados"
     },
     ajax: {
-      url: "{{ url('/vendedores-b2b/data') }}",
+      url: "{{ url('/reportes/vendedores-b2b/data') }}",
       data: function (d) {
         const plazasSeleccionadas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
         const tiendasSeleccionadas = $('.tienda-checkbox:checked').map(function() { return $(this).val(); }).get();
@@ -267,7 +267,7 @@ $(function() {
     
     let form = $('<form>', {
       'method': 'POST',
-      'action': "{{ url('/vendedores-b2b/export-csv') }}",
+      'action': "{{ url('/reportes/vendedores-b2b/export-csv') }}",
       'target': '_blank'
     });
     
@@ -315,7 +315,7 @@ $(function() {
     const syncType = $('input[name="syncType"]:checked').val();
     const append = $('#appendData').is(':checked');
     
-    let url = "{{ url('/vendedores-b2b/sync') }}";
+    let url = "{{ url('/reportes/vendedores-b2b/sync') }}";
     let data = {
       _token: "{{ csrf_token() }}",
       type: syncType,
