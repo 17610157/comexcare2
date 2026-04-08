@@ -86,6 +86,93 @@ class ReportService
     }
 
     /**
+     * Obtener datos del reporte de vendedores B2B/VDT - filtrando solo asesores_vvt
+     */
+    public static function getVendedoresB2bReport(array $filtros): Collection
+    {
+        $cacheKey = 'vendedores_b2b_report_'.md5(serialize($filtros));
+
+        try {
+            return Cache::remember($cacheKey, 3600, function () use ($filtros) {
+                $fecha_inicio = $filtros['fecha_inicio'];
+                $fecha_fin = $filtros['fecha_fin'];
+                $plaza = $filtros['plaza'] ?? '';
+                $tienda = $filtros['tienda'] ?? '';
+                $vendedor = $filtros['vendedor'] ?? '';
+
+                $query = DB::table('canota as c')
+                    ->select([
+                        'c.cplaza',
+                        'c.ctienda',
+                        'c.vend_clave',
+                        DB::raw('c.nota_fecha::date as nota_fecha'),
+                        DB::raw("CASE 
+                            WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA' 
+                            WHEN c.vend_clave = '14379' THEN 'MANZA' 
+                            ELSE c.cplaza 
+                        END AS plaza_ajustada"),
+                        DB::raw("c.ctienda || '-' || c.vend_clave AS tienda_vendedor"),
+                        DB::raw("c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha::date)::text AS vendedor_dia"),
+                        DB::raw('SUM(c.nota_impor) AS venta_total'),
+                        DB::raw('0 AS devolucion'),
+                        DB::raw('SUM(c.nota_impor) AS venta_neta'),
+                    ])
+                    ->join('asesores_vvt as a', function ($join) {
+                        $join->on('a.plaza', '=', 'c.cplaza')
+                            ->on('a.asesor', '=', 'c.vend_clave');
+                    })
+                    ->whereBetween('c.nota_fecha', [$fecha_inicio, $fecha_fin])
+                    ->where('c.ban_status', '<>', 'C')
+                    ->whereNotIn('c.ctienda', ['ALMAC', 'BODEG', 'ALTAP', 'CXVEA', '00095', 'GALMA', 'B0001', '00027'])
+                    ->where('c.ctienda', 'NOT LIKE', '%DESC%')
+                    ->where('c.ctienda', 'NOT LIKE', '%CEDI%');
+
+                if (! empty($plaza)) {
+                    $plazasArray = explode(',', $plaza);
+                    $query->whereIn('c.cplaza', $plazasArray);
+                }
+                if (! empty($tienda)) {
+                    $tiendasArray = explode(',', $tienda);
+                    $query->whereIn('c.ctienda', $tiendasArray);
+                }
+                if (! empty($vendedor)) {
+                    $query->where('c.vend_clave', $vendedor);
+                }
+
+                $query->groupBy('c.cplaza', 'c.ctienda', 'c.vend_clave', 'c.nota_fecha')
+                    ->orderBy('c.ctienda')
+                    ->orderBy('c.vend_clave')
+                    ->orderBy('c.nota_fecha');
+
+                $resultados_raw = $query->get();
+
+                return collect($resultados_raw)->map(function ($row) {
+                    $fecha = $row->nota_fecha;
+                    $venta_total = floatval($row->venta_total);
+                    $devolucion = floatval($row->devolucion);
+                    $venta_neta = floatval($row->venta_neta);
+
+                    return [
+                        'tienda_vendedor' => $row->tienda_vendedor,
+                        'vendedor_dia' => $row->vendedor_dia,
+                        'plaza_ajustada' => $row->plaza_ajustada,
+                        'ctienda' => $row->ctienda,
+                        'vend_clave' => $row->vend_clave,
+                        'fecha' => $fecha,
+                        'venta_total' => $venta_total,
+                        'devolucion' => $devolucion,
+                        'venta_neta' => $venta_neta,
+                    ];
+                });
+            });
+        } catch (\Exception $e) {
+            Log::error('Error en getVendedoresB2bReport: '.$e->getMessage());
+
+            return collect([]);
+        }
+    }
+
+    /**
      * Obtener datos del reporte matricial de vendedores - USANDO TABLA CACHE
      */
     public static function getVendedoresMatricialReport(array $filtros): array
