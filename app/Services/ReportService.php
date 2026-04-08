@@ -10,68 +10,126 @@ use Illuminate\Support\Facades\Log;
 class ReportService
 {
     /**
-     * Obtener datos del reporte de vendedores con filtros - USANDO TABLA CACHE
+     * Obtener datos del reporte de vendedores con filtros
+     * Usa dos consultas separadas para ventas y devoluciones
      */
     public static function getVendedoresReport(array $filtros): Collection
     {
-        // Crear clave de cache única basada en los filtros
         $cacheKey = 'vendedores_report_'.md5(serialize($filtros));
 
         try {
-            return Cache::remember($cacheKey, 3600, function () use ($filtros) { // Cache por 1 hora
+            return Cache::remember($cacheKey, 3600, function () use ($filtros) {
                 $fecha_inicio = $filtros['fecha_inicio'];
                 $fecha_fin = $filtros['fecha_fin'];
                 $plaza = $filtros['plaza'] ?? '';
                 $tienda = $filtros['tienda'] ?? '';
                 $vendedor = $filtros['vendedor'] ?? '';
 
-                $query = DB::table('vendedores_cache')
+                // Primera consulta: ventas de canota
+                $query = DB::table('canota as c')
                     ->select([
-                        'ctienda',
-                        'vend_clave',
-                        'nota_fecha',
-                        'plaza_ajustada',
-                        'tienda_vendedor',
-                        'vendedor_dia',
-                        'venta_total',
-                        'devolucion',
-                        'venta_neta',
+                        'c.cplaza',
+                        'c.ctienda',
+                        'c.vend_clave',
+                        DB::raw('c.nota_fecha::date as nota_fecha'),
+                        DB::raw("CASE 
+                            WHEN c.ctienda IN ('T0014', 'T0017', 'T0031') THEN 'MANZA' 
+                            WHEN c.vend_clave = '14379' THEN 'MANZA' 
+                            ELSE c.cplaza 
+                        END AS plaza_ajustada"),
+                        DB::raw("c.ctienda || '-' || c.vend_clave AS tienda_vendedor"),
+                        DB::raw("c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha::date)::text AS vendedor_dia"),
+                        DB::raw('SUM(c.nota_impor) AS venta_total'),
                     ])
-                    ->whereBetween('nota_fecha', [$fecha_inicio, $fecha_fin]);
+                    ->whereBetween('c.nota_fecha', [$fecha_inicio, $fecha_fin])
+                    ->where('c.ban_status', '<>', 'C')
+                    ->whereNotIn('c.ctienda', ['ALMAC', 'BODEG', 'ALTAP', 'CXVEA', '00095', 'GALMA', 'B0001', '00027'])
+                    ->where('c.ctienda', 'NOT LIKE', '%DESC%')
+                    ->where('c.ctienda', 'NOT LIKE', '%CEDI%');
 
-                // Aplicar filtros
                 if (! empty($plaza)) {
                     $plazasArray = explode(',', $plaza);
-                    $query->whereIn('cplaza', $plazasArray);
+                    $query->whereIn('c.cplaza', $plazasArray);
                 }
                 if (! empty($tienda)) {
                     $tiendasArray = explode(',', $tienda);
-                    $query->whereIn('ctienda', $tiendasArray);
+                    $query->whereIn('c.ctienda', $tiendasArray);
                 }
                 if (! empty($vendedor)) {
-                    $query->where('vend_clave', $vendedor);
+                    $query->where('c.vend_clave', $vendedor);
                 }
 
-                $query->orderBy('ctienda')
-                    ->orderBy('vend_clave')
-                    ->orderBy('nota_fecha');
+                $query->groupBy('c.cplaza', 'c.ctienda', 'c.vend_clave', 'c.nota_fecha')
+                    ->orderBy('c.ctienda')
+                    ->orderBy('c.vend_clave')
+                    ->orderBy('c.nota_fecha');
 
                 $resultados_raw = $query->get();
 
-                // Procesar resultados
-                return collect($resultados_raw)->map(function ($row) {
-                    $fecha = $row->nota_fecha;
+                // Segunda consulta: devoluciones de tabla venta
+                $devQuery = DB::table('venta as v')
+                    ->select([
+                        DB::raw('v.f_emision::date as dev_fecha'),
+                        'v.cplaza',
+                        'v.ctienda',
+                        'v.clave_vend',
+                        DB::raw('SUM(v.total_brut + v.impuesto) AS devolucion'),
+                    ])
+                    ->whereBetween('v.f_emision', [$fecha_inicio, $fecha_fin])
+                    ->where('v.tipo_doc', 'DV')
+                    ->where('v.estado', 'NOT LIKE', '%C%')
+                    ->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('partvta as p')
+                            ->whereRaw('v.no_referen = p.no_referen')
+                            ->whereRaw('v.cplaza = p.cplaza')
+                            ->whereRaw('v.ctienda = p.ctienda')
+                            ->where('p.clave_art', 'NOT LIKE', '%CAMBIODOC%')
+                            ->whereNotNull('p.totxpart');
+                    });
+
+                if (! empty($plaza)) {
+                    $plazasArray = explode(',', $plaza);
+                    $devQuery->whereIn('v.cplaza', $plazasArray);
+                }
+                if (! empty($tienda)) {
+                    $tiendasArray = explode(',', $tienda);
+                    $devQuery->whereIn('v.ctienda', $tiendasArray);
+                }
+                if (! empty($vendedor)) {
+                    $devQuery->where('v.clave_vend', $vendedor);
+                }
+
+                $devQuery->groupBy('v.f_emision', 'v.cplaza', 'v.ctienda', 'v.clave_vend');
+
+                $devoluciones_raw = $devQuery->get();
+
+                // Crear mapa de devoluciones
+                $devMap = [];
+                foreach ($devoluciones_raw as $drow) {
+                    $plazaAdj = (in_array($drow->ctienda, ['T0014', 'T0017', 'T0031']) || $drow->clave_vend === '14379')
+                        ? 'MANZA' : $drow->cplaza;
+                    $key = $drow->dev_fecha.'|'.$plazaAdj.'|'.$drow->ctienda.'|'.$drow->clave_vend;
+                    $devMap[$key] = floatval($drow->devolucion);
+                }
+
+                // Merge devoluciones en resultados
+                return collect($resultados_raw)->map(function ($row) use ($devMap) {
+                    $plazaAdj = (in_array($row->ctienda, ['T0014', 'T0017', 'T0031']) || $row->vend_clave === '14379')
+                        ? 'MANZA' : $row->cplaza;
+                    $key = $row->nota_fecha.'|'.$plazaAdj.'|'.$row->ctienda.'|'.$row->vend_clave;
+
+                    $devolucion = isset($devMap[$key]) ? $devMap[$key] : 0;
                     $venta_total = floatval($row->venta_total);
-                    $devolucion = floatval($row->devolucion);
-                    $venta_neta = floatval($row->venta_neta);
+                    $venta_neta = $venta_total - $devolucion;
 
                     return [
                         'tienda_vendedor' => $row->tienda_vendedor,
                         'vendedor_dia' => $row->vendedor_dia,
-                        'plaza_ajustada' => $row->plaza_ajustada,
+                        'plaza_ajustada' => $plazaAdj,
                         'ctienda' => $row->ctienda,
                         'vend_clave' => $row->vend_clave,
-                        'fecha' => $fecha,
+                        'fecha' => $row->nota_fecha,
                         'venta_total' => $venta_total,
                         'devolucion' => $devolucion,
                         'venta_neta' => $venta_neta,
@@ -87,6 +145,7 @@ class ReportService
 
     /**
      * Obtener datos del reporte de vendedores B2B/VDT - filtrando solo asesores_vvt
+     * Usa dos consultas separadas para ventas y devoluciones
      */
     public static function getVendedoresB2bReport(array $filtros): Collection
     {
@@ -100,8 +159,7 @@ class ReportService
                 $tienda = $filtros['tienda'] ?? '';
                 $vendedor = $filtros['vendedor'] ?? '';
 
-                $devolucionSQL = "(SELECT COALESCE(SUM(v.total_brut + v.impuesto), 0) FROM venta v WHERE v.f_emision::date = c.nota_fecha::date AND v.clave_vend = c.vend_clave AND v.cplaza = c.cplaza AND v.ctienda = c.ctienda AND v.tipo_doc = 'DV' AND v.estado NOT LIKE '%C%' AND EXISTS (SELECT 1 FROM partvta p WHERE v.no_referen = p.no_referen AND v.cplaza = p.cplaza AND v.ctienda = p.ctienda AND p.clave_art NOT LIKE '%CAMBIODOC%' AND p.totxpart IS NOT NULL))";
-
+                // Primera consulta: ventas de canota
                 $query = DB::table('canota as c')
                     ->select([
                         'c.cplaza',
@@ -116,8 +174,6 @@ class ReportService
                         DB::raw("c.ctienda || '-' || c.vend_clave AS tienda_vendedor"),
                         DB::raw("c.vend_clave || '-' || EXTRACT(DAY FROM c.nota_fecha::date)::text AS vendedor_dia"),
                         DB::raw('SUM(c.nota_impor) AS venta_total'),
-                        DB::raw($devolucionSQL.' AS devolucion'),
-                        DB::raw('SUM(c.nota_impor) - '.$devolucionSQL.' AS venta_neta'),
                     ])
                     ->join('asesores_vvt as a', function ($join) {
                         $join->on('a.plaza', '=', 'c.cplaza')
@@ -148,19 +204,74 @@ class ReportService
 
                 $resultados_raw = $query->get();
 
-                return collect($resultados_raw)->map(function ($row) {
-                    $fecha = $row->nota_fecha;
+                // Segunda consulta: devoluciones de tabla venta
+                $devQuery = DB::table('venta as v')
+                    ->select([
+                        DB::raw('v.f_emision::date as dev_fecha'),
+                        'v.cplaza',
+                        'v.ctienda',
+                        'v.clave_vend',
+                        DB::raw('SUM(v.total_brut + v.impuesto) AS devolucion'),
+                    ])
+                    ->join('asesores_vvt as a', function ($join) {
+                        $join->on('a.plaza', '=', 'v.cplaza')
+                            ->on('a.asesor', '=', 'v.clave_vend');
+                    })
+                    ->whereBetween('v.f_emision', [$fecha_inicio, $fecha_fin])
+                    ->where('v.tipo_doc', 'DV')
+                    ->where('v.estado', 'NOT LIKE', '%C%')
+                    ->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('partvta as p')
+                            ->whereRaw('v.no_referen = p.no_referen')
+                            ->whereRaw('v.cplaza = p.cplaza')
+                            ->whereRaw('v.ctienda = p.ctienda')
+                            ->where('p.clave_art', 'NOT LIKE', '%CAMBIODOC%')
+                            ->whereNotNull('p.totxpart');
+                    });
+
+                if (! empty($plaza)) {
+                    $plazasArray = explode(',', $plaza);
+                    $devQuery->whereIn('v.cplaza', $plazasArray);
+                }
+                if (! empty($tienda)) {
+                    $tiendasArray = explode(',', $tienda);
+                    $devQuery->whereIn('v.ctienda', $tiendasArray);
+                }
+                if (! empty($vendedor)) {
+                    $devQuery->where('v.clave_vend', $vendedor);
+                }
+
+                $devQuery->groupBy('v.f_emision', 'v.cplaza', 'v.ctienda', 'v.clave_vend');
+
+                $devoluciones_raw = $devQuery->get();
+
+                // Crear mapa de devoluciones
+                $devMap = [];
+                foreach ($devoluciones_raw as $drow) {
+                    $plazaAdj = (in_array($drow->ctienda, ['T0014', 'T0017', 'T0031']) || $drow->clave_vend === '14379')
+                        ? 'MANZA' : $drow->cplaza;
+                    $key = $drow->dev_fecha.'|'.$plazaAdj.'|'.$drow->ctienda.'|'.$drow->clave_vend;
+                    $devMap[$key] = floatval($drow->devolucion);
+                }
+
+                // Merge devoluciones en resultados
+                return collect($resultados_raw)->map(function ($row) use ($devMap) {
+                    $plazaAdj = (in_array($row->ctienda, ['T0014', 'T0017', 'T0031']) || $row->vend_clave === '14379')
+                        ? 'MANZA' : $row->cplaza;
+                    $key = $row->nota_fecha.'|'.$plazaAdj.'|'.$row->ctienda.'|'.$row->vend_clave;
+
+                    $devolucion = isset($devMap[$key]) ? $devMap[$key] : 0;
                     $venta_total = floatval($row->venta_total);
-                    $devolucion = floatval($row->devolucion);
-                    $venta_neta = floatval($row->venta_neta);
+                    $venta_neta = $venta_total - $devolucion;
 
                     return [
                         'tienda_vendedor' => $row->tienda_vendedor,
                         'vendedor_dia' => $row->vendedor_dia,
-                        'plaza_ajustada' => $row->plaza_ajustada,
+                        'plaza_ajustada' => $plazaAdj,
                         'ctienda' => $row->ctienda,
                         'vend_clave' => $row->vend_clave,
-                        'fecha' => $fecha,
+                        'fecha' => $row->nota_fecha,
                         'venta_total' => $venta_total,
                         'devolucion' => $devolucion,
                         'venta_neta' => $venta_neta,
