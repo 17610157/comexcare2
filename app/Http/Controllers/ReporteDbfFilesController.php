@@ -49,6 +49,67 @@ class ReporteDbfFilesController extends Controller
         return $archivos;
     }
 
+    private function formatAgentModifiedTime($modified)
+    {
+        $modified = trim((string) $modified);
+        if ($modified === '') {
+            return '';
+        }
+
+        $patterns = [
+            '/^(?<date>\d{4}-\d{2}-\d{2})[ T](?<time>\d{1,2}:\d{2}(?::\d{2})?)(?:\.\d+)?(?:\s?(?<ampm>AM|PM|am|pm))?(?:[+-].*)?$/',
+            '/^(?<date>\d{2}\/\d{2}\/\d{4})[ T](?<time>\d{1,2}:\d{2}(?::\d{2})?)(?:\s?(?<ampm>AM|PM|am|pm))?$/',
+            '/^(?<time>\d{1,2}:\d{2}(?::\d{2})?)(?:\s?(?<ampm>AM|PM|am|pm))?$/',
+        ];
+
+        if (preg_match('/\b(?:AM|PM|am|pm)\b/', $modified)) {
+            return $modified;
+        }
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $modified, $matches)) {
+                $date = $matches['date'] ?? '';
+                $time = $matches['time'];
+                $ampm = isset($matches['ampm']) ? strtoupper($matches['ampm']) : '';
+
+                $parts = explode(':', $time);
+                $hour = (int) $parts[0];
+                $minute = isset($parts[1]) ? (int) $parts[1] : 0;
+                $second = isset($parts[2]) ? (int) $parts[2] : 0;
+
+                if ($ampm === '') {
+                    $ampm = $hour >= 12 ? 'PM' : 'AM';
+                    $hour12 = $hour % 12;
+                    if ($hour12 === 0) {
+                        $hour12 = 12;
+                    }
+                } else {
+                    $hour12 = $hour % 12;
+                    if ($hour12 === 0) {
+                        $hour12 = 12;
+                    }
+                }
+
+                $time = sprintf('%d:%02d%s', $hour12, $minute, $second ? sprintf(':%02d', $second) : '');
+                $formatted = trim(trim($date.' '.$time.($ampm ? ' '.$ampm : '')));
+
+                return $formatted;
+            }
+        }
+
+        return $modified;
+    }
+
+    private function excelTextValue($value)
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return '';
+        }
+
+        return "'{$value}";
+    }
+
     public function data(Request $request)
     {
         $draw = (int) $request->input('draw', 1);
@@ -189,6 +250,7 @@ class ReporteDbfFilesController extends Controller
 
                 return [
                     'computer_name' => $computer->computer_name,
+                    'short_key' => $computer->short_key ?? '',
                     'plaza' => $plaza,
                     'group_name' => $computer->group->name ?? 'N/A',
                     'status' => $computer->status,
@@ -200,15 +262,17 @@ class ReporteDbfFilesController extends Controller
             $filename = 'Reporte_DBF_Files_'.date('Ymd_His');
 
             $headers = [
-                'Content-Type' => 'text/csv',
+                'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => 'attachment; filename="'.$filename.'.csv"',
             ];
 
             $callback = function () use ($computersData) {
                 $output = fopen('php://output', 'w');
 
+                fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
                 fputcsv($output, [
-                    'Computadora', 'Plaza', 'Grupo', 'Estado', 'Última Conexión',
+                    'Computadora', 'ShortKey', 'Plaza', 'Grupo', 'Estado', 'Última Conexión',
                     'Archivo DBF', 'Ruta', 'Tamaño (KB)', 'Última Modificación',
                 ]);
 
@@ -218,6 +282,7 @@ class ReporteDbfFilesController extends Controller
                     if (empty($dbfFiles)) {
                         fputcsv($output, [
                             $computer['computer_name'],
+                            $computer['short_key'],
                             $computer['plaza'],
                             $computer['group_name'],
                             $computer['status'],
@@ -234,14 +299,11 @@ class ReporteDbfFilesController extends Controller
                                 $sizeKb = round($dbfFile['size'] / 1024, 2).' KB';
                             }
 
-                            $modified = $dbfFile['modified'] ?? '';
-                            if (! empty($modified) && strpos($modified, 'T') !== false) {
-                                $parts = explode('T', $modified);
-                                $modified = $parts[0].' '.substr($parts[1], 0, 8);
-                            }
+                            $modified = $this->excelTextValue($this->formatAgentModifiedTime($dbfFile['modified'] ?? ''));
 
                             fputcsv($output, [
                                 $computer['computer_name'],
+                                $computer['short_key'],
                                 $computer['plaza'],
                                 $computer['group_name'],
                                 $computer['status'],

@@ -374,6 +374,7 @@ class AgentController extends Controller
 
         if ($validator->fails()) {
             Log::warning('Report validation failed', ['errors' => $validator->errors()->toArray()]);
+
             return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
         }
 
