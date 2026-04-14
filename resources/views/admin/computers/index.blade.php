@@ -183,32 +183,48 @@
 @endpush
 
 @section('content')
-<div class="computers-table-container">
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h5 class="mb-0"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h5>
-        <div class="dt-buttons-container"></div>
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        {{ session('success') }}
     </div>
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover table-sm" id="computers-table" style="width: 100%;">
-        <thead class="table-dark">
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        {{ session('error') }}
+    </div>
+@endif
+
+<div class="computers-table-container">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h5 class="mb-0"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h5>
+        <a href="{{ route('admin.computers.export') }}" class="btn btn-success btn-sm">
+            <i class="fas fa-file-csv"></i> <span class="d-none d-sm-inline">Exportar Todo</span>
+        </a>
+    </div>
+    <div class="table-responsive" style="overflow-x: auto;">
+        <table class="table table-bordered table-striped table-hover table-sm mb-0" id="computers-table" style="min-width: 1200px;">
+        <thead class="bg-dark">
             <tr>
-                <th>Short Key</th>
-                <th>Nombre</th>
-                <th>MAC</th>
-                <th>IP</th>
-                <th>Status</th>
-                <th>Grupo</th>
-                <th>Agent</th>
-                <th>PVSI</th>
-                <th>PVSI Files</th>
-                <th>Windows</th>
-                <th>Arq.</th>
-                <th>RAM</th>
-                <th>Disco</th>
-                <th>BitLocker</th>
-                <th>Download Path</th>
-                <th>Última Actividad</th>
-                <th>Acciones</th>
+                <th class="text-nowrap text-center">Short Key</th>
+                <th class="text-nowrap">Nombre</th>
+                <th class="text-nowrap">MAC</th>
+                <th class="text-nowrap">IP</th>
+                <th class="text-nowrap text-center">Status</th>
+                <th class="text-nowrap">Grupo</th>
+                <th class="text-nowrap">Agent</th>
+                <th class="text-nowrap">PVSI</th>
+                <th class="text-nowrap">PVSI Files</th>
+                <th class="text-nowrap">Windows</th>
+                <th class="text-nowrap text-center">Arq.</th>
+                <th class="text-nowrap text-center">RAM</th>
+                <th class="text-nowrap text-center">Disco</th>
+                <th class="text-nowrap">BitLocker</th>
+                <th class="text-nowrap d-none d-xl-table-cell">Download Path</th>
+                <th class="text-nowrap">Última Actividad</th>
+                <th class="text-nowrap text-center">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -256,7 +272,7 @@
                     name: 'short_key',
                     render: function(data) {
                         if (data && data !== '-') {
-                            return '<span class="badge bg-primary">' + jQuery('<div>').text(data).html() + '</span>';
+                            return '<span class="badge badge-primary">' + jQuery('<div>').text(data).html() + '</span>';
                         }
                         return '<span class="text-muted">-</span>';
                     }
@@ -352,7 +368,16 @@
                         return '<span class="text-muted">-</span>';
                     }
                 },
-                { data: 'download_path', name: 'download_path' },
+                { 
+                    data: 'download_path', 
+                    name: 'download_path',
+                    render: function(data) {
+                        if (data && data !== '-') {
+                            return '<span class="text-truncate d-inline-block" style="max-width: 150px;">' + jQuery('<div>').text(data).html() + '</span>';
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
                 { data: 'last_seen', name: 'last_seen' },
                 { 
                     data: 'id',
@@ -360,28 +385,14 @@
                     render: function(data) {
                         var showUrl = '{{ url('admin/computers') }}/' + data;
                         var editUrl = showUrl + '/edit';
-                        return '<a href="' + showUrl + '" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a> ' +
-                               '<a href="' + editUrl + '" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>';
+                        return '<a href="' + showUrl + '" class="btn btn-info btn-sm" title="Ver"><i class="fas fa-eye"></i></a> ' +
+                               '<a href="' + editUrl + '" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a>';
                     }
                 }
             ],
-            dom: 'lBfrtip',
+            dom: 'lfBrtip',
             responsive: true,
             autoWidth: false,
-            buttons: [
-                {
-                    extend: 'collection',
-                    text: '<i class="fas fa-download"></i> Exportar',
-                    className: 'btn btn-primary btn-sm',
-                    buttons: [
-                        { extend: 'copy', text: 'Copiar', className: 'btn btn-outline-secondary btn-sm' },
-                        { extend: 'csv', text: 'CSV', className: 'btn btn-outline-secondary btn-sm' },
-                        { extend: 'excel', text: 'Excel', className: 'btn btn-outline-secondary btn-sm' },
-                        { extend: 'pdf', text: 'PDF', className: 'btn btn-outline-secondary btn-sm' },
-                        { extend: 'print', text: 'Imprimir', className: 'btn btn-outline-secondary btn-sm' }
-                    ]
-                }
-            ],
             pageLength: 25,
             lengthMenu: [[10, 25, 50, 100], ['10', '25', '50', '100']],
             language: {
@@ -405,6 +416,10 @@
     
     jQuery(document).ready(function() {
         initTable();
+        
+        setTimeout(function() {
+            jQuery('.alert').fadeOut('slow');
+        }, 5000);
     });
 })();
 </script>

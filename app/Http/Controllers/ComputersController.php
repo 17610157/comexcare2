@@ -6,6 +6,7 @@ use App\Models\Computer;
 use App\Models\ComputerLog;
 use App\Models\Group;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
 
 class ComputersController extends Controller
@@ -41,12 +42,12 @@ class ComputersController extends Controller
 
             $start = $request->input('start', 0);
             $length = $request->input('length', 100);
-            
+
             $allowedLengths = [10, 25, 50, 100, 500, 1000];
             if (! in_array($length, $allowedLengths)) {
                 $length = 100;
             }
-            
+
             $maxLength = 1000;
             if ($length > $maxLength) {
                 $length = $maxLength;
@@ -243,6 +244,68 @@ class ComputersController extends Controller
         return response()->json([
             'status' => $computer->status,
             'last_seen' => $computer->last_seen?->toIso8601String(),
+        ]);
+    }
+
+    public function export()
+    {
+        $computers = Computer::with('group')->orderBy('computer_name')->get();
+
+        $csvData = [];
+        $csvData[] = [
+            'Short Key', 'Nombre', 'MAC', 'IP', 'Estado', 'Grupo',
+            'Agent', 'PVSI', 'PVSI Fecha', 'PVSI Hora',
+            'Windows', 'Arquitectura', 'RAM (GB)', 'Disco (GB)',
+            'BitLocker', 'Download Path', 'Última Actividad',
+        ];
+
+        foreach ($computers as $computer) {
+            $bitlocker = '';
+            if ($computer->bitlocker_status && is_array($computer->bitlocker_status)) {
+                $parts = [];
+                foreach ($computer->bitlocker_status as $drive => $status) {
+                    $parts[] = $drive.': '.$status;
+                }
+                $bitlocker = implode('; ', $parts);
+            }
+
+            $csvData[] = [
+                $computer->short_key ?? '',
+                $computer->computer_name,
+                $computer->mac_address,
+                $computer->ip_address,
+                $computer->status,
+                $computer->group->name ?? 'N/A',
+                $computer->agent_version ?? '',
+                $computer->pvsi_version ?? '',
+                $computer->pvsi_fecha ?? '',
+                $computer->pvsi_hora ?? '',
+                $computer->windows_version ?? '',
+                $computer->architecture ?? '',
+                $computer->total_ram ? round($computer->total_ram / 1073741824) : '',
+                $computer->total_disk_space ? round($computer->total_disk_space / 1073741824) : '',
+                $bitlocker,
+                $computer->download_path ?? '',
+                $computer->last_seen ? $computer->last_seen->format('Y-m-d H:i:s') : '',
+            ];
+        }
+
+        $filename = 'computadoras_'.date('Y-m-d_His').'.csv';
+        $handle = fopen('php://temp', 'r+');
+
+        foreach ($csvData as $row) {
+            fputcsv($handle, $row);
+        }
+
+        rewind($handle);
+        $content = stream_get_contents($handle);
+        fclose($handle);
+
+        $content = chr(239).chr(187).chr(191).$content;
+
+        return Response::make($content, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 }

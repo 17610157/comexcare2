@@ -163,6 +163,51 @@
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 <script>
+function formatAgentModifiedDate(modified) {
+  if (!modified) {
+    return 'N/A';
+  }
+
+  const value = String(modified).trim();
+  const patterns = [
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}:\d{2}(?::\d{2})?)(?:\.\d+)?(?:\s?(AM|PM|am|pm))?(?:[+-].*)?$/,
+    /^(\d{2}\/\d{2}\/\d{4})[ T](\d{1,2}:\d{2}(?::\d{2})?)(?:\s?(AM|PM|am|pm))?$/,
+    /^(\d{1,2}:\d{2}(?::\d{2})?)(?:\s?(AM|PM|am|pm))?$/,
+  ];
+
+  if (/\b(?:AM|PM|am|pm)\b/.test(value)) {
+    return value;
+  }
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (match) {
+      const datePart = match[1] || '';
+      let timePart = match[2] || '';
+      let ampm = match[3] ? match[3].toUpperCase() : '';
+
+      const parts = timePart.split(':').map(Number);
+      const hour = parts[0] || 0;
+      const minute = parts[1] || 0;
+      const second = parts[2] || 0;
+
+      let hour12 = hour % 12;
+      if (hour12 === 0) {
+        hour12 = 12;
+      }
+
+      if (ampm === '') {
+        ampm = hour >= 12 ? 'PM' : 'AM';
+      }
+
+      timePart = `${hour12}:${String(minute).padStart(2, '0')}` + (second ? `:${String(second).padStart(2, '0')}` : '');
+      return `${datePart ? datePart + ' ' : ''}${timePart} ${ampm}`.trim();
+    }
+  }
+
+  return value;
+}
+
 $(function() {
   const dataTable = $('#report-table').DataTable({
     processing: true,
@@ -294,11 +339,7 @@ $(function() {
     if (computer.dbf_files && computer.dbf_files.length > 0) {
       computer.dbf_files.forEach(function(file) {
         const size = file.size ? (file.size / 1024).toFixed(2) + ' KB' : 'N/A';
-        let modified = file.modified || 'N/A';
-        if (modified !== 'N/A' && modified.includes('T')) {
-          const parts = modified.split('T');
-          modified = parts[0] + ' ' + parts[1].substring(0, 8);
-        }
+        const modified = formatAgentModifiedDate(file.modified || '');
         tbody.append('<tr>' +
           '<td>'+(file.name || 'N/A')+'</td>' +
           '<td style="word-break: break-all; font-size: 0.65rem;">'+(file.path || 'N/A')+'</td>' +

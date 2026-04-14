@@ -99,10 +99,7 @@ return [
             'options' => [
                 \PDO::ATTR_TIMEOUT => 5,
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-            ],
-            'pool' => [
-                'min' => 2,
-                'max' => 5,
+                \PDO::ATTR_PERSISTENT => false,
             ],
         ],
 

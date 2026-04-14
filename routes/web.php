@@ -232,6 +232,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
     Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');
     Route::get('computers/{computer}/status', [\App\Http\Controllers\ComputersController::class, 'status'])->name('computers.status');
+    Route::get('computers-exportar', [\App\Http\Controllers\ComputersController::class, 'export'])->name('computers.export');
     Route::get('groups/export', [\App\Http\Controllers\GroupsController::class, 'export'])->name('groups.export');
     Route::post('groups/import-excel', [\App\Http\Controllers\GroupsController::class, 'importExcel'])->name('groups.import-excel');
     Route::resource('groups', \App\Http\Controllers\GroupsController::class);
