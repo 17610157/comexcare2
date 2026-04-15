@@ -327,11 +327,27 @@ class AgentController extends Controller
                 'status' => 'sent',
             ];
 
-            if ($command->type === 'distribute' || $command->type === 'update' || $command->type === 'download') {
+            if ($command->type === 'distribute' || $command->type === 'download') {
+                $commandArray['download_paths'] = $computer->getAllDownloadPaths();
+            }
+
+            if ($command->type === 'update') {
                 $commandArray['download_paths'] = $computer->getAllDownloadPaths();
 
-                if ($command->type === 'update' && isset($data['subfolder'])) {
+                if (isset($data['subfolder'])) {
                     $commandArray['subfolder'] = $data['subfolder'];
+                }
+
+                if (isset($data['version'])) {
+                    $agentVersion = AgentVersion::where('version', $data['version'])->first();
+                    if ($agentVersion) {
+                        $files = $agentVersion->files;
+                        if (! empty($files)) {
+                            $commandArray['agent_files'] = $files;
+                            $commandArray['version'] = $data['version'];
+                            $commandArray['checksum'] = $agentVersion->checksum;
+                        }
+                    }
                 }
             }
 

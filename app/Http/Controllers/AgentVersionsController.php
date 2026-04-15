@@ -11,6 +11,7 @@ class AgentVersionsController extends Controller
     public function index()
     {
         $versions = AgentVersion::orderBy('created_at', 'desc')->paginate(20);
+
         return view('admin.agent-versions.index', compact('versions'));
     }
 
@@ -24,7 +25,8 @@ class AgentVersionsController extends Controller
         $request->validate([
             'version' => 'required|string',
             'channel' => 'required|in:stable,beta,alpha',
-            'file' => 'required|file|max:51200', // 50MB
+            'files' => 'required|array|min:1',
+            'files.*' => 'required|file|max:51200', // 50MB por archivo
             'changelog' => 'nullable|string',
         ]);
 
@@ -36,6 +38,7 @@ class AgentVersionsController extends Controller
     public function destroy(AgentVersion $agentVersion, AgentUpdateService $service)
     {
         $service->deactivateVersion($agentVersion);
+
         return redirect()->route('admin.agent-versions.index');
     }
 }

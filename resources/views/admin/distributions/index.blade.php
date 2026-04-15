@@ -459,6 +459,20 @@
 
 @section('css')
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap4.min.css">
+    <style>
+        #distributionsTable td:last-child,
+        #distributionsTable th:last-child {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            max-width: none !important;
+            width: 180px;
+        }
+        #distributionsTable .btn-sm {
+            padding: 0.25rem 0.4rem;
+            font-size: 0.8rem;
+        }
+    </style>
 @stop
 
 @section('js')
@@ -528,6 +542,13 @@ function updateDistributionProgressUI(data) {
 
 function subscribeToDistribution(distributionId) {
     if (wsSubscriptions.has(distributionId)) return;
+    
+    // Check if Echo is available, otherwise use polling
+    if (typeof window.Echo === 'undefined') {
+        console.log('Echo not available, using polling for distribution:', distributionId);
+        startPollingDistribution(distributionId);
+        return;
+    }
     
     const channelName = 'distribution.' + distributionId;
     console.log('Subscribing to WebSocket channel:', channelName);

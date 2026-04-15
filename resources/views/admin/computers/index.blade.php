@@ -197,44 +197,37 @@
     </div>
 @endif
 
-<div class="row">
-    <div class="col-12">
-        <div class="card card-primary card-outline">
-            <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h3>
-                <div class="card-tools">
-                    <a href="{{ route('admin.computers.export') }}" class="btn btn-success btn-sm">
-                        <i class="fas fa-file-csv"></i> Exportar Todo
-                    </a>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive" style="overflow-x: auto;">
-                    <table class="table table-bordered table-striped table-hover table-sm mb-0" id="computers-table" style="min-width: 1200px;">
-                        <thead class="bg-dark">
-                            <tr>
-                                <th class="text-nowrap text-center">Short Key</th>
-                                <th class="text-nowrap">Nombre</th>
-                                <th class="text-nowrap text-center">Status</th>
-                                <th class="text-nowrap">Grupo</th>
-                                <th class="text-nowrap">Agent</th>
-                                <th class="text-nowrap">PVSI</th>
-                                <th class="text-nowrap">Windows</th>
-                                <th class="text-nowrap text-center">Arq.</th>
-                                <th class="text-nowrap text-center">RAM</th>
-                                <th class="text-nowrap text-center">Disco</th>
-                                <th class="text-nowrap">BitLocker</th>
-                                <th class="text-nowrap d-none d-xl-table-cell">Download Path</th>
-                                <th class="text-nowrap">Última Actividad</th>
-                                <th class="text-nowrap text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<div class="computers-table-container mt-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h5 class="mb-0"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h5>
+        <a href="{{ route('admin.computers.export') }}" class="btn btn-success btn-sm">
+            <i class="fas fa-file-csv"></i> <span class="d-none d-sm-inline">Exportar Todo</span>
+        </a>
+    </div>
+    <div class="table-responsive" style="overflow-x: auto;">
+        <table class="table table-bordered table-striped table-hover table-sm mb-0" id="computers-table" style="min-width: 1200px;">
+        <thead class="bg-dark">
+            <tr>
+                <th class="text-nowrap text-center">Short Key</th>
+                <th class="text-nowrap">Nombre</th>
+                <th class="text-nowrap">MAC</th>
+                <th class="text-nowrap">IP</th>
+                <th class="text-nowrap text-center">Status</th>
+                <th class="text-nowrap">Grupo</th>
+                <th class="text-nowrap">Agent</th>
+                <th class="text-nowrap">PVSI</th>
+                <th class="text-nowrap">PVSI Files</th>
+                <th class="text-nowrap">Windows</th>
+                <th class="text-nowrap text-center">Arq.</th>
+                <th class="text-nowrap text-center">RAM</th>
+                <th class="text-nowrap text-center">Disco</th>
+                <th class="text-nowrap">Última Actividad</th>
+                <th class="text-nowrap text-center">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
     </div>
 </div>
 @endsection
@@ -283,16 +276,16 @@
                     }
                 },
                 { data: 'computer_name', name: 'computer_name' },
+                { data: 'mac_address', name: 'mac_address' },
+                { data: 'ip_address', name: 'ip_address' },
                 { 
                     data: 'status',
                     name: 'status',
                     render: function(data) {
-                        if (data === 'online') {
-                            return '<span class="badge badge-success" title="Online"><i class="fas fa-circle text-success"></i></span>';
-                        } else if (data === 'pending') {
-                            return '<span class="badge badge-warning" title="Pending"><i class="fas fa-circle text-warning"></i></span>';
-                        }
-                        return '<span class="badge badge-secondary" title="Offline"><i class="fas fa-circle text-danger"></i></span>';
+                        var cls = 'status-offline';
+                        if (data === 'online') cls = 'status-online';
+                        else if (data === 'pending') cls = 'status-pending';
+                        return '<span class="status-badge ' + cls + '">' + jQuery('<div>').text(data).html() + '</span>';
                     }
                 },
                 { data: 'group_name', name: 'group_name' },
@@ -317,15 +310,16 @@
                     }
                 },
                 { 
-                    data: 'windows_version', 
-                    name: 'windows_version', 
+                    data: 'pvsi_files', 
+                    name: 'pvsi_files',
                     render: function(data) {
-                        if (data && data !== '-') {
-                            return '<i class="fab fa-windows text-primary" title="' + jQuery('<div>').text(data).html() + '"></i>';
+                        if (data && Array.isArray(data) && data.length > 0) {
+                            return data.map(function(f) { return f.file_name || 'N/A'; }).join(', ');
                         }
                         return '<span class="text-muted">-</span>';
                     }
                 },
+                { data: 'windows_version', name: 'windows_version' },
                 { 
                     data: 'architecture', 
                     name: 'architecture', 
@@ -355,33 +349,7 @@
                         }
                         return '<span class="text-muted">-</span>';
                     }
-                },
-                { 
-                    data: 'bitlocker_status', 
-                    name: 'bitlocker_status', 
-                    render: function(data) {
-                        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-                            var html = '';
-                            for (var drive in data) {
-                                var status = data[drive];
-                                var icon = status === 'Enabled' ? '<i class="fas fa-lock text-success"></i>' : '<i class="fas fa-lock-open text-danger"></i>';
-                                html += '<span title="' + drive + ': ' + status + '">' + drive + ' ' + icon + '</span> ';
-                            }
-                            return html;
-                        }
-                        return '<span class="text-muted">-</span>';
-                    }
-                },
-                { 
-                    data: 'download_path', 
-                    name: 'download_path',
-                    render: function(data) {
-                        if (data && data !== '-') {
-                            return '<span class="text-truncate d-inline-block" style="max-width: 150px;">' + jQuery('<div>').text(data).html() + '</span>';
-                        }
-                        return '<span class="text-muted">-</span>';
-                    }
-                },
+                }, 
                 { data: 'last_seen', name: 'last_seen' },
                 { 
                     data: 'id',
