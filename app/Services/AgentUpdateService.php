@@ -12,14 +12,30 @@ class AgentUpdateService
 {
     public function createVersion(array $data): AgentVersion
     {
-        $path = $data['file']->store('agent_updates', 'public');
+        $filesData = [];
+
+        if (isset($data['files']) && is_array($data['files'])) {
+            foreach ($data['files'] as $file) {
+                if ($file && $file->isValid()) {
+                    $path = $file->store('agent_updates', 'public');
+                    $filesData[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'checksum' => hash_file('sha256', Storage::disk('public')->path($path)),
+                        'size' => $file->getSize(),
+                    ];
+                }
+            }
+        }
+
+        $mainFile = $filesData[0] ?? null;
 
         return AgentVersion::create([
             'version' => $data['version'],
             'channel' => $data['channel'] ?? 'stable',
-            'file_path' => $path,
-            'checksum' => hash_file('sha256', Storage::disk('public')->path($path)),
-            'changelog' => $data['changelog'] ?? null,
+            'file_path' => $mainFile['path'] ?? null,
+            'checksum' => $mainFile['checksum'] ?? null,
+            'changelog' => ! empty($filesData) ? json_encode(['files' => $filesData, 'notes' => $data['changelog'] ?? '']) : $data['changelog'],
             'is_active' => true,
         ]);
     }

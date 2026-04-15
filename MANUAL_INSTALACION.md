@@ -93,7 +93,7 @@ sudo -u postgres psql
 
 ```sql
 -- En la consola de PostgreSQL:
-CREATE USER comexcare WITH PASSWORD 'TU_PASSWORD_AQUI';
+CREATE USER comexcare WITH PASSWORD '2ct1v3.d1r3ct';
 CREATE DATABASE comexcare OWNER comexcare;
 ALTER USER comexcare CREATEDB;
 \q
