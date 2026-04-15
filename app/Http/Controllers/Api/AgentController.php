@@ -410,7 +410,7 @@ class AgentController extends Controller
                 }
             } elseif ($request->command_id) {
                 $command = Command::find($request->command_id);
-                $data = is_array($command->data) ? $command->data : json_decode($command->data, true);
+                $data = $command && $command->data ? (is_array($command->data) ? $command->data : json_decode($command->data, true)) : null;
                 $targetId = $data['distribution_target_id'] ?? null;
             }
 
