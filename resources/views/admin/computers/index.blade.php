@@ -15,42 +15,6 @@
         padding: 15px;
     }
     
-    .status-badge {
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: capitalize;
-        display: inline-block;
-        min-width: 70px;
-        text-align: center;
-    }
-    
-    .status-online { 
-        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); 
-        color: #155724; 
-        border: 1px solid #c3e6cb;
-    }
-    .status-offline { 
-        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); 
-        color: #721c24; 
-        border: 1px solid #f5c6cb;
-    }
-    .status-pending { 
-        background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); 
-        color: #856404; 
-        border: 1px solid #ffeeba;
-    }
-    
-    .info-badge {
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.65rem;
-        font-weight: 500;
-        margin: 1px;
-        display: inline-block;
-    }
-    
     .table {
         font-size: 0.8rem;
     }
@@ -89,17 +53,6 @@
     .table td:nth-child(2) {
         text-align: left;
     }
-    .table td:nth-child(3) {
-        text-align: left;
-        font-family: monospace;
-        font-size: 0.7rem;
-    }
-    .table td:nth-child(15) {
-        text-align: left;
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
     
     .short-key-badge {
         background: #0d6efd;
@@ -118,41 +71,13 @@
         font-size: 0.65rem;
     }
     
-    .btn-action {
-        padding: 4px 8px;
-        font-size: 0.75rem;
+    .info-badge {
+        padding: 2px 6px;
         border-radius: 4px;
-    }
-    
-    .table-responsive {
-        border-radius: 8px;
-    }
-    
-    .dataTables_wrapper .dt-buttons {
-        margin-bottom: 10px;
-    }
-    
-    .dataTables_wrapper .dataTables_length select {
-        border-radius: 4px;
-    }
-    
-    .dataTables_wrapper .dataTables_filter input {
-        border-radius: 20px;
-        padding: 5px 15px;
-    }
-
-    .bitlocker-item {
-        display: inline-block;
-        margin: 2px;
-    }
-    
-    .pvsi-files {
         font-size: 0.65rem;
-        color: #6c757d;
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        font-weight: 500;
+        margin: 1px;
+        display: inline-block;
     }
 
     @media (max-width: 768px) {
@@ -166,12 +91,6 @@
         
         .table thead th, .table tbody td {
             padding: 6px 4px;
-        }
-        
-        .status-badge {
-            padding: 2px 6px;
-            font-size: 0.6rem;
-            min-width: 50px;
         }
         
         .short-key-badge {
@@ -197,37 +116,42 @@
     </div>
 @endif
 
-<div class="computers-table-container mt-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <h5 class="mb-0"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h5>
-        <a href="{{ route('admin.computers.export') }}" class="btn btn-success btn-sm">
-            <i class="fas fa-file-csv"></i> <span class="d-none d-sm-inline">Exportar Todo</span>
-        </a>
-    </div>
-    <div class="table-responsive" style="overflow-x: auto;">
-        <table class="table table-bordered table-striped table-hover table-sm mb-0" id="computers-table" style="min-width: 1200px;">
-        <thead class="bg-dark">
-            <tr>
-                <th class="text-nowrap text-center">Short Key</th>
-                <th class="text-nowrap">Nombre</th>
-                <th class="text-nowrap">MAC</th>
-                <th class="text-nowrap">IP</th>
-                <th class="text-nowrap text-center">Status</th>
-                <th class="text-nowrap">Grupo</th>
-                <th class="text-nowrap">Agent</th>
-                <th class="text-nowrap">PVSI</th>
-                <th class="text-nowrap">PVSI Files</th>
-                <th class="text-nowrap">Windows</th>
-                <th class="text-nowrap text-center">Arq.</th>
-                <th class="text-nowrap text-center">RAM</th>
-                <th class="text-nowrap text-center">Disco</th>
-                <th class="text-nowrap">Última Actividad</th>
-                <th class="text-nowrap text-center">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+<div class="row">
+    <div class="col-12">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h3>
+                <div class="card-tools">
+                    <a href="{{ route('admin.computers.export') }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-csv"></i> Exportar Todo
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="overflow-x: auto;">
+                    <table class="table table-bordered table-striped table-hover table-sm mb-0" id="computers-table" style="min-width: 900px;">
+                        <thead class="bg-dark">
+                            <tr>
+                                <th class="text-nowrap text-center">Short Key</th>
+                                <th class="text-nowrap">Nombre</th>
+                                <th class="text-nowrap text-center">Status</th>
+                                <th class="text-nowrap">Grupo</th>
+                                <th class="text-nowrap">Agent</th>
+                                <th class="text-nowrap">PVSI</th>
+                                <th class="text-nowrap">Windows</th>
+                                <th class="text-nowrap text-center">Arq.</th>
+                                <th class="text-nowrap text-center">RAM</th>
+                                <th class="text-nowrap text-center">Disco</th>
+                                <th class="text-nowrap">Última Actividad</th>
+                                <th class="text-nowrap text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -248,6 +172,21 @@
     'use strict';
     
     var table;
+    
+    function getWindowsIcon(version) {
+        if (!version) return '<i class="fab fa-windows text-secondary" title="Windows"></i>';
+        var v = version.toLowerCase();
+        if (v.includes('11') || v.includes('22h2') || v.includes('23h2')) {
+            return '<i class="fab fa-windows text-primary" title="' + version + '"></i>';
+        }
+        if (v.includes('10')) {
+            return '<i class="fab fa-windows text-info" title="' + version + '"></i>';
+        }
+        if (v.includes('server')) {
+            return '<i class="fas fa-server text-secondary" title="' + version + '"></i>';
+        }
+        return '<i class="fab fa-windows text-secondary" title="' + version + '"></i>';
+    }
     
     function initTable() {
         table = jQuery('#computers-table').DataTable({
@@ -276,16 +215,16 @@
                     }
                 },
                 { data: 'computer_name', name: 'computer_name' },
-                { data: 'mac_address', name: 'mac_address' },
-                { data: 'ip_address', name: 'ip_address' },
                 { 
                     data: 'status',
                     name: 'status',
                     render: function(data) {
-                        var cls = 'status-offline';
-                        if (data === 'online') cls = 'status-online';
-                        else if (data === 'pending') cls = 'status-pending';
-                        return '<span class="status-badge ' + cls + '">' + jQuery('<div>').text(data).html() + '</span>';
+                        if (data === 'online') {
+                            return '<span class="text-success" title="Online"><i class="fas fa-circle"></i></span>';
+                        } else if (data === 'pending') {
+                            return '<span class="text-warning" title="Pending"><i class="fas fa-circle"></i></span>';
+                        }
+                        return '<span class="text-danger" title="Offline"><i class="fas fa-circle"></i></span>';
                     }
                 },
                 { data: 'group_name', name: 'group_name' },
@@ -310,16 +249,12 @@
                     }
                 },
                 { 
-                    data: 'pvsi_files', 
-                    name: 'pvsi_files',
+                    data: 'windows_version', 
+                    name: 'windows_version', 
                     render: function(data) {
-                        if (data && Array.isArray(data) && data.length > 0) {
-                            return data.map(function(f) { return f.file_name || 'N/A'; }).join(', ');
-                        }
-                        return '<span class="text-muted">-</span>';
+                        return getWindowsIcon(data);
                     }
                 },
-                { data: 'windows_version', name: 'windows_version' },
                 { 
                     data: 'architecture', 
                     name: 'architecture', 
