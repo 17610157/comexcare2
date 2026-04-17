@@ -10,6 +10,7 @@ use App\Http\Controllers\Reportes\CarteraAbonosController;
 use App\Http\Controllers\Reportes\ClubComexController;
 use App\Http\Controllers\Reportes\NotasCompletasController;
 use App\Http\Controllers\Reportes\ReporteRedencionesClubController;
+use App\Http\Controllers\ReporteValesController;
 use App\Http\Controllers\ReporteVendedoresB2bController;
 use App\Http\Controllers\ReporteVendedoresController;
 use App\Http\Controllers\ReporteVendedoresMatricialController;
@@ -206,6 +207,14 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
         ->name('reportes.dbf-files.data')->middleware('can:reportes.compras-directo.ver');
     Route::get('dbf-files/export', [ReporteDbfFilesController::class, 'export'])
         ->name('reportes.dbf-files.export')->middleware('can:reportes.compras-directo.ver');
+
+    // REPORTE: Vales
+    Route::get('vales', [ReporteValesController::class, 'index'])
+        ->name('reportes.vales')->middleware('can:reportes.compras-directo.ver');
+    Route::get('vales/data', [ReporteValesController::class, 'data'])
+        ->name('reportes.vales.data')->middleware('can:reportes.compras-directo.ver');
+    Route::get('vales/export', [ReporteValesController::class, 'export'])
+        ->name('reportes.vales.export')->middleware('can:reportes.compras-directo.ver');
 
     // Redenciones Club Comex
     Route::get('redenciones-club', [ReporteRedencionesClubController::class, 'index'])

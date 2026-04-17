@@ -3,12 +3,11 @@
 @section('title', 'Tiendas')
 
 @section('content_header')
-    <h1>Gestión de Tiendas</h1>
 @stop
 
 @section('content')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <div class="card">
+    <div class="card mt-5">
         <div class="card-header">
             <div class="row">
                 @can('tiendas.crear')
@@ -18,16 +17,6 @@
                     </button>
                 </div>
                 @endcan
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="searchInput" placeholder="Buscar tiendas...">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" id="searchBtn">
-                                <i class="fas fa-search"></i> Buscar
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
         <div class="card-body">
@@ -35,12 +24,15 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Clave Tienda</th>
+                        <th>Clave</th>
                         <th>Nombre</th>
                         <th>Plaza</th>
                         <th>Zona</th>
-                        <th>Clave Alterna</th>
-                        <th>Acciones</th>
+                        <th>Alterna</th>
+                        <th>Estado</th>
+                        <th>Tipo</th>
+                        <th class="text-center"><i class="fas fa-desktop"></i></th>
+                        <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -82,6 +74,17 @@
                         <div class="form-group">
                             <label for="tienda_clave_alterna">Clave Alterna</label>
                             <input type="text" name="clave_alterna" id="tienda_clave_alterna" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="tienda_estado">Estado</label>
+                            <select name="estado" id="tienda_estado" class="form-control">
+                                <option value="A">Activo</option>
+                                <option value="I">Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="tienda_id_tipo">Tipo</label>
+                            <input type="text" name="id_tipo" id="tienda_id_tipo" class="form-control">
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -168,12 +171,32 @@ function initDataTable() {
             { data: 'id_plaza', name: 'id_plaza' },
             { data: 'zona', name: 'zona' },
             { data: 'clave_alterna', name: 'clave_alterna' },
+            { data: 'estado', name: 'estado', render: function(data) {
+                if (data === 'A') return '<span class="badge badge-success">Activo</span>';
+                if (data === 'I') return '<span class="badge badge-secondary">Inactivo</span>';
+                return data;
+            }},
+            { data: 'id_tipo', name: 'id_tipo' },
+            {
+                data: 'computer_id',
+                name: 'computer_id',
+                orderable: false,
+                className: 'text-center',
+                render: function(data, type, row) {
+                    if (data) {
+                        var statusColor = row.computer_status === 'online' ? 'text-success' : 'text-danger';
+                        return '<a href="/admin/computers/' + data + '" class="' + statusColor + '" title="Ver computadora">' +
+                               '<i class="fas fa-desktop"></i></a>';
+                    }
+                    return '<span class="text-muted"><i class="fas fa-desktop"></i></span>';
+                }
+            },
             {
                 data: null,
                 render: function(data) {
                     let buttons = '';
                     @can('tiendas.editar')
-                    buttons += `<button class="btn btn-sm btn-warning" onclick="editTienda(${data.id}, '${data.clave_tienda}', '${data.nombre || ''}', '${data.id_plaza || ''}', '${data.zona || ''}', '${data.clave_alterna || ''}')">
+                    buttons += `<button class="btn btn-sm btn-warning" onclick="editTienda(${data.id}, '${data.clave_tienda}', '${data.nombre || ''}', '${data.id_plaza || ''}', '${data.zona || ''}', '${data.clave_alterna || ''}', '${data.estado || 'A'}', '${data.id_tipo || ''}')">
                         <i class="fas fa-edit"></i>
                     </button> `;
                     @endcan
@@ -199,13 +222,15 @@ function initDataTable() {
     });
 }
 
-function editTienda(id, clave, nombre, plaza, zona, claveAlterna) {
+function editTienda(id, clave, nombre, plaza, zona, claveAlterna, estado, idTipo) {
     $('#tienda_id').val(id);
     $('#tienda_clave').val(clave);
     $('#tienda_nombre').val(nombre);
     $('#tienda_plaza').val(plaza);
     $('#tienda_zona').val(zona);
     $('#tienda_clave_alterna').val(claveAlterna);
+    $('#tienda_estado').val(estado || 'A');
+    $('#tienda_id_tipo').val(idTipo || '');
     $('#tiendaModalLabel').text('Editar Tienda');
     $('#tiendaModal').modal('show');
 }
@@ -274,6 +299,8 @@ function resetTiendaForm() {
     $('#tienda_plaza').val('');
     $('#tienda_zona').val('');
     $('#tienda_clave_alterna').val('');
+    $('#tienda_estado').val('A');
+    $('#tienda_id_tipo').val('');
     $('#tiendaModalLabel').text('Nueva Tienda');
 }
 
@@ -288,6 +315,8 @@ function resetTiendaForm() {
     $('#tienda_plaza').val('');
     $('#tienda_zona').val('');
     $('#tienda_clave_alterna').val('');
+    $('#tienda_estado').val('A');
+    $('#tienda_id_tipo').val('');
     $('#tiendaModalLabel').text('Nueva Tienda');
 }
 </script>

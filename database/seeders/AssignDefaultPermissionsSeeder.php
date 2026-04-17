@@ -66,6 +66,8 @@ class AssignDefaultPermissionsSeeder extends Seeder
             'reportes.compras-directo.ver',
             'reportes.compras-directo.editar',
             'reportes.compras-directo.sincronizar',
+            'reportes.vales.ver',
+            'reportes.vales.editar',
         ];
 
         // Permisos de Metas

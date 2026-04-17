@@ -120,17 +120,11 @@ class ReporteDbfFilesController extends Controller
         $offsetInt = (int) $startIdx;
 
         try {
-            $query = Computer::with('group')->whereNotNull('agent_config');
+            $query = Computer::with('group');
 
             $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
             if (is_array($plazaInput) && count($plazaInput) > 0) {
-                $query->whereHas('group', function ($q) use ($plazaInput) {
-                    $q->where(function ($sub) use ($plazaInput) {
-                        foreach ($plazaInput as $plaza) {
-                            $sub->orWhere('name', 'LIKE', $plaza.'%');
-                        }
-                    });
-                });
+                $query->whereIn('plaza', $plazaInput);
             }
 
             $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
@@ -160,24 +154,15 @@ class ReporteDbfFilesController extends Controller
             $data = $computers->map(function ($computer) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
 
-                $plaza = 'N/A';
-                if ($computer->group) {
-                    $groupName = $computer->group->name;
-                    foreach (['PENINSULA', 'NICARAGUA', 'CHETUMAL', 'XALAPA', 'CANCUN', 'VILLA', 'MERIDA', 'COLIMA', 'TAMPICO', 'SOLIDARIO'] as $p) {
-                        if (stripos($groupName, $p) !== false) {
-                            $plaza = $p;
-                            break;
-                        }
-                    }
-                }
+                $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
 
                 return [
                     'id' => $computer->id,
                     'computer_name' => $computer->computer_name,
-                    'plaza' => $plaza,
+                    'plaza' => $computer->plaza ?? 'N/A',
                     'group_name' => $computer->group->name ?? 'N/A',
                     'group_id' => $computer->group_id,
-                    'status' => $computer->status,
+                    'status' => $status,
                     'last_seen' => $computer->last_seen ? $computer->last_seen->format('Y-m-d H:i:s') : 'Never',
                     'dbf_files_count' => count($dbfFiles),
                     'dbf_files' => $dbfFiles,
@@ -210,16 +195,10 @@ class ReporteDbfFilesController extends Controller
             $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
             $archivo = $request->query('archivo') ?? $request->input('archivo', '');
 
-            $query = Computer::with('group')->whereNotNull('agent_config');
+            $query = Computer::with('group');
 
             if (is_array($plazaInput) && count($plazaInput) > 0) {
-                $query->whereHas('group', function ($q) use ($plazaInput) {
-                    $q->where(function ($sub) use ($plazaInput) {
-                        foreach ($plazaInput as $plaza) {
-                            $sub->orWhere('name', 'LIKE', $plaza.'%');
-                        }
-                    });
-                });
+                $query->whereIn('plaza', $plazaInput);
             }
 
             if (is_array($groupInput) && count($groupInput) > 0) {
@@ -236,24 +215,14 @@ class ReporteDbfFilesController extends Controller
 
             $computersData = $computers->map(function ($computer) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
-
-                $plaza = 'N/A';
-                if ($computer->group) {
-                    $groupName = $computer->group->name;
-                    foreach (['PENINSULA', 'NICARAGUA', 'CHETUMAL', 'XALAPA', 'CANCUN', 'VILLA', 'MERIDA', 'COLIMA', 'TAMPICO', 'SOLIDARIO'] as $p) {
-                        if (stripos($groupName, $p) !== false) {
-                            $plaza = $p;
-                            break;
-                        }
-                    }
-                }
+                $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
 
                 return [
                     'computer_name' => $computer->computer_name,
                     'short_key' => $computer->short_key ?? '',
-                    'plaza' => $plaza,
+                    'plaza' => $computer->plaza ?? 'N/A',
                     'group_name' => $computer->group->name ?? 'N/A',
-                    'status' => $computer->status,
+                    'status' => $status,
                     'last_seen' => $computer->last_seen ? $computer->last_seen->format('Y-m-d H:i:s') : 'Never',
                     'dbf_files' => $dbfFiles,
                 ];

@@ -18,11 +18,11 @@ class TiendasController extends Controller
         $length = $request->input('length', 10);
         $start = $request->input('start', 0);
         $draw = $request->input('draw', 1);
-        
+
         $query = DB::table('bi_sys_tiendas')
-            ->select('id', 'clave_tienda', 'nombre', 'id_plaza', 'zona', 'clave_alterna')
-            ->when($search, function($q) use ($search) {
-                return $q->where(function($sub) use ($search) {
+            ->select('id', 'clave_tienda', 'nombre', 'id_plaza', 'zona', 'clave_alterna', 'estado', 'id_tipo')
+            ->when($search, function ($q) use ($search) {
+                return $q->where(function ($sub) use ($search) {
                     $sub->where('clave_tienda', 'ILIKE', '%'.$search.'%')
                         ->orWhere('nombre', 'ILIKE', '%'.$search.'%')
                         ->orWhere('id_plaza', 'ILIKE', '%'.$search.'%')
@@ -31,19 +31,30 @@ class TiendasController extends Controller
                 });
             });
 
-        $total = $query->count();
-        
-        $data = $query->orderBy('id_plaza')
+        $tiendas = $query->orderBy('id_plaza')
             ->orderBy('clave_tienda')
             ->offset($start)
             ->limit($length)
             ->get();
 
+        $shortKeys = $tiendas->pluck('clave_tienda')->merge($tiendas->pluck('clave_alterna'))->filter()->unique()->toArray();
+        $computers = \App\Models\Computer::whereIn('short_key', $shortKeys)->get()->keyBy('short_key');
+
+        $data = $tiendas->map(function ($tienda) use ($computers) {
+            $computer = $computers->get($tienda->clave_tienda) ?? $computers->get($tienda->clave_alterna);
+            $tienda->computer_id = $computer ? $computer->id : null;
+            $tienda->computer_status = $computer ? $computer->status : null;
+
+            return $tienda;
+        });
+
+        $total = DB::table('bi_sys_tiendas')->count();
+
         return response()->json([
             'draw' => $draw,
             'recordsTotal' => $total,
             'recordsFiltered' => $total,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -66,20 +77,21 @@ class TiendasController extends Controller
                 'id_plaza' => $request->id_plaza ?? '',
                 'zona' => $request->zona ?? '',
                 'clave_alterna' => $request->clave_alterna ?? '',
-                'estado' => 'A',
+                'estado' => $request->estado ?? 'A',
+                'id_tipo' => $request->id_tipo ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Tienda creada correctamente',
-                'id' => $id
+                'id' => $id,
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
-                'message' => 'Error al crear tienda: ' . $e->getMessage()
+                'success' => false,
+                'message' => 'Error al crear tienda: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -95,17 +107,19 @@ class TiendasController extends Controller
                     'id_plaza' => $request->id_plaza ?? '',
                     'zona' => $request->zona ?? '',
                     'clave_alterna' => $request->clave_alterna ?? '',
+                    'estado' => $request->estado ?? 'A',
+                    'id_tipo' => $request->id_tipo ?? null,
                     'updated_at' => now(),
                 ]);
 
             return response()->json([
-                'success' => true, 
-                'message' => 'Tienda actualizada correctamente'
+                'success' => true,
+                'message' => 'Tienda actualizada correctamente',
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
-                'message' => 'Error al actualizar tienda: ' . $e->getMessage()
+                'success' => false,
+                'message' => 'Error al actualizar tienda: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -114,8 +128,8 @@ class TiendasController extends Controller
     {
         // Las tiendas son del sistema, no permitir eliminación
         return response()->json([
-            'success' => false, 
-            'message' => 'No se pueden eliminar tiendas del sistema. Estas tiendas provienen de la base de datos del sistema.'
+            'success' => false,
+            'message' => 'No se pueden eliminar tiendas del sistema. Estas tiendas provienen de la base de datos del sistema.',
         ], 403);
     }
 }

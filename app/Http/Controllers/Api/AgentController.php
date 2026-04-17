@@ -11,6 +11,7 @@ use App\Models\ComputerLog;
 use App\Models\DistributionFile;
 use App\Models\Group;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -510,7 +511,7 @@ class AgentController extends Controller
     public function checkUpdate(Request $request, $version)
     {
         $current = AgentVersion::where('version', $version)->first();
-        $latest = AgentVersion::where('is_active', true)->orderBy('created_at', 'desc')->first();
+        $latest = AgentVersion::where('is_active', DB::raw('true'))->orderBy('created_at', 'desc')->first();
 
         if (! $latest || $current && $current->id >= $latest->id) {
             return response()->json(['update_available' => false]);
@@ -537,14 +538,31 @@ class AgentController extends Controller
         }
 
         $currentVersion = $computer->agent_version;
-        $current = AgentVersion::where('version', $currentVersion)->first();
-        $latest = AgentVersion::where('is_active', true)->orderBy('created_at', 'desc')->first();
+        $latest = AgentVersion::where('is_active', DB::raw('true'))->orderBy('created_at', 'desc')->first();
 
-        if (! $latest || $current && $current->id >= $latest->id) {
+        Log::info('Update check', [
+            'computer_id' => $computer_id,
+            'current_version' => $currentVersion,
+            'latest_version' => $latest?->version,
+            'latest_id' => $latest?->id,
+        ]);
+
+        if (! $latest) {
             return response()->json(['update_available' => false]);
         }
 
-        $filename = basename($latest->file_path);
+        // Compare versions properly
+        $hasUpdate = version_compare($currentVersion, $latest->version) < 0;
+
+        Log::info('Version comparison', [
+            'result' => $hasUpdate,
+            'current' => $currentVersion,
+            'latest' => $latest->version,
+        ]);
+
+        if (! $hasUpdate) {
+            return response()->json(['update_available' => false]);
+        }
 
         return response()->json([
             'update_available' => true,

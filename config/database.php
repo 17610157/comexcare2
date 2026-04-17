@@ -97,10 +97,15 @@ return [
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             'options' => [
-                \PDO::ATTR_TIMEOUT => 5,
+                \PDO::ATTR_TIMEOUT => 10,
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_PERSISTENT => false,
+                \PDO::ATTR_PERSISTENT => true,
+                \PDO::ATTR_EMULATE_PREPARES => true,
             ],
+            'pooling' => true,
+            'min_connections' => 5,
+            'max_connections' => 30,
+            'connect_timeout' => 10,
         ],
 
         'sqlsrv' => [
@@ -154,7 +159,9 @@ return [
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
             'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
-            'persistent' => env('REDIS_PERSISTENT', false),
+            'persistent' => env('REDIS_PERSISTENT', true),
+            'read_timeout' => 10,
+            'async' => env('REDIS_ASYNC', false),
         ],
 
         'default' => [
@@ -168,6 +175,8 @@ return [
             'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+            'read_timeout' => 10,
+            'connect_timeout' => 10,
         ],
 
         'cache' => [
@@ -181,6 +190,23 @@ return [
             'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+            'read_timeout' => 10,
+            'connect_timeout' => 10,
+        ],
+
+        'queue' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_QUEUE_DB', '2'),
+            'max_retries' => env('REDIS_MAX_RETRIES', 3),
+            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+            'backoff_base' => env('REDIS_BACKOFF_BASE', 50),
+            'backoff_cap' => env('REDIS_BACKOFF_CAP', 500),
+            'read_timeout' => 30,
+            'connect_timeout' => 10,
         ],
 
     ],

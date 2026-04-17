@@ -41,4 +41,15 @@ Route::middleware('api')->group(function () {
 
         return response()->json(['error' => 'Not found'], 404);
     });
+
+    Route::get('/metrics', [App\Http\Controllers\MetricsController::class, 'index']);
+    Route::get('/health', [App\Http\Controllers\MetricsController::class, 'health']);
+
+    Route::get('/vales', [App\Http\Controllers\Api\ValeController::class, 'index']);
+    Route::get('/vales/{id}', [App\Http\Controllers\Api\ValeController::class, 'show']);
+    Route::post('/vales', [App\Http\Controllers\Api\ValeController::class, 'store']);
+    Route::post('/vales/batch', [App\Http\Controllers\Api\ValeController::class, 'storeBatch']);
+    Route::put('/vales/{id}', [App\Http\Controllers\Api\ValeController::class, 'update']);
+    Route::patch('/vales/{id}', [App\Http\Controllers\Api\ValeController::class, 'update']);
+    Route::delete('/vales/{id}', [App\Http\Controllers\Api\ValeController::class, 'destroy']);
 });
