@@ -21,6 +21,16 @@
                     <input type="text" name="short_key" class="form-control" value="{{ $computer->short_key }}" maxlength="50" placeholder="Ej: VALES01">
                 </div>
                 <div class="form-group">
+                    <label>Plaza (bi_sys_tiendas)</label>
+                    <select name="plaza" id="plaza_select" class="form-control">
+                        <option value="">-- Seleccionar Plaza --</option>
+                        @foreach($plazas as $plaza)
+                            <option value="{{ $plaza }}" {{ $computer->plaza == $plaza ? 'selected' : '' }}>{{ $plaza }}</option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">La plaza se obtiene de bi_sys_tiendas según la clave (clave_tienda o clave_alterna)</small>
+                </div>
+                <div class="form-group">
                     <label>Group</label>
                     <select name="group_id" class="form-control">
                         <option value="">None</option>

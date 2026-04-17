@@ -202,10 +202,10 @@ return [
             'queue' => ['distributions'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
-            'maxProcesses' => 2,
+            'maxProcesses' => 8,
             'maxTime' => 0,
             'maxJobs' => 0,
-            'memory' => 128,
+            'memory' => 256,
             'tries' => 3,
             'timeout' => 300,
             'nice' => 0,
@@ -215,10 +215,10 @@ return [
             'queue' => ['default'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
-            'maxProcesses' => 2,
+            'maxProcesses' => 8,
             'maxTime' => 0,
             'maxJobs' => 0,
-            'memory' => 128,
+            'memory' => 256,
             'tries' => 3,
             'timeout' => 60,
             'nice' => 0,
@@ -228,23 +228,23 @@ return [
     'environments' => [
         'production' => [
             'supervisor-1' => [
-                'maxProcesses' => 4,
-                'balanceMaxShift' => 1,
+                'maxProcesses' => 16,
+                'balanceMaxShift' => 3,
                 'balanceCooldown' => 3,
             ],
             'supervisor-2' => [
-                'maxProcesses' => 4,
-                'balanceMaxShift' => 1,
+                'maxProcesses' => 16,
+                'balanceMaxShift' => 3,
                 'balanceCooldown' => 3,
             ],
         ],
 
         'local' => [
             'supervisor-1' => [
-                'maxProcesses' => 2,
+                'maxProcesses' => 4,
             ],
             'supervisor-2' => [
-                'maxProcesses' => 2,
+                'maxProcesses' => 4,
             ],
         ],
     ],

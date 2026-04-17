@@ -197,6 +197,11 @@ class PermissionSeeder extends Seeder
             'reportes.club-comex.ver',
             'reportes.club-comex.sincronizar',
 
+            // Reportes Vales
+            'reportes.vales.ver',
+            'reportes.vales.editar',
+            'reportes.vales.sincronizar',
+
             // Reportes Acumulaciones Club
             'reportes.acumulaciones-club.ver',
             'reportes.acumulaciones-club.editar',

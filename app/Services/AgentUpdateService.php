@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AgentVersion;
 use App\Models\Command;
 use App\Models\Computer;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -30,14 +31,28 @@ class AgentUpdateService
 
         $mainFile = $filesData[0] ?? null;
 
-        return AgentVersion::create([
+        $channel = $data['channel'] ?? 'stable';
+
+        DB::table('agent_versions')
+            ->where('channel', $channel)
+            ->where('is_active', DB::raw('true'))
+            ->update([
+                'is_active' => DB::raw('false'),
+                'updated_at' => now(),
+            ]);
+
+        $id = DB::table('agent_versions')->insertGetId([
             'version' => $data['version'],
-            'channel' => $data['channel'] ?? 'stable',
+            'channel' => $channel,
             'file_path' => $mainFile['path'] ?? null,
             'checksum' => $mainFile['checksum'] ?? null,
-            'changelog' => ! empty($filesData) ? json_encode(['files' => $filesData, 'notes' => $data['changelog'] ?? '']) : $data['changelog'],
-            'is_active' => true,
+            'changelog' => ! empty($filesData) ? json_encode(['files' => $filesData, 'notes' => $data['changelog'] ?? '']) : ($data['changelog'] ?? null),
+            'is_active' => DB::raw('true'),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
+
+        return AgentVersion::findOrFail($id);
     }
 
     public function deployUpdate(Computer $computer, AgentVersion $version)
@@ -76,6 +91,11 @@ class AgentUpdateService
 
     public function deactivateVersion(AgentVersion $version)
     {
-        $version->update(['is_active' => false]);
+        DB::table('agent_versions')
+            ->where('id', $version->id)
+            ->update([
+                'is_active' => DB::raw('false'),
+                'updated_at' => now(),
+            ]);
     }
 }

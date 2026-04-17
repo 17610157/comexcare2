@@ -22,6 +22,11 @@ class AgentVersion extends Model
         'is_active' => 'boolean',
     ];
 
+    public function setIsActiveAttribute($value): void
+    {
+        $this->attributes['is_active'] = (bool) $value;
+    }
+
     public function getFilesAttribute()
     {
         $changelogData = json_decode($this->changelog, true);

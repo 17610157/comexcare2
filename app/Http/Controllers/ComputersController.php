@@ -6,6 +6,7 @@ use App\Models\Computer;
 use App\Models\ComputerLog;
 use App\Models\Group;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
 
@@ -60,12 +61,27 @@ class ComputersController extends Controller
                 ->limit($length)
                 ->get();
 
-            $data = $computers->map(function ($computer) {
+            $tiendas = DB::table('bi_sys_tiendas')
+                ->whereIn('clave_tienda', $computers->pluck('short_key')->filter())
+                ->orWhereIn('clave_alterna', $computers->pluck('short_key')->filter())
+                ->get()
+                ->keyBy(function ($t) {
+                    return $t->clave_tienda === $t->clave_alterna ? $t->clave_tienda : $t->clave_tienda.'|'.$t->clave_alterna;
+                });
+
+            $data = $computers->map(function ($computer) use ($tiendas) {
+                $tienda = $tiendas->first(function ($t) use ($computer) {
+                    return $t->clave_tienda === $computer->short_key || $t->clave_alterna === $computer->short_key;
+                });
+                $plaza = $computer->plaza ?? '';
+
+                $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
+
                 return [
                     'id' => $computer->id,
                     'short_key' => $computer->short_key ?? '-',
                     'computer_name' => $computer->computer_name,
-                    'status' => $computer->status,
+                    'status' => $status,
                     'group_name' => $computer->group->name ?? 'N/A',
                     'group_id' => $computer->group_id,
                     'agent_version' => $computer->agent_version ?? '-',
@@ -74,9 +90,7 @@ class ComputersController extends Controller
                     'pvsi_hora' => $computer->pvsi_hora ?? '-',
                     'pvsi_files' => $computer->pvsi_files ?? [],
                     'windows_version' => $computer->windows_version ?? '-',
-                    'architecture' => $computer->architecture ?? '-',
-                    'total_ram' => $computer->total_ram,
-                    'total_disk_space' => $computer->total_disk_space,
+                    'plaza' => $plaza,
                     'bitlocker_status' => $computer->bitlocker_status ? json_decode($computer->bitlocker_status, true) : null,
                     'mac_address' => $computer->mac_address,
                     'ip_address' => $computer->ip_address,
@@ -115,8 +129,9 @@ class ComputersController extends Controller
     public function edit(Computer $computer)
     {
         $groups = Group::all();
+        $plazas = DB::table('bi_sys_tiendas')->distinct()->pluck('id_plaza')->sort();
 
-        return view('admin.computers.edit', compact('computer', 'groups'));
+        return view('admin.computers.edit', compact('computer', 'groups', 'plazas'));
     }
 
     public function update(Request $request, Computer $computer)
@@ -153,6 +168,7 @@ class ComputersController extends Controller
         $fillableFields = [
             'computer_name',
             'short_key',
+            'plaza',
             'group_id',
             'agent_config',
             'receive_paths',
@@ -253,7 +269,7 @@ class ComputersController extends Controller
 
         $csvData = [];
         $csvData[] = [
-            'Short Key', 'Nombre', 'MAC', 'IP', 'Estado', 'Grupo',
+            'Short Key', 'Nombre', 'MAC', 'IP', 'Estado', 'Plaza', 'Grupo',
             'Agent', 'PVSI', 'PVSI Fecha', 'PVSI Hora',
             'Windows', 'Arquitectura', 'RAM (GB)', 'Disco (GB)',
             'BitLocker', 'Download Path', 'Última Actividad',
@@ -269,12 +285,19 @@ class ComputersController extends Controller
                 $bitlocker = implode('; ', $parts);
             }
 
+            $plaza = $computer->plaza ?? '';
+            $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
+
             $csvData[] = [
                 $computer->short_key ?? '',
                 $computer->computer_name,
                 $computer->mac_address,
                 $computer->ip_address,
+                $status,
+                $plaza,
+                $computer->group->name ?? '',
                 $computer->status,
+                $plaza,
                 $computer->group->name ?? 'N/A',
                 $computer->agent_version ?? '',
                 $computer->pvsi_version ?? '',

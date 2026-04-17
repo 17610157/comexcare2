@@ -372,6 +372,12 @@ return [
             'can' => 'distribution.ver',
         ],
         [
+            'text' => 'Archivos DBF',
+            'icon' => 'far fa-file-alt',
+            'url' => 'reportes/dbf-files',
+            'can' => 'reportes.compras-directo.ver',
+        ],
+        [
             'text' => 'Reportes',
             'icon' => 'fas fa-chart-bar',
             'can' => 'reportes.ver',
@@ -419,11 +425,12 @@ return [
                     'can' => 'reportes.compras-directo.ver',
                 ],
                 [
-                    'text' => 'Archivos DBF',
+                    'text' => 'Vales',
                     'icon' => 'far fa-file-alt',
-                    'url' => 'reportes/dbf-files',
-                    'can' => 'reportes.compras-directo.ver',
+                    'url' => 'reportes/vales',
+                    'can' => 'reportes.vales.ver',
                 ],
+
                 [
                     'text' => 'Reporte Cargos y Abonos',
                     'icon' => 'far fa-file-alt',

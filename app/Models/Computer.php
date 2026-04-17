@@ -13,6 +13,7 @@ class Computer extends Model
     protected $fillable = [
         'computer_name',
         'short_key',
+        'plaza',
         'mac_address',
         'ip_address',
         'group_id',

@@ -29,7 +29,7 @@ class RoleSeeder extends Seeder
             'reportes.notas-completas.ver', 'reportes.notas-completas.editar', 'reportes.notas-completas.sincronizar',
             'reportes.club-comex.ver', 'reportes.club-comex.sincronizar', 'reportes.compras-directo.ver',
             'reportes.compras-directo.editar', 'reportes.compras-directo.sincronizar', 'reportes.vendedores_b2b.ver',
-            'reportes.desglose.ver',
+            'reportes.desglose.ver', 'reportes.vales.ver', 'reportes.vales.editar',
         ];
 
         $metasPermissions = ['metas.ver', 'metas.crear', 'metas.editar', 'metas.eliminar', 'metas.importar'];

@@ -47,13 +47,6 @@
         background-color: rgba(0,123,255,.05);
     }
     
-    .table td:first-child {
-        text-align: left;
-    }
-    .table td:nth-child(2) {
-        text-align: left;
-    }
-    
     .short-key-badge {
         background: #0d6efd;
         color: white;
@@ -118,7 +111,7 @@
 
 <div class="row">
     <div class="col-12">
-        <div class="card card-primary card-outline">
+        <div class="card card-primary card-outline mt-3">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h3>
                 <div class="card-tools">
@@ -139,9 +132,7 @@
                                 <th class="text-nowrap">Agent</th>
                                 <th class="text-nowrap">PVSI</th>
                                 <th class="text-nowrap">Windows</th>
-                                <th class="text-nowrap text-center">Arq.</th>
-                                <th class="text-nowrap text-center">RAM</th>
-                                <th class="text-nowrap text-center">Disco</th>
+                                <th class="text-nowrap text-center">Plaza</th>
                                 <th class="text-nowrap">Última Actividad</th>
                                 <th class="text-nowrap text-center">Acciones</th>
                             </tr>
@@ -207,6 +198,7 @@
                 { 
                     data: 'short_key',
                     name: 'short_key',
+                    className: 'text-center',
                     render: function(data) {
                         if (data && data !== '-') {
                             return '<span class="badge badge-primary">' + jQuery('<div>').text(data).html() + '</span>';
@@ -214,23 +206,23 @@
                         return '<span class="text-muted">-</span>';
                     }
                 },
-                { data: 'computer_name', name: 'computer_name' },
+                { data: 'computer_name', name: 'computer_name', className: 'text-center' },
                 { 
                     data: 'status',
                     name: 'status',
+                    className: 'text-center',
                     render: function(data) {
                         if (data === 'online') {
                             return '<span class="text-success" title="Online"><i class="fas fa-circle"></i></span>';
-                        } else if (data === 'pending') {
-                            return '<span class="text-warning" title="Pending"><i class="fas fa-circle"></i></span>';
                         }
                         return '<span class="text-danger" title="Offline"><i class="fas fa-circle"></i></span>';
                     }
                 },
-                { data: 'group_name', name: 'group_name' },
+                { data: 'group_name', name: 'group_name', className: 'text-center' },
                 { 
                     data: 'agent_version', 
                     name: 'agent_version', 
+                    className: 'text-center',
                     render: function(data) {
                         if (data && data !== '-') {
                             return '<span class="info-badge bg-secondary">' + jQuery('<div>').text(data).html() + '</span>';
@@ -241,6 +233,7 @@
                 { 
                     data: 'pvsi_version', 
                     name: 'pvsi_version', 
+                    className: 'text-center',
                     render: function(data) {
                         if (data && data !== '-') {
                             return '<span class="info-badge bg-info">' + jQuery('<div>').text(data).html() + '</span>';
@@ -251,41 +244,23 @@
                 { 
                     data: 'windows_version', 
                     name: 'windows_version', 
+                    className: 'text-center',
                     render: function(data) {
                         return getWindowsIcon(data);
                     }
                 },
                 { 
-                    data: 'architecture', 
-                    name: 'architecture', 
+                    data: 'plaza', 
+                    name: 'plaza', 
+                    className: 'text-center',
                     render: function(data) {
-                        if (data && data !== '-') {
-                            return '<span class="info-badge bg-dark">' + jQuery('<div>').text(data).html() + '</span>';
+                        if (data) {
+                            return '<span class="badge badge-success">' + jQuery('<div>').text(data).html() + '</span>';
                         }
                         return '<span class="text-muted">-</span>';
                     }
                 },
-                { 
-                    data: 'total_ram', 
-                    name: 'total_ram', 
-                    render: function(data) {
-                        if (data && data > 0) {
-                            return Math.round(data / 1073741824) + ' GB';
-                        }
-                        return '<span class="text-muted">-</span>';
-                    }
-                },
-                { 
-                    data: 'total_disk_space', 
-                    name: 'total_disk_space', 
-                    render: function(data) {
-                        if (data && data > 0) {
-                            return Math.round(data / 1073741824) + ' GB';
-                        }
-                        return '<span class="text-muted">-</span>';
-                    }
-                }, 
-                { data: 'last_seen', name: 'last_seen' },
+                { data: 'last_seen', name: 'last_seen', className: 'text-center' },
                 { 
                     data: 'id',
                     orderable: false,
