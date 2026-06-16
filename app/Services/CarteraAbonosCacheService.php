@@ -2,41 +2,44 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class CarteraAbonosCacheService
 {
     private const CACHE_PREFIX = 'cartera_abonos_';
+
     private const REAL_TIME_CACHE_TTL = 300; // 5 minutos para tiempo real
+
     private const PREAGGREGATED_CACHE_TTL = 1800; // 30 minutos para datos preagregados
-    
+
     /**
      * Obtener datos cacheados o generarlos si no existen
      */
     public function getCachedData(array $params): array
     {
         $cacheKey = $this->generateCacheKey($params);
-        
+
         // Intentar obtener de caché en tiempo real
         $cachedData = Cache::get($cacheKey);
         if ($cachedData !== null) {
             Log::info('Cache hit para Cartera Abonos', ['cache_key' => $cacheKey]);
+
             return $cachedData;
         }
-        
+
         // Generar datos y cachear
         $data = $this->generateOptimizedData($params);
         Cache::put($cacheKey, $data, self::REAL_TIME_CACHE_TTL);
-        
+
         // Preparar caché para próximos requests
         $this->warmupRelatedCaches($params);
-        
+
         return $data;
     }
-    
+
     /**
      * Generar datos con query optimizado
      */
@@ -49,7 +52,7 @@ class CarteraAbonosCacheService
         $tienda = $params['tienda'] ?? '';
         $offset = $params['offset'] ?? 0;
         $limit = $params['limit'] ?? 10;
-        
+
         // Query optimizado con CTEs y estrategias de performance
         $sql = "
         WITH 
@@ -136,48 +139,48 @@ class CarteraAbonosCacheService
             ab.clave_cl ILIKE :search)
         ORDER BY ab.cplaza, ab.ctienda, ab.fecha DESC
         LIMIT :limit OFFSET :offset";
-        
+
         $bindings = [
             'start' => $start,
             'end' => $end,
             'plaza' => $plaza,
             'tienda' => $tienda,
-            'search' => '%' . $search . '%',
+            'search' => '%'.$search.'%',
             'limit' => $limit,
-            'offset' => $offset
+            'offset' => $offset,
         ];
-        
+
         $startTime = microtime(true);
         $results = DB::select($sql, $bindings);
         $queryTime = (microtime(true) - $startTime) * 1000;
-        
+
         Log::info('Query optimizado ejecutado', [
             'query_time_ms' => round($queryTime, 2),
             'results_count' => count($results),
-            'params' => $params
+            'params' => $params,
         ]);
-        
+
         return [
             'data' => $results,
             'query_time' => $queryTime,
-            'cache_key' => $cacheKey ?? null
+            'cache_key' => $cacheKey ?? null,
         ];
     }
-    
+
     /**
      * Obtener conteo total para paginación (query separado y optimizado)
      */
     public function getCachedCount(array $params): int
     {
         $countCacheKey = $this->generateCountCacheKey($params);
-        
-        return Cache::remember($countCacheKey, self::REAL_TIME_CACHE_TTL, function() use ($params) {
+
+        return Cache::remember($countCacheKey, self::REAL_TIME_CACHE_TTL, function () use ($params) {
             $start = $params['start'] ?? Carbon::parse('first day of previous month')->toDateString();
             $end = $params['end'] ?? Carbon::parse('last day of previous month')->toDateString();
             $search = $params['search'] ?? '';
             $plaza = $params['plaza'] ?? '';
             $tienda = $params['tienda'] ?? '';
-            
+
             // Query de conteo optimizado
             $sql = "
             WITH abonos_filtrados AS (
@@ -204,20 +207,21 @@ class CarteraAbonosCacheService
                 ci.clie_rfc ILIKE :search OR
                 af.no_ref ILIKE :search OR
                 af.clave_cl ILIKE :search)";
-            
+
             $bindings = [
                 'start' => $start,
                 'end' => $end,
                 'plaza' => $plaza,
                 'tienda' => $tienda,
-                'search' => '%' . $search . '%'
+                'search' => '%'.$search.'%',
             ];
-            
+
             $result = DB::selectOne($sql, $bindings);
+
             return (int) ($result->total ?? 0);
         });
     }
-    
+
     /**
      * Preparar caché para búsquedas comunes
      */
@@ -229,41 +233,42 @@ class CarteraAbonosCacheService
             'end' => $params['end'],
             'search' => '',
             'plaza' => '',
-            'tienda' => ''
+            'tienda' => '',
         ];
-        
+
         $baseCacheKey = $this->generateCacheKey($baseParams);
-        if (!Cache::has($baseCacheKey)) {
+        if (! Cache::has($baseCacheKey)) {
             // Generar en background para próximos requests
-            dispatch(function() use ($baseParams) {
+            dispatch(function () use ($baseParams) {
                 $this->generateOptimizedData($baseParams);
             })->afterResponse();
         }
     }
-    
+
     /**
      * Invalidar caché cuando hay cambios en los datos
      */
     public function invalidateCache(): void
     {
-        $pattern = self::CACHE_PREFIX . '*';
+        $pattern = self::CACHE_PREFIX.'*';
         $keys = Cache::getRedis()->keys($pattern);
-        
-        if (!empty($keys)) {
+
+        if (! empty($keys)) {
             Cache::getRedis()->del($keys);
             Log::info('Caché de Cartera Abonos invalidado', ['keys_count' => count($keys)]);
         }
     }
-    
+
     /**
      * Generar clave de caché única
      */
     private function generateCacheKey(array $params): string
     {
         ksort($params);
-        return self::CACHE_PREFIX . md5(json_encode($params));
+
+        return self::CACHE_PREFIX.md5(json_encode($params));
     }
-    
+
     /**
      * Generar clave de caché para conteo
      */
@@ -272,41 +277,42 @@ class CarteraAbonosCacheService
         $countParams = $params;
         unset($countParams['offset'], $countParams['limit']);
         ksort($countParams);
-        return self::CACHE_PREFIX . 'count_' . md5(json_encode($countParams));
+
+        return self::CACHE_PREFIX.'count_'.md5(json_encode($countParams));
     }
-    
+
     /**
      * Obtener estadísticas de caché para monitoreo
      */
     public function getCacheStats(): array
     {
-        $pattern = self::CACHE_PREFIX . '*';
+        $pattern = self::CACHE_PREFIX.'*';
         $keys = Cache::getRedis()->keys($pattern);
-        
+
         $stats = [
             'total_keys' => count($keys),
             'memory_usage' => 0,
             'oldest_key' => null,
-            'newest_key' => null
+            'newest_key' => null,
         ];
-        
-        if (!empty($keys)) {
+
+        if (! empty($keys)) {
             $pipe = Cache::getRedis()->pipeline();
             foreach ($keys as $key) {
                 $pipe->ttl($key);
             }
             $ttls = $pipe->execute();
-            
+
             $stats['memory_usage'] = Cache::getRedis()->memory('usage');
-            
-            if (!empty($ttls)) {
+
+            if (! empty($ttls)) {
                 $maxTtl = max($ttls);
                 $minTtl = min($ttls);
                 $stats['oldest_key'] = $keys[array_search($maxTtl, $ttls)];
                 $stats['newest_key'] = $keys[array_search($minTtl, $ttls)];
             }
         }
-        
+
         return $stats;
     }
 }

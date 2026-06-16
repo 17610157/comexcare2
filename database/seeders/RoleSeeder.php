@@ -5,12 +5,13 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Obtener permisos
         $adminPermissions = [
@@ -23,7 +24,7 @@ class RoleSeeder extends Seeder
 
         $reportesPermissions = [
             'reportes.ver', 'reportes.vendedores.ver', 'reportes.vendedores.editar', 'reportes.vendedores.sincronizar',
-            'reportes.vendedores.filtrar', 'reportes.vendedores.matricial.ver', 'reportes.vendedores.matricial.editar',
+            'reportes.vendedores.filtrar',             'reportes.vendedores_matricial.ver', 'reportes.vendedores_matricial.editar',
             'reportes.metas-ventas.ver', 'reportes.metas-ventas.editar', 'reportes.metas-matricial.ver', 'reportes.metas-matricial.editar',
             'reportes.cartera-abonos.ver', 'reportes.cartera-abonos.editar', 'reportes.cartera-abonos.sincronizar',
             'reportes.notas-completas.ver', 'reportes.notas-completas.editar', 'reportes.notas-completas.sincronizar',

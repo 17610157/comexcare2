@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Carbon\Carbon;
 use Tests\TestCase;
 use Tests\Traits\RequiresExternalTables;
 
@@ -179,8 +180,8 @@ class CarteraAbonosFiltersButtonsTest extends TestCase
     public function test_reset_filters_logic()
     {
         // Simulate reset by sending default parameters
-        $startDefault = \Carbon\Carbon::parse('first day of previous month')->toDateString();
-        $endDefault = \Carbon\Carbon::parse('last day of previous month')->toDateString();
+        $startDefault = Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = Carbon::parse('last day of previous month')->toDateString();
 
         $response = $this->get('/reportes/cartera-abonos/data', [
             'plaza' => '',

@@ -4,12 +4,13 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissions = [
             // Admin
@@ -201,6 +202,30 @@ class PermissionSeeder extends Seeder
             'reportes.vales.ver',
             'reportes.vales.editar',
             'reportes.vales.sincronizar',
+
+            // Reportes Vendedores B2B
+            'reportes.vendedores_b2b.ver',
+            'reportes.vendedores_b2b.editar',
+            'reportes.vendedores_b2b.sincronizar',
+            'reportes.vendedores_b2b.exportar',
+            'reportes.vendedores_b2b.filtrar',
+
+            // Reportes Desglose
+            'reportes.desglose.ver',
+
+            // Reception
+            'reception.ver',
+            'reception.crear',
+            'reception.editar',
+            'reception.eliminar',
+
+            // Agent Versions
+            'agent-versions.ver',
+            'agent-versions.crear',
+            'agent-versions.eliminar',
+
+            // DBF Files
+            'dbf-files.ver',
 
             // Reportes Acumulaciones Club
             'reportes.acumulaciones-club.ver',

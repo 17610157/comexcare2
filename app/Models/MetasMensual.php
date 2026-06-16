@@ -10,6 +10,7 @@ class MetasMensual extends Model
     use HasFactory;
 
     protected $table = 'metas_mensual';
+
     public $timestamps = false;
 
     protected $fillable = [

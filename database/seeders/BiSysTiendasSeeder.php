@@ -561,12 +561,12 @@ class BiSysTiendasSeeder extends Seeder
         ];
 
         foreach ($tiendas as $tienda) {
-            DB::table("bi_sys_tiendas")->updateOrInsert(
-                ["clave_tienda" => $tienda["clave_tienda"]],
+            DB::table('bi_sys_tiendas')->updateOrInsert(
+                ['clave_tienda' => $tienda['clave_tienda']],
                 $tienda
             );
         }
 
-        $this->command->info("✓ Tiendas insertadas: " . count($tiendas));
+        $this->command->info('✓ Tiendas insertadas: '.count($tiendas));
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Command;
 use App\Models\Computer;
 use App\Models\Group;
 use App\Models\Reception as ModelsReception;
@@ -71,7 +72,7 @@ class FileReceptionController extends Controller
             // Crear comando para el agente
             $computer = Computer::find($computerId);
             if ($computer) {
-                \App\Models\Command::create([
+                Command::create([
                     'computer_id' => $computerId,
                     'type' => 'receive',
                     'data' => json_encode([

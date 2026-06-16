@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('group_id')->constrained()->onDelete('cascade');
             $table->string('short_key', 50);
             $table->timestamps();
-            
+
             $table->unique(['short_key']);
             $table->index(['group_id', 'short_key']);
         });

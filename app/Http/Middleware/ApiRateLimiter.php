@@ -44,31 +44,31 @@ class ApiRateLimiter
     {
         return match ($type) {
             'api_agents' => [
-                'limit' => 120,
+                'limit' => 500,
                 'period' => 60,
             ],
             'api_auth' => [
-                'limit' => 5,
+                'limit' => 30,
                 'period' => 60,
             ],
             'api_download' => [
-                'limit' => 30,
+                'limit' => 100,
                 'period' => 60,
             ],
             'api_report' => [
-                'limit' => 30,
+                'limit' => 100,
                 'period' => 60,
             ],
             'api_heartbeat' => [
-                'limit' => 60,
+                'limit' => 300,
                 'period' => 60,
             ],
             'api_commands' => [
-                'limit' => 100,
+                'limit' => 300,
                 'period' => 60,
             ],
             default => [
-                'limit' => 100,
+                'limit' => 300,
                 'period' => 60,
             ],
         };

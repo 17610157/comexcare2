@@ -90,7 +90,7 @@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="userModalLabel">Nuevo Usuario</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <form id="userForm">
                 <div class="modal-body">
@@ -162,7 +162,7 @@
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="deleteModalLabel">Eliminar Usuario</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
                 <p>¿Está seguro de eliminar el usuario <strong id="delete_user_name"></strong>?</p>
@@ -329,6 +329,8 @@ $(function() {
             $('#tienda').val(response.tienda || '');
             $('#rol').val(response.rol);
             $('#activo').prop('checked', response.activo);
+            $('#password').val('');
+            $('#password_confirmation').val('');
             $('#password_required').hide();
             $('#password').prop('required', false);
             $('.is-invalid').removeClass('is-invalid');

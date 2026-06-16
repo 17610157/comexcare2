@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\CarteraAbonosUltraFastService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class CarteraAbonosUltraFastController extends Controller
 {
@@ -35,14 +34,14 @@ class CarteraAbonosUltraFastController extends Controller
         try {
             // Obtener datos pre-cargados (desde Redis, sin queries a BD)
             $data = $this->ultraFastService->getPreloadedData();
-            
+
             $responseTime = (microtime(true) - $startTime) * 1000;
 
             Log::info('Pre-carga ultra-fast completada', [
                 'response_time_ms' => round($responseTime, 2),
                 'records_count' => count($data['data'] ?? []),
                 'data_source' => 'redis_preload',
-                'memory_usage' => memory_get_usage(true)
+                'memory_usage' => memory_get_usage(true),
             ]);
 
             return response()->json([
@@ -54,14 +53,14 @@ class CarteraAbonosUltraFastController extends Controller
                     'cache_hit' => true,
                     'records_count' => count($data['data'] ?? []),
                     'period' => $data['stats']['period'] ?? null,
-                    'expires_at' => $data['metadata']['expires_at'] ?? null
-                ]
+                    'expires_at' => $data['metadata']['expires_at'] ?? null,
+                ],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error en pre-carga ultra-fast', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -69,8 +68,8 @@ class CarteraAbonosUltraFastController extends Controller
                 'message' => 'Error al cargar datos pre-cargados',
                 'meta' => [
                     'response_time_ms' => round((microtime(true) - $startTime) * 1000, 2),
-                    'data_source' => 'error'
-                ]
+                    'data_source' => 'error',
+                ],
             ], 500);
         }
     }
@@ -84,23 +83,23 @@ class CarteraAbonosUltraFastController extends Controller
             $result = $this->ultraFastService->forcePreload();
 
             Log::info('Pre-carga forzada completada', [
-                'result' => $result
+                'result' => $result,
             ]);
 
             return response()->json([
                 'status' => 'success',
                 'result' => $result,
-                'message' => 'Pre-carga forzada exitosamente'
+                'message' => 'Pre-carga forzada exitosamente',
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error forzando pre-carga', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error al forzar pre-carga: ' . $e->getMessage()
+                'message' => 'Error al forzar pre-carga: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -116,17 +115,17 @@ class CarteraAbonosUltraFastController extends Controller
             return response()->json([
                 'status' => 'success',
                 'stats' => $stats,
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error obteniendo estado del sistema', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error al obtener estado del sistema'
+                'message' => 'Error al obtener estado del sistema',
             ], 500);
         }
     }
@@ -142,17 +141,17 @@ class CarteraAbonosUltraFastController extends Controller
             return response()->json([
                 'status' => 'success',
                 'result' => $result,
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error en actualización incremental', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error en actualización incremental'
+                'message' => 'Error en actualización incremental',
             ], 500);
         }
     }
@@ -164,14 +163,14 @@ class CarteraAbonosUltraFastController extends Controller
     {
         // Este endpoint no se usa realmente - toda la lógica es cliente-side
         // Se mantiene por compatibilidad con DataTables
-        
+
         return response()->json([
             'status' => 'client_side_only',
             'message' => 'Use client-side filtering with preloaded data',
             'meta' => [
                 'data_source' => 'client_side',
-                'cache_hit' => true
-            ]
+                'cache_hit' => true,
+            ],
         ]);
     }
 
@@ -196,18 +195,18 @@ class CarteraAbonosUltraFastController extends Controller
                 'meta' => [
                     'records_count' => count($data),
                     'data_source' => 'redis_preload',
-                    'export_timestamp' => now()->toISOString()
-                ]
+                    'export_timestamp' => now()->toISOString(),
+                ],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error en exportación de datos', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error al exportar datos'
+                'message' => 'Error al exportar datos',
             ], 500);
         }
     }
@@ -219,10 +218,10 @@ class CarteraAbonosUltraFastController extends Controller
     {
         try {
             $stats = $this->ultraFastService->getSystemStats();
-            
-            $isHealthy = $stats['has_preloaded_data'] && 
-                        !empty($stats['cache_keys']) && 
-                        $stats['concurrent_users'] < 500;
+
+            $isHealthy = $stats['has_preloaded_data'] &&
+                        ! empty($stats['cache_keys']) &&
+                        $stats['concurrent_users'] < 1000;
 
             return response()->json([
                 'status' => $isHealthy ? 'healthy' : 'degraded',
@@ -230,17 +229,17 @@ class CarteraAbonosUltraFastController extends Controller
                     'has_preloaded_data' => $stats['has_preloaded_data'],
                     'cache_keys_count' => count($stats['cache_keys']),
                     'concurrent_users' => $stats['concurrent_users'],
-                    'redis_memory' => $stats['redis_memory']
+                    'redis_memory' => $stats['redis_memory'],
                 ],
                 'stats' => $stats,
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ], $isHealthy ? 200 : 503);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'unhealthy',
                 'error' => $e->getMessage(),
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ], 503);
         }
     }
@@ -250,30 +249,30 @@ class CarteraAbonosUltraFastController extends Controller
      */
     private function applyClientSideFilters(array $data, array $filters): array
     {
-        return array_filter($data, function($record) use ($filters) {
+        return array_filter($data, function ($record) use ($filters) {
             // Filtro de plaza
-            if (!empty($filters['plaza']) && 
+            if (! empty($filters['plaza']) &&
                 strtolower($record['plaza']) !== strtolower($filters['plaza'])) {
                 return false;
             }
 
             // Filtro de tienda
-            if (!empty($filters['tienda']) && 
+            if (! empty($filters['tienda']) &&
                 strtolower($record['tienda']) !== strtolower($filters['tienda'])) {
                 return false;
             }
 
             // Filtro de fechas
-            if (!empty($filters['start']) && $record['fecha'] < $filters['start']) {
+            if (! empty($filters['start']) && $record['fecha'] < $filters['start']) {
                 return false;
             }
 
-            if (!empty($filters['end']) && $record['fecha'] > $filters['end']) {
+            if (! empty($filters['end']) && $record['fecha'] > $filters['end']) {
                 return false;
             }
 
             // Filtro de búsqueda general
-            if (!empty($filters['search'])) {
+            if (! empty($filters['search'])) {
                 $search = strtolower($filters['search']);
                 $searchable = [
                     strtolower($record['plaza'] ?? ''),
@@ -281,7 +280,7 @@ class CarteraAbonosUltraFastController extends Controller
                     strtolower($record['nombre'] ?? ''),
                     strtolower($record['rfc'] ?? ''),
                     strtolower($record['factura'] ?? ''),
-                    strtolower($record['clave'] ?? '')
+                    strtolower($record['clave'] ?? ''),
                 ];
 
                 $found = false;
@@ -292,7 +291,7 @@ class CarteraAbonosUltraFastController extends Controller
                     }
                 }
 
-                if (!$found) {
+                if (! $found) {
                     return false;
                 }
             }

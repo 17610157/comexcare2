@@ -3,6 +3,7 @@
 namespace Tests\Unit\Models;
 
 use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -221,7 +222,7 @@ class AuditLogTest extends TestCase
 
     public function test_user_relationship(): void
     {
-        $user = \App\Models\User::factory()->create();
+        $user = User::factory()->create();
 
         AuditLog::create([
             'user_id' => $user->id,

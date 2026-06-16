@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reportes;
 use App\Exports\CarteraAbonosExport;
 use App\Helpers\RoleHelper;
 use App\Http\Controllers\Controller;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -177,7 +178,7 @@ class CarteraAbonosController extends Controller
 
             $filename = 'cartera_abonos_'.str_replace('-', '', $start).'_to_'.str_replace('-', '', $end).'.pdf';
             if (class_exists('\Barryvdh\DomPDF\Facade\Pdf')) {
-                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reportes.cartera_abonos.cartera_abonos_pdf', ['data' => $data, 'start' => $start, 'end' => $end]);
+                $pdf = Pdf::loadView('reportes.cartera_abonos.cartera_abonos_pdf', ['data' => $data, 'start' => $start, 'end' => $end]);
 
                 return $pdf->download($filename);
             }

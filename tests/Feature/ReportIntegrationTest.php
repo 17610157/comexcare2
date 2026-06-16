@@ -15,11 +15,11 @@ class ReportIntegrationTest extends TestCase
 
         config([
             'database.default' => 'pgsql',
-            'database.connections.pgsql.host' => '192.168.10.200',
-            'database.connections.pgsql.port' => '5432',
-            'database.connections.pgsql.database' => 'pgdm-Index',
-            'database.connections.pgsql.username' => 'bryan.vazquez',
-            'database.connections.pgsql.password' => '3ha]PMJbqK-YnGC&OjAt',
+            'database.connections.pgsql.host' => env('PGSQL_HOST', '193.122.172.135'),
+            'database.connections.pgsql.port' => env('PGSQL_PORT', '5432'),
+            'database.connections.pgsql.database' => env('PGSQL_DATABASE', 'pgdm-Index'),
+            'database.connections.pgsql.username' => env('PGSQL_USERNAME', 'bryan.vazquez'),
+            'database.connections.pgsql.password' => env('PGSQL_PASSWORD'),
             'database.connections.pgsql.persistent' => false,
         ]);
 

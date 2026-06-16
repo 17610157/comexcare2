@@ -47,7 +47,7 @@
         </div>
         <div class="col-6 col-md-3">
           <label class="form-label small mb-1">Archivo DBF</label>
-          <select id="archivo_filter" class="form-select form-select-sm">
+          <select id="archivo_filter" class="form-control form-control-sm">
             <option value="">Todos los archivos</option>
             @foreach($archivos as $archivo)
             <option value="{{ $archivo }}">{{ $archivo }}</option>
@@ -112,7 +112,7 @@
     <div class="modal-content">
       <div class="modal-header bg-info text-white">
         <h5 class="modal-title" id="detailModalLabel">Detalle de Archivos DBF</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
         <h6 id="modalComputerName"></h6>
@@ -139,9 +139,8 @@
 @endsection
 
 @section('css')
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap4.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <style>
 .card-header { border-bottom: 2px solid #dee2e6; }
 .table th { background-color: #f8f9fa; font-weight: 600; font-size: 0.75rem; white-space: nowrap; }
@@ -158,10 +157,8 @@
 @endsection
 
 @section('js')
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap4.min.js"></script>
 <script>
 function formatAgentModifiedDate(modified) {
   if (!modified) {
@@ -209,12 +206,16 @@ function formatAgentModifiedDate(modified) {
 }
 
 $(function() {
+  if (!$.fn.dataTable) {
+    console.error('DataTables no está disponible');
+    return;
+  }
   const dataTable = $('#report-table').DataTable({
     processing: true,
-    serverSide: false,
+    serverSide: true,
     responsive: true,
-    pageLength: -1,
-    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
+    pageLength: 25,
+    lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
     language: {
       search: "Buscar:",
       lengthMenu: "Mostrar _MENU_ por página",
@@ -250,12 +251,11 @@ $(function() {
         }
       },
       dataSrc: function(json) {
-        $('#total_computadoras').text('Total: ' + json.recordsTotal + ' computadoras');
+        if (json.error) {
+          console.error('Error:', json.error);
+          return [];
+        }
         return json.data;
-      },
-      error: function(xhr, error, thrown) {
-        console.log('Error:', xhr.responseText);
-        alert('Error cargando datos: ' + xhr.status);
       }
     },
     columns: [
@@ -276,6 +276,10 @@ $(function() {
                '<i class="fas fa-eye"></i></button>';
       }}
     ]
+  });
+
+  dataTable.on('xhr.dt', function(e, settings, json) {
+    $('#total_computadoras').text('Total: ' + (json.recordsTotal || 0) + ' computadoras');
   });
 
   $('#btn_search').on('click', function() { dataTable.ajax.reload(); });

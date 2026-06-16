@@ -4,21 +4,25 @@ namespace App\Exports;
 
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 
-class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents, WithColumnFormatting
+class ComprasDirectoExport implements FromCollection, ShouldAutoSize, WithColumnFormatting, WithEvents, WithHeadings, WithTitle
 {
     protected $start;
+
     protected $end;
+
     protected $plaza;
+
     protected $tienda;
+
     protected $proveedor;
 
     public function __construct($start, $end, $plaza = '', $tienda = '', $proveedor = '')
@@ -35,15 +39,15 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
         $query = DB::table('compras_directo_cache')
             ->whereBetween('f_emision', [$this->start, $this->end]);
 
-        if (!empty($this->plaza)) {
+        if (! empty($this->plaza)) {
             $query->where('cplaza', trim($this->plaza));
         }
 
-        if (!empty($this->tienda)) {
+        if (! empty($this->tienda)) {
             $query->where('ctienda', trim($this->tienda));
         }
 
-        if (!empty($this->proveedor)) {
+        if (! empty($this->proveedor)) {
             $query->where('clave_pro', trim($this->proveedor));
         }
 
@@ -69,7 +73,7 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
                 'K Agrupa' => $item->k_agrupa,
                 'K Familia' => $item->k_familia,
                 'K Subfam' => $item->k_subfam,
-                'Total' => floatval($item->total)
+                'Total' => floatval($item->total),
             ];
         });
 
@@ -95,7 +99,7 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
             'K Agrupa' => '',
             'K Familia' => '',
             'K Subfam' => '',
-            'Total' => $totalCompras
+            'Total' => $totalCompras,
         ]);
 
         return $collection;
@@ -122,7 +126,7 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
             'K Agrupa',
             'K Familia',
             'K Subfam',
-            'Total'
+            'Total',
         ];
     }
 
@@ -143,16 +147,16 @@ class ComprasDirectoExport implements FromCollection, WithHeadings, WithTitle, S
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
+            AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                
+
                 $sheet->getStyle('A1:S1')->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'color' => ['rgb' => 'FFFFFF'],
                     ],
                     'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'fillType' => Fill::FILL_SOLID,
                         'startColor' => ['rgb' => '007bff'],
                     ],
                 ]);

@@ -9,16 +9,16 @@
 @section('content')
     <div class="card">
         <div class="card-body">
-            <p><strong>Type:</strong> {{ $distribution->type }}</p>
-            <p><strong>Status:</strong> {{ $distribution->status }}</p>
-            <p><strong>Description:</strong> {{ $distribution->description }}</p>
-            <p><strong>Created By:</strong> {{ $distribution->creator->name ?? 'N/A' }}</p>
+            <p><strong>Tipo:</strong> {{ $distribution->type }}</p>
+            <p><strong>Estado:</strong> {{ $distribution->status }}</p>
+            <p><strong>Descripción:</strong> {{ $distribution->description }}</p>
+            <p><strong>Creado por:</strong> {{ $distribution->creator->name ?? 'N/A' }}</p>
         </div>
     </div>
 
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Files</h3>
+            <h3 class="card-title">Archivos</h3>
         </div>
         <div class="card-body">
             <ul>
@@ -31,15 +31,15 @@
 
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Targets</h3>
+            <h3 class="card-title">Objetivos</h3>
         </div>
         <div class="card-body">
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>Computer</th>
-                        <th>Status</th>
-                        <th>Progress</th>
+<th>Computadora</th>
+                         <th>Estado</th>
+                         <th>Progreso</th>
                     </tr>
                 </thead>
                 <tbody>

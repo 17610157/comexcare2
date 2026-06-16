@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SCRIPT DE EJECUCIÓN DIRECTA PARA LARAGON
  * Probar todos los reportes optimizados
@@ -6,9 +7,10 @@
  * Ejecutar: php run_reports_test.php
  */
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use App\Services\ReportService;
+use Illuminate\Contracts\Http\Kernel;
 
 echo "========================================\n";
 echo "EJECUCIÓN DIRECTA DE REPORTES OPTIMIZADOS\n";
@@ -16,8 +18,8 @@ echo "========================================\n\n";
 
 try {
     // Inicializar Laravel
-    $app = require_once __DIR__ . '/bootstrap/app.php';
-    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $app = require_once __DIR__.'/bootstrap/app.php';
+    $kernel = $app->make(Kernel::class);
     $kernel->bootstrap();
 
     // Configurar límites
@@ -71,12 +73,13 @@ try {
 
 } catch (Exception $e) {
     echo "\n❌ ERROR GENERAL:\n";
-    echo $e->getMessage() . "\n";
+    echo $e->getMessage()."\n";
 }
 
 echo "\n========================================\n";
 
-function ejecutarPruebaVendedores() {
+function ejecutarPruebaVendedores()
+{
     echo "🔍 PROBANDO: Reporte de Vendedores\n";
     echo "-----------------------------------\n";
 
@@ -85,7 +88,7 @@ function ejecutarPruebaVendedores() {
         'fecha_fin' => '2024-01-31',
         'plaza' => '',
         'tienda' => '',
-        'vendedor' => ''
+        'vendedor' => '',
     ];
 
     $inicio = microtime(true);
@@ -93,10 +96,11 @@ function ejecutarPruebaVendedores() {
     $tiempo = round((microtime(true) - $inicio) * 1000, 2);
 
     echo "✓ Ejecutado en {$tiempo}ms\n";
-    echo "✓ Registros: " . $resultados->count() . "\n\n";
+    echo '✓ Registros: '.$resultados->count()."\n\n";
 }
 
-function ejecutarPruebaMatricial() {
+function ejecutarPruebaMatricial()
+{
     echo "🔍 PROBANDO: Reporte Matricial\n";
     echo "-----------------------------\n";
 
@@ -105,7 +109,7 @@ function ejecutarPruebaMatricial() {
         'fecha_fin' => '2024-01-15',
         'plaza' => '',
         'tienda' => '',
-        'vendedor' => ''
+        'vendedor' => '',
     ];
 
     $inicio = microtime(true);
@@ -113,11 +117,12 @@ function ejecutarPruebaMatricial() {
     $tiempo = round((microtime(true) - $inicio) * 1000, 2);
 
     echo "✓ Ejecutado en {$tiempo}ms\n";
-    echo "✓ Días: " . count($datos['dias']) . "\n";
-    echo "✓ Vendedores: " . count($datos['vendedores_info']) . "\n\n";
+    echo '✓ Días: '.count($datos['dias'])."\n";
+    echo '✓ Vendedores: '.count($datos['vendedores_info'])."\n\n";
 }
 
-function ejecutarPruebaMetas() {
+function ejecutarPruebaMetas()
+{
     echo "🔍 PROBANDO: Reporte de Metas de Ventas\n";
     echo "--------------------------------------\n";
 
@@ -126,7 +131,7 @@ function ejecutarPruebaMetas() {
         'fecha_fin' => '2024-01-31',
         'plaza' => '',
         'tienda' => '',
-        'zona' => ''
+        'zona' => '',
     ];
 
     $inicio = microtime(true);
@@ -134,10 +139,11 @@ function ejecutarPruebaMetas() {
     $tiempo = round((microtime(true) - $inicio) * 1000, 2);
 
     echo "✓ Ejecutado en {$tiempo}ms\n";
-    echo "✓ Registros: " . count($datos['resultados']) . "\n\n";
+    echo '✓ Registros: '.count($datos['resultados'])."\n\n";
 }
 
-function ejecutarPruebaVentaAcumulada() {
+function ejecutarPruebaVentaAcumulada()
+{
     echo "🔍 PROBANDO: Venta Acumulada (API)\n";
     echo "-----------------------------------\n";
 
@@ -146,6 +152,6 @@ function ejecutarPruebaVentaAcumulada() {
     $tiempo = round((microtime(true) - $inicio) * 1000, 2);
 
     echo "✓ Ejecutado en {$tiempo}ms\n";
-    echo "✓ Registros: " . count($resultados['data']) . "\n";
-    echo "✓ Total acumulado: $" . number_format($resultados['total_acumulado'], 2) . "\n\n";
+    echo '✓ Registros: '.count($resultados['data'])."\n";
+    echo '✓ Total acumulado: $'.number_format($resultados['total_acumulado'], 2)."\n\n";
 }

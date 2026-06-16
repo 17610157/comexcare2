@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Carbon\Carbon;
 use Tests\TestCase;
 use Tests\Traits\RequiresExternalTables;
 
@@ -49,8 +50,8 @@ class CarteraAbonosInteractionsTest extends TestCase
     public function test_reset_button_clears_all_filters()
     {
         // Simular el reseteo de filtros
-        $startDefault = \Carbon\Carbon::parse('first day of previous month')->toDateString();
-        $endDefault = \Carbon\Carbon::parse('last day of previous month')->toDateString();
+        $startDefault = Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = Carbon::parse('last day of previous month')->toDateString();
 
         $response = $this->get('/reportes/cartera-abonos/data', [
             'plaza' => '',
@@ -132,8 +133,8 @@ class CarteraAbonosInteractionsTest extends TestCase
         $this->printTestResult('✓ Secuencia 4: Reset + Solo Fechas - OK');
 
         // 5. Limpiar todo (valores por defecto)
-        $startDefault = \Carbon\Carbon::parse('first day of previous month')->toDateString();
-        $endDefault = \Carbon\Carbon::parse('last day of previous month')->toDateString();
+        $startDefault = Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = Carbon::parse('last day of previous month')->toDateString();
 
         $response = $this->get('/reportes/cartera-abonos/data', [
             'plaza' => '',
@@ -237,8 +238,8 @@ class CarteraAbonosInteractionsTest extends TestCase
     {
         // Test que la página carga con filtros por defecto
 
-        $startDefault = \Carbon\Carbon::parse('first day of previous month')->toDateString();
-        $endDefault = \Carbon\Carbon::parse('last day of previous month')->toDateString();
+        $startDefault = Carbon::parse('first day of previous month')->toDateString();
+        $endDefault = Carbon::parse('last day of previous month')->toDateString();
 
         $response = $this->get('/reportes/cartera-abonos');
         $response->assertStatus(200);

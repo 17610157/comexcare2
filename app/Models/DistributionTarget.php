@@ -16,7 +16,7 @@ class DistributionTarget extends Model
         'progress',
         'attempts',
         'next_retry_at',
-        'error_message'
+        'error_message',
     ];
 
     protected $casts = [

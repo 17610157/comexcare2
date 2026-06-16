@@ -3,10 +3,12 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
-// Increase PHP limits for file uploads
+// Increase PHP limits for 500 concurrent agents
 @ini_set('upload_max_filesize', '100M');
 @ini_set('post_max_size', '100M');
-@ini_set('memory_limit', '256M');
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '300');
+@ini_set('max_input_time', '120');
 
 define('LARAVEL_START', microtime(true));
 

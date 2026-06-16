@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ReporteMetasVentas;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -533,8 +534,8 @@ class ReportService
         try {
             return Cache::remember($cacheKey, 300, function () use ($filtros) {
                 // Usar el modelo existente que ya está optimizado
-                $resultados = \App\Models\ReporteMetasVentas::obtenerReporte($filtros);
-                $estadisticas = \App\Models\ReporteMetasVentas::obtenerEstadisticas($resultados);
+                $resultados = ReporteMetasVentas::obtenerReporte($filtros);
+                $estadisticas = ReporteMetasVentas::obtenerEstadisticas($resultados);
 
                 return [
                     'resultados' => $resultados,
@@ -545,8 +546,8 @@ class ReportService
             Log::warning('Error de cache en getMetasVentasReport, ejecutando sin cache: '.$e->getMessage());
 
             // Ejecutar sin cache
-            $resultados = \App\Models\ReporteMetasVentas::obtenerReporte($filtros);
-            $estadisticas = \App\Models\ReporteMetasVentas::obtenerEstadisticas($resultados);
+            $resultados = ReporteMetasVentas::obtenerReporte($filtros);
+            $estadisticas = ReporteMetasVentas::obtenerEstadisticas($resultados);
 
             return [
                 'resultados' => $resultados,

@@ -6,7 +6,7 @@ use App\Models\AgentVersion;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\AgentVersion>
+ * @extends Factory<AgentVersion>
  */
 class AgentVersionFactory extends Factory
 {

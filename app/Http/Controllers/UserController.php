@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
@@ -62,8 +62,9 @@ class UserController extends Controller
                 'password.required' => 'La contraseña es requerida.',
             ]);
 
-            $validated['password'] = Hash::make($validated['password']);
             $validated['activo'] = $request->has('activo');
+            $validated['plaza'] = $request->filled('plaza') ? $validated['plaza'] : null;
+            $validated['tienda'] = $request->filled('tienda') ? $validated['tienda'] : null;
             $rolName = $validated['rol'];
             unset($validated['rol']);
 
@@ -71,7 +72,7 @@ class UserController extends Controller
             $user->assignRole($rolName);
 
             return response()->json(['success' => true, 'message' => 'Usuario creado correctamente']);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::error('User store validation error: '.json_encode($e->errors()));
 
             return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
@@ -104,19 +105,19 @@ class UserController extends Controller
 
             $user->name = $validated['name'];
             $user->email = $validated['email'];
-            $user->plaza = $validated['plaza'] ?? null;
-            $user->tienda = $validated['tienda'] ?? null;
+            $user->plaza = $request->filled('plaza') ? $validated['plaza'] : null;
+            $user->tienda = $request->filled('tienda') ? $validated['tienda'] : null;
             $user->activo = $request->has('activo');
 
             if ($request->filled('password')) {
-                $user->password = Hash::make($validated['password']);
+                $user->password = $validated['password'];
             }
 
             $user->save();
             $user->syncRoles([$validated['rol']]);
 
             return response()->json(['success' => true, 'message' => 'Usuario actualizado correctamente']);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::error('User update validation error: '.json_encode($e->errors()));
 
             return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);

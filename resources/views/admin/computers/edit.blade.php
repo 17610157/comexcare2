@@ -1,9 +1,9 @@
 @extends('adminlte::page')
 
-@section('title', 'Edit Computer')
+@section('title', 'Editar Computadora')
 
 @section('content_header')
-    <h1>Edit {{ $computer->computer_name }}</h1>
+    <h1>Editar {{ $computer->computer_name }}</h1>
 @stop
 
 @section('content')
@@ -13,7 +13,7 @@
                 @csrf
                 @method('PUT')
                 <div class="form-group">
-                    <label>Computer Name</label>
+                    <label>Nombre de Computadora</label>
                     <input type="text" name="computer_name" class="form-control" value="{{ $computer->computer_name }}">
                 </div>
                 <div class="form-group">
@@ -31,9 +31,9 @@
                     <small class="text-muted">La plaza se obtiene de bi_sys_tiendas según la clave (clave_tienda o clave_alterna)</small>
                 </div>
                 <div class="form-group">
-                    <label>Group</label>
+                    <label>Grupo</label>
                     <select name="group_id" class="form-control">
-                        <option value="">None</option>
+                        <option value="">Ninguno</option>
                         @foreach($groups as $group)
                             <option value="{{ $group->id }}" {{ $computer->group_id == $group->id ? 'selected' : '' }}>{{ $group->name }}</option>
                         @endforeach
@@ -129,7 +129,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Update</button>
+                <button type="submit" class="btn btn-primary">Actualizar</button>
             </form>
         </div>
     </div>

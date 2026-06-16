@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\RoleHelper;
 use App\Services\ReportService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -252,7 +253,7 @@ class ReporteVendedoresB2bController extends Controller
             $resultados = ReportService::getVendedoresB2bReport($filtros);
             $estadisticas = ReportService::calcularEstadisticasVendedores($resultados);
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reportes.vendedores_b2b.pdf', compact('resultados', 'estadisticas', 'filtros'))
+            $pdf = Pdf::loadView('reportes.vendedores_b2b.pdf', compact('resultados', 'estadisticas', 'filtros'))
                 ->setPaper('a4', 'landscape');
 
             return $pdf->download('Reporte_Vendedores_B2B_'.date('Ymd_His').'.pdf');

@@ -26,7 +26,7 @@ return new class extends Migration
             $table->integer('dias_cred')->default(0);
             $table->integer('dias_vencidos')->default(0);
             $table->timestamp('updated_at')->useCurrent();
-            
+
             $table->index(['plaza', 'tienda', 'fecha']);
             $table->index(['fecha']);
         });

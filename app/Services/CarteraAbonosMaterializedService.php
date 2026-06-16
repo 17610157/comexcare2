@@ -3,16 +3,17 @@
 namespace App\Services;
 
 use App\Jobs\CarteraAbonosSyncJob;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Queue;
-use Carbon\Carbon;
 
 class CarteraAbonosMaterializedService
 {
     private const CACHE_PREFIX = 'cartera_materialized_';
+
     private const SYNC_INTERVAL = 300; // 5 minutos
+
     private const FALLBACK_TIMEOUT = 30; // 30 segundos
 
     /**
@@ -21,43 +22,44 @@ class CarteraAbonosMaterializedService
     public function getData(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             // Verificar si la tabla materializada está actualizada
-            if (!$this->isMaterializedDataFresh()) {
+            if (! $this->isMaterializedDataFresh()) {
                 // Disparar sincronización en background
                 $this->triggerBackgroundSync();
-                
+
                 // Usar fallback a tabla original si es muy antiguo
                 if ($this->isMaterializedDataStale()) {
-                    Log::warning("Datos materializados muy antiguos, usando fallback");
+                    Log::warning('Datos materializados muy antiguos, usando fallback');
+
                     return $this->getFallbackData($params);
                 }
             }
 
             // Consultar tabla materializada optimizada
             $data = $this->queryMaterializedTable($params);
-            
+
             $queryTime = (microtime(true) - $startTime) * 1000;
-            
-            Log::info("Consulta materializada ejecutada", [
+
+            Log::info('Consulta materializada ejecutada', [
                 'query_time_ms' => round($queryTime, 2),
                 'records_count' => count($data),
                 'params' => $params,
-                'data_source' => 'materialized'
+                'data_source' => 'materialized',
             ]);
 
             return [
                 'data' => $data,
                 'query_time' => $queryTime,
                 'data_source' => 'materialized',
-                'last_sync' => $this->getLastSyncTime()
+                'last_sync' => $this->getLastSyncTime(),
             ];
 
         } catch (\Exception $e) {
-            Log::error("Error consultando tabla materializada", [
+            Log::error('Error consultando tabla materializada', [
                 'error' => $e->getMessage(),
-                'fallback_used' => true
+                'fallback_used' => true,
             ]);
 
             // Fallback automático a tabla original
@@ -80,8 +82,8 @@ class CarteraAbonosMaterializedService
             return $query->count();
 
         } catch (\Exception $e) {
-            Log::error("Error obteniendo conteo materializado", ['error' => $e->getMessage()]);
-            
+            Log::error('Error obteniendo conteo materializado', ['error' => $e->getMessage()]);
+
             // Fallback a conteo original
             return $this->getFallbackCount($params);
         }
@@ -97,22 +99,22 @@ class CarteraAbonosMaterializedService
             ->select([
                 'plaza', 'tienda', 'fecha', 'fecha_vta', 'concepto', 'tipo',
                 'factura', 'clave', 'rfc', 'nombre', 'monto_fa', 'monto_dv',
-                'monto_cd', 'dias_cred', 'dias_vencidos'
+                'monto_cd', 'dias_cred', 'dias_vencidos',
             ]);
 
         // Aplicar filtros
         $this->applyFilters($query, $params);
 
         // Búsqueda de texto
-        if (!empty($params['search'])) {
-            $search = '%' . $params['search'] . '%';
-            $query->where(function($q) use ($search) {
+        if (! empty($params['search'])) {
+            $search = '%'.$params['search'].'%';
+            $query->where(function ($q) use ($search) {
                 $q->where('plaza', 'ILIKE', $search)
-                  ->orWhere('tienda', 'ILIKE', $search)
-                  ->orWhere('nombre', 'ILIKE', $search)
-                  ->orWhere('rfc', 'ILIKE', $search)
-                  ->orWhere('factura', 'ILIKE', $search)
-                  ->orWhere('clave', 'ILIKE', $search);
+                    ->orWhere('tienda', 'ILIKE', $search)
+                    ->orWhere('nombre', 'ILIKE', $search)
+                    ->orWhere('rfc', 'ILIKE', $search)
+                    ->orWhere('factura', 'ILIKE', $search)
+                    ->orWhere('clave', 'ILIKE', $search);
             });
         }
 
@@ -136,20 +138,20 @@ class CarteraAbonosMaterializedService
     private function applyFilters($query, array $params): void
     {
         // Filtro de fechas
-        if (!empty($params['start'])) {
+        if (! empty($params['start'])) {
             $query->where('fecha', '>=', $params['start']);
         }
 
-        if (!empty($params['end'])) {
+        if (! empty($params['end'])) {
             $query->where('fecha', '<=', $params['end']);
         }
 
         // Filtros exactos
-        if (!empty($params['plaza'])) {
+        if (! empty($params['plaza'])) {
             $query->where('plaza', $params['plaza']);
         }
 
-        if (!empty($params['tienda'])) {
+        if (! empty($params['tienda'])) {
             $query->where('tienda', $params['tienda']);
         }
     }
@@ -160,12 +162,13 @@ class CarteraAbonosMaterializedService
     private function isMaterializedDataFresh(): bool
     {
         $lastSync = $this->getLastSyncTime();
-        
-        if (!$lastSync) {
+
+        if (! $lastSync) {
             return false;
         }
 
         $freshnessThreshold = Carbon::now()->subSeconds(self::SYNC_INTERVAL);
+
         return $lastSync->greaterThan($freshnessThreshold);
     }
 
@@ -175,12 +178,13 @@ class CarteraAbonosMaterializedService
     private function isMaterializedDataStale(): bool
     {
         $lastSync = $this->getLastSyncTime();
-        
-        if (!$lastSync) {
+
+        if (! $lastSync) {
             return true;
         }
 
         $staleThreshold = Carbon::now()->subSeconds(self::FALLBACK_TIMEOUT);
+
         return $lastSync->lessThan($staleThreshold);
     }
 
@@ -189,9 +193,9 @@ class CarteraAbonosMaterializedService
      */
     private function getLastSyncTime(): ?Carbon
     {
-        $cacheKey = self::CACHE_PREFIX . 'last_sync';
-        
-        return Cache::remember($cacheKey, 60, function() {
+        $cacheKey = self::CACHE_PREFIX.'last_sync';
+
+        return Cache::remember($cacheKey, 60, function () {
             $lastSync = DB::table('cartera_abonos_sync_control')
                 ->where('status', 'completed')
                 ->orderBy('completed_at', 'desc')
@@ -206,8 +210,8 @@ class CarteraAbonosMaterializedService
      */
     private function triggerBackgroundSync(): void
     {
-        $cacheKey = self::CACHE_PREFIX . 'sync_running';
-        
+        $cacheKey = self::CACHE_PREFIX.'sync_running';
+
         // Verificar si ya hay una sincronización en curso
         if (Cache::has($cacheKey)) {
             return;
@@ -224,9 +228,9 @@ class CarteraAbonosMaterializedService
             ->onQueue('sync')
             ->afterResponse();
 
-        Log::info("Sincronización disparada en background", [
+        Log::info('Sincronización disparada en background', [
             'sync_type' => $syncType,
-            'triggered_by' => 'materialized_service'
+            'triggered_by' => 'materialized_service',
         ]);
     }
 
@@ -252,9 +256,9 @@ class CarteraAbonosMaterializedService
 
         // Verificar última sincronización
         $lastSync = $this->getLastSyncTime();
-        
+
         // Si no hay sincronización previa, hacer full
-        if (!$lastSync) {
+        if (! $lastSync) {
             return 'full';
         }
 
@@ -274,29 +278,29 @@ class CarteraAbonosMaterializedService
     private function getFallbackData(array $params): array
     {
         $startTime = microtime(true);
-        
+
         try {
             // Usar el servicio cacheado original como fallback
             $cacheService = app(CarteraAbonosCacheService::class);
             $result = $cacheService->getCachedData($params);
-            
+
             $queryTime = (microtime(true) - $startTime) * 1000;
-            
+
             return [
                 'data' => $result['data'] ?? [],
                 'query_time' => $queryTime,
                 'data_source' => 'fallback_original',
-                'last_sync' => $this->getLastSyncTime()
+                'last_sync' => $this->getLastSyncTime(),
             ];
 
         } catch (\Exception $e) {
-            Log::error("Error incluso en fallback", ['error' => $e->getMessage()]);
-            
+            Log::error('Error incluso en fallback', ['error' => $e->getMessage()]);
+
             return [
                 'data' => [],
                 'query_time' => 0,
                 'data_source' => 'error',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
@@ -308,9 +312,11 @@ class CarteraAbonosMaterializedService
     {
         try {
             $cacheService = app(CarteraAbonosCacheService::class);
+
             return $cacheService->getCachedCount($params);
         } catch (\Exception $e) {
-            Log::error("Error en fallback count", ['error' => $e->getMessage()]);
+            Log::error('Error en fallback count', ['error' => $e->getMessage()]);
+
             return 0;
         }
     }
@@ -334,16 +340,16 @@ class CarteraAbonosMaterializedService
             return [
                 'status' => 'success',
                 'message' => 'Sincronización completa forzada',
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ];
 
         } catch (\Exception $e) {
-            Log::error("Error forzando full sync", ['error' => $e->getMessage()]);
-            
+            Log::error('Error forzando full sync', ['error' => $e->getMessage()]);
+
             return [
                 'status' => 'error',
                 'message' => $e->getMessage(),
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ];
         }
     }
@@ -359,7 +365,7 @@ class CarteraAbonosMaterializedService
             'is_stale' => $this->isMaterializedDataStale(),
             'pending_changes' => $this->getPendingChangesCount(),
             'total_records' => $this->getTotalRecords(),
-            'sync_history' => $this->getSyncHistory()
+            'sync_history' => $this->getSyncHistory(),
         ];
 
         return $stats;
@@ -403,9 +409,9 @@ class CarteraAbonosMaterializedService
     private function clearAllCaches(): void
     {
         $patterns = [
-            self::CACHE_PREFIX . '*',
+            self::CACHE_PREFIX.'*',
             'cartera_abonos_*',
-            'reporte_cartera_abonos_*'
+            'reporte_cartera_abonos_*',
         ];
 
         foreach ($patterns as $pattern) {
@@ -425,7 +431,7 @@ class CarteraAbonosMaterializedService
             'last_sync_successful' => $this->checkLastSyncSuccess(),
             'data_freshness' => $this->getDataFreshnessStatus(),
             'queue_processing' => $this->checkQueueStatus(),
-            'overall_status' => 'healthy'
+            'overall_status' => 'healthy',
         ];
 
         // Determinar estado general
@@ -446,6 +452,7 @@ class CarteraAbonosMaterializedService
     {
         try {
             DB::table('cartera_abonos_materialized')->limit(1)->get();
+
             return true;
         } catch (\Exception $e) {
             return false;
@@ -456,6 +463,7 @@ class CarteraAbonosMaterializedService
     {
         try {
             DB::table('cartera_abonos_sync_control')->limit(1)->get();
+
             return true;
         } catch (\Exception $e) {
             return false;
@@ -466,6 +474,7 @@ class CarteraAbonosMaterializedService
     {
         try {
             DB::table('cartera_abonos_change_log')->limit(1)->get();
+
             return true;
         } catch (\Exception $e) {
             return false;

@@ -2,7 +2,7 @@
 
 @use('Illuminate\Support\Str')
 
-@section('title', 'Distributions')
+@section('title', 'Distribuciones')
 
 @once
     @push('scripts')
@@ -17,7 +17,7 @@
 
 @section('content_header')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <h1>Distributions</h1>
+    <h1>Distribuciones</h1>
 @stop
 
 @section('content')
@@ -26,22 +26,22 @@
             <div class="card">
                 <div class="card-header">
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createDistributionModal">
-                        <i class="fas fa-plus"></i> Create Distribution
+                        <i class="fas fa-plus"></i> Crear Distribución
                     </button>
                 </div>
                 <div class="card-body">
                     <table id="distributionsTable" class="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Status</th>
-                                <th>Files</th>
-                                <th>Targets</th>
-                                <th>Progress</th>
-                                <th>Created</th>
-                                <th>Actions</th>
+<th>ID</th>
+                                 <th>Nombre</th>
+                                 <th>Tipo</th>
+                                 <th>Estado</th>
+                                 <th>Archivos</th>
+                                 <th>Objetivos</th>
+                                 <th>Progreso</th>
+                                 <th>Creado</th>
+                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -51,24 +51,24 @@
                                     <td>{{ $distribution->name }}</td>
                                     <td>
                                         @if($distribution->type === 'immediate')
-                                            <span class="badge badge-primary">Immediate</span>
+                                            <span class="badge badge-primary">Inmediato</span>
                                         @elseif($distribution->type === 'scheduled')
-                                            <span class="badge badge-warning">Scheduled</span>
+                                            <span class="badge badge-warning">Programado</span>
                                         @else
-                                            <span class="badge badge-info">Recurring</span>
+                                            <span class="badge badge-info">Recurrente</span>
                                         @endif
                                     </td>
                                     <td>
                                         @if($distribution->status === 'completed')
-                                            <span class="badge badge-success">Completed</span>
+<span class="badge badge-success">Completado</span>
                                         @elseif($distribution->status === 'in_progress')
-                                            <span class="badge badge-primary">In Progress</span>
+<span class="badge badge-primary">En Progreso</span>
                                         @elseif($distribution->status === 'pending')
-                                            <span class="badge badge-warning">Pending</span>
+<span class="badge badge-warning">Pendiente</span>
                                         @elseif($distribution->status === 'failed')
-                                            <span class="badge badge-danger">Failed</span>
+<span class="badge badge-danger">Fallido</span>
                                         @elseif($distribution->status === 'stopped')
-                                            <span class="badge badge-secondary">Stopped</span>
+<span class="badge badge-secondary">Detenido</span>
                                         @else
                                             <span class="badge badge-secondary">{{ $distribution->status }}</span>
                                         @endif
@@ -87,7 +87,7 @@
                                                 {{ $percent }}%
                                             </div>
                                         </div>
-                                        <small>{{ $completed }}/{{ $total }} completed</small>
+                                        <small>{{ $completed }}/{{ $total }} completados</small>
                                     </td>
                                     <td>{{ $distribution->created_at->diffForHumans() }}</td>
                                     <td>
@@ -109,7 +109,7 @@
                                             @endif
                                         @endif
                                         <button type="button" class="btn btn-warning btn-sm" 
-                                                onclick="editDistribution({{ $distribution->id }}, '{{ $distribution->name }}', '{{ $distribution->type }}', '{{ $distribution->description ?? '' }}', '{{ $distribution->scheduled_at ?? '' }}')">
+                                                onclick="editDistribution({{ $distribution->id }}, '{{ $distribution->name }}', '{{ $distribution->type }}', '{{ $distribution->distribution_type ?? 'file' }}', '{{ $distribution->subfolder ?? '' }}', '{{ $distribution->description ?? '' }}', '{{ $distribution->scheduled_at ?? '' }}', '{{ json_encode($distribution->files->pluck('file_name')->toArray()) }}', {{ $distribution->targets->count() }}, '{{ json_encode($distribution->targets->pluck('computer_id')->toArray()) }}', '{{ $distribution->command ?? '' }}', '{{ $distribution->command_args ?? '' }}')">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button type="button" class="btn btn-danger btn-sm" 
@@ -133,7 +133,7 @@
                 <form id="createDistributionForm" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-header bg-primary">
-                        <h5 class="modal-title">Create Distribution</h5>
+                        <h5 class="modal-title">Crear Distribución</h5>
                         <button type="button" class="close" data-dismiss="modal">
                             <span>&times;</span>
                         </button>
@@ -142,13 +142,13 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Name *</label>
+<label>Nombre *</label>
                                     <input type="text" name="name" class="form-control" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Type *</label>
+<label>Tipo *</label>
                                     <select name="type" class="form-control" id="modalDistributionType" required>
                                         <option value="immediate">Inmediato</option>
                                         <option value="scheduled">Programado</option>
@@ -224,10 +224,10 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Description</label>
-                            <textarea name="description" class="form-control" rows="3"></textarea>
-                        </div>
+<div class="form-group">
+                                     <label>Descripción</label>
+                                     <textarea name="description" class="form-control" rows="3"></textarea>
+                                 </div>
 
                         <!-- Tipo de distribución -->
                         <div class="row">
@@ -237,32 +237,45 @@
                                     <select name="distribution_type" class="form-control" id="modalDistributionTypeField">
                                         <option value="file">Archivo Normal</option>
                                         <option value="update">Actualización (Subcarpeta)</option>
+                                        <option value="command">Comando/Ejecutar</option>
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-6" id="modalSubfolderRow" style="display:none;">
+                            <div class="col-md-6" id="modalSubfolderRow">
                                 <div class="form-group">
                                     <label>Subcarpeta de Destino</label>
-                                    <input type="text" name="subfolder" class="form-control" placeholder="ej: actualizaciones/2026">
-                                    <small class="text-muted">La subcarpeta debe existir en la ruta principal</small>
+                                    <input type="text" name="subfolder" class="form-control" placeholder="ej: actualizaciones o actualizaciones/2026">
+                                    <small class="text-muted">Sin / al inicio. Ej: carpeta o carpeta/subcarpeta</small>
+                                </div>
+                            </div>
+                            <div class="col-md-12 d-none" id="modalCommandRow">
+                                <div class="form-group">
+                                    <label>Comando a Ejecutar</label>
+                                    <input type="text" name="command" class="form-control" placeholder="ej: powershell -ExecutionPolicy Bypass -File script.ps1">
+                                    <small class="text-muted">Comando o programa a ejecutar en el agente</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Argumentos (opcional)</label>
+                                    <input type="text" name="command_args" class="form-control" placeholder="ej: -Param1 valor1 -Param2 valor2">
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Files *</label>
-                            <input type="file" name="files[]" class="form-control" multiple required id="fileInput">
-                            <small class="text-muted">Select multiple files to distribute</small>
+<!-- Archivo tipo file input -->
+                        <div class="form-group" id="modalFileGroup">
+<label>Archivos *</label>
+                             <input type="file" name="files[]" class="form-control" multiple required id="fileInput">
+                             <small class="text-muted">Seleccione múltiples archivos para distribuir</small>
                             <div id="fileList" class="mt-2"></div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Target Type *</label>
-                                    <select name="target_type" class="form-control" id="modalTargetType" required>
-                                        <option value="all">All Computers</option>
-                                        <option value="group">Grupos Específicos</option>
-                                        <option value="specific">Specific</option>
-                                    </select>
+<label>Tipo de Objetivo *</label>
+                                     <select name="target_type" class="form-control" id="modalTargetType" required>
+                                         <option value="all">Todas las Computadoras</option>
+                                         <option value="group">Grupos Específicos</option>
+                                         <option value="specific">Específico</option>
+                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -276,21 +289,25 @@
                                     <small class="text-muted">Ctrl/Cmd para seleccionar varios</small>
                                 </div>
                                 <div class="form-group" id="modalSpecificComputers" style="display:none;">
-                                    <label>Computers</label>
-                                    <select name="computer_ids[]" class="form-control" multiple style="height: 100px;">
+                                    <label>Computadoras</label>
+                                    <input type="text" class="form-control mb-2" placeholder="Buscar por nombre o short key..." onkeyup="filterComputers(this, 'modalComputersSelect')">
+                                    <select name="computer_ids[]" id="modalComputersSelect" class="form-control" multiple style="height: 150px;">
                                         @foreach($computers ?? [] as $computer)
-                                            <option value="{{ $computer->id }}">{{ $computer->computer_name }}</option>
+                                            <option value="{{ $computer->id }}" data-search="{{ strtolower($computer->computer_name.' '.($computer->short_key ?? '')) }}">
+                                                {{ $computer->computer_name }} {{ $computer->short_key ? '('.$computer->short_key.')' : '' }}
+                                            </option>
                                         @endforeach
                                     </select>
+                                    <small class="text-muted" id="modalComputersCount">{{ count($computers ?? []) }} computadoras</small>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="submitBtn">
-                            <i class="fas fa-upload"></i> Create & Distribute
-                        </button>
+<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                         <button type="submit" class="btn btn-primary" id="submitBtn">
+                             <i class="fas fa-upload"></i> Crear y Distribuir
+                         </button>
                     </div>
                 </form>
             </div>
@@ -303,7 +320,7 @@
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content">
                 <div class="modal-header bg-info">
-                    <h5 class="modal-title">Distribution: {{ $distribution->name }}</h5>
+                    <h5 class="modal-title">Distribución: {{ $distribution->name }}</h5>
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
@@ -311,18 +328,18 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Details</h6>
+                            <h6>Detalles</h6>
                             <table class="table table-sm">
                                 <tr><th>ID:</th><td>{{ $distribution->id }}</td></tr>
-                                <tr><th>Name:</th><td>{{ $distribution->name }}</td></tr>
-                                <tr><th>Type:</th><td>{{ $distribution->type }}</td></tr>
-                                <tr><th>Status:</th><td>{{ $distribution->status }}</td></tr>
-                                <tr><th>Created:</th><td>{{ $distribution->created_at }}</td></tr>
-                                <tr><th>Description:</th><td>{{ $distribution->description ?? 'N/A' }}</td></tr>
+                                <tr><th>Nombre:</th><td>{{ $distribution->name }}</td></tr>
+                                 <tr><th>Tipo:</th><td>{{ $distribution->type }}</td></tr>
+                                 <tr><th>Estado:</th><td>{{ $distribution->status }}</td></tr>
+                                 <tr><th>Creado:</th><td>{{ $distribution->created_at }}</td></tr>
+                                 <tr><th>Descripción:</th><td>{{ $distribution->description ?? 'N/A' }}</td></tr>
                             </table>
                         </div>
                         <div class="col-md-6">
-                            <h6>Files</h6>
+                            <h6>Archivos</h6>
                             <ul class="list-group">
                                 @foreach($distribution->files as $file)
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -335,30 +352,33 @@
                     </div>
                     <div class="row mt-3">
                         <div class="col-md-12">
-                            <h6>Targets Progress</h6>
+                            <h6>Progreso de Objetivos</h6>
                             <table class="table table-sm table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Computer</th>
-                                        <th>Status</th>
-                                        <th>Progress</th>
-                                        <th>Attempts</th>
-                                        <th>Error</th>
-                                        <th>Last Update</th>
-                                        <th>Actions</th>
+<th>Computadora</th>
+<th>CLAVECORTA</th>
+<th>PLAZA</th>
+                                         <th>Estado</th>
+                                         <th>Progreso</th>
+                                         <th>Intentos</th>
+                                         <th>Error</th>
+                                         <th>Última Actualización</th>
+                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($distribution->targets as $target)
                                         <tr>
-                                            <td>{{ $target->computer->computer_name ?? 'Unknown' }}</td>
+                                                <td>{{ $target->computer->short_key ?? '-' }}</td>
+                                                <td>{{ $target->computer->plaza ?? '-' }}</td>
                                             <td>
                                                 @if($target->status === 'completed')
-                                                    <span class="badge badge-success">Completed</span>
+<span class="badge badge-success">Completado</span>
                                                 @elseif($target->status === 'in_progress')
-                                                    <span class="badge badge-primary">In Progress</span>
+<span class="badge badge-primary">En Progreso</span>
                                                 @elseif($target->status === 'failed')
-                                                    <span class="badge badge-danger">Failed</span>
+<span class="badge badge-danger">Fallido</span>
                                                 @else
                                                     <span class="badge badge-warning">{{ $target->status }}</span>
                                                 @endif
@@ -399,10 +419,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="refreshDistribution({{ $distribution->id }})">
-                        <i class="fas fa-sync"></i> Refresh
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+<button type="button" class="btn btn-primary" onclick="refreshDistribution({{ $distribution->id }})">
+                         <i class="fas fa-sync"></i> Actualizar
+                     </button>
                 </div>
             </div>
         </div>
@@ -417,7 +437,7 @@
                     @csrf
                     @method('PUT')
                     <div class="modal-header bg-warning">
-                        <h5 class="modal-title">Edit Distribution</h5>
+                        <h5 class="modal-title">Editar Distribución</h5>
                         <button type="button" class="close" data-dismiss="modal">
                             <span>&times;</span>
                         </button>
@@ -425,31 +445,111 @@
                     <div class="modal-body">
                         <input type="hidden" name="id" id="editId">
                         <div class="form-group">
-                            <label>Name *</label>
-                            <input type="text" name="name" id="editName" class="form-control" required>
+<label>Nombre *</label>
+                             <input type="text" name="name" id="editName" class="form-control" required>
                         </div>
                         <div class="form-group">
-                            <label>Type *</label>
-                            <select name="type" id="editType" class="form-control" required>
-                                <option value="immediate">Immediate</option>
-                                <option value="scheduled">Scheduled</option>
-                                <option value="recurring">Recurring</option>
+<label>Tipo *</label>
+                             <select name="type" id="editType" class="form-control" required>
+                                <option value="immediate">Inmediato</option>
+                                <option value="scheduled">Programado</option>
+                                <option value="recurring">Recurrente</option>
                             </select>
                         </div>
-                        <div class="form-group" id="editScheduledAtGroup" style="display: none;">
-                            <label>Scheduled At</label>
+                        <div class="form-group" id="editScheduledAtGroup" style="display:none;">
+                            <label>Fecha Programada</label>
                             <input type="datetime-local" name="scheduled_at" id="editScheduledAt" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label>Description</label>
-                            <textarea name="description" id="editDescription" class="form-control" rows="3"></textarea>
+<label>Descripción</label>
+                             <textarea name="description" id="editDescription" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Tipo de Distribución</label>
+                                    <select name="distribution_type" id="editDistributionType" class="form-control">
+                                        <option value="file">Archivo Normal</option>
+                                        <option value="update">Actualización (Subcarpeta)</option>
+                                        <option value="command">Comando/Ejecutar</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6" id="editSubfolderRow">
+                                <div class="form-group">
+                                    <label>Subcarpeta de Destino</label>
+                                    <input type="text" name="subfolder" id="editSubfolder" class="form-control" placeholder="ej: actualizaciones">
+                                    <small class="text-muted">Opcional: deja vacío para ruta principal</small>
+                                </div>
+                            </div>
+                            <div class="col-md-12 d-none" id="editCommandRow">
+                                <div class="form-group">
+                                    <label>Comando a Ejecutar</label>
+                                    <input type="text" name="command" id="editCommand" class="form-control" placeholder="ej: powershell -ExecutionPolicy Bypass -File script.ps1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Argumentos (opcional)</label>
+                                    <input type="text" name="command_args" id="editCommandArgs" class="form-control" placeholder="ej: -Param1 valor1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-info mt-3" id="editFilesCard">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">Archivos a Distribuir</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+<label>Archivos *</label>
+                                     <input type="file" name="files[]" class="form-control" multiple id="editFileInput">
+                                    <div id="editFileList" class="mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+<label>Tipo de Objetivo *</label>
+                                     <select name="target_type" id="editTargetType" class="form-control" required>
+                                         <option value="all">Todas las Computadoras</option>
+                                         <option value="group">Grupos Específicos</option>
+                                         <option value="specific">Específico</option>
+                                     </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group d-none" id="editModalGroupsSelect">
+                                    <label>Grupos</label>
+                                    <select name="group_ids[]" id="editGroupIds" class="form-control" multiple style="height: 100px;">
+                                        @foreach($groups ?? [] as $group)
+                                            <option value="{{ $group->id }}">{{ $group->name }} ({{ $group->type ?? 'Sin tipo' }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="form-group d-none" id="editModalSpecificComputers">
+                                    <label>Computadoras</label>
+                                    <input type="text" class="form-control mb-2" placeholder="Buscar por nombre o short key..." onkeyup="filterComputers(this, 'editComputerIds')">
+                                    <select name="computer_ids[]" id="editComputerIds" class="form-control" multiple style="height: 150px;">
+                                        @foreach($computers ?? [] as $computer)
+                                            <option value="{{ $computer->id }}" data-search="{{ strtolower($computer->computer_name.' '.($computer->short_key ?? '')) }}">
+                                                {{ $computer->computer_name }} {{ $computer->short_key ? '('.$computer->short_key.')' : '' }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted" id="editComputersCount">{{ count($computers ?? []) }} computadoras</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-warning" id="editSubmitBtn">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
+<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                         <button type="button" class="btn btn-info" id="editRestartBtn" onclick="restartDistribution()">
+                             <i class="fas fa-redo"></i> Reutilizar y Reiniciar
+                         </button>
+                         <button type="submit" class="btn btn-warning" id="editSubmitBtn">
+                             <i class="fas fa-save"></i> Guardar Cambios
+                         </button>
                     </div>
                 </form>
             </div>
@@ -482,7 +582,61 @@
 <script>
 // Polling intervals (fallback)
 let pollingIntervals = {};
-const POLL_INTERVAL = 3000; // 3 seconds
+let pendingRequests = {};
+const POLL_INTERVAL = 2000; // 2 seconds
+
+// Check for distributions that need polling (stored in localStorage)
+function getPendingDistributions() {
+    try {
+        const stored = localStorage.getItem('pendingDistributions');
+        return stored ? JSON.parse(stored) : [];
+    } catch(e) {
+        return [];
+    }
+}
+
+function addPendingDistribution(id) {
+    try {
+        const pending = getPendingDistributions();
+        if (!pending.includes(id)) {
+            pending.push(id);
+            localStorage.setItem('pendingDistributions', JSON.stringify(pending));
+        }
+    } catch(e) {}
+}
+
+function removePendingDistribution(id) {
+    try {
+        const pending = getPendingDistributions();
+        const idx = pending.indexOf(id);
+        if (idx > -1) {
+            pending.splice(idx, 1);
+            localStorage.setItem('pendingDistributions', JSON.stringify(pending));
+        }
+    } catch(e) {}
+}
+
+function clearPendingDistributions() {
+    localStorage.removeItem('pendingDistributions');
+}
+
+function filterComputers(input, selectId) {
+    const filter = input.value.toLowerCase();
+    const select = document.getElementById(selectId);
+    let visibleCount = 0;
+
+    for (const option of select.options) {
+        const searchData = option.getAttribute('data-search') || option.text.toLowerCase();
+        const match = searchData.includes(filter);
+        option.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+    }
+
+    const countEl = document.getElementById(selectId === 'editComputerIds' ? 'editComputersCount' : 'modalComputersCount');
+    if (countEl) {
+        countEl.textContent = visibleCount + ' de ' + select.options.length + ' computadoras';
+    }
+}
 
 // WebSocket connection tracking
 const wsSubscriptions = new Set();
@@ -512,7 +666,7 @@ function updateDistributionProgressUI(data) {
                 statusBadge = '<span class="badge badge-success">Completed</span>';
                 break;
             case 'in_progress':
-                statusBadge = '<span class="badge badge-primary">In Progress</span>';
+                statusBadge = '<span class="badge badge-primary">En Progreso</span>';
                 break;
             case 'pending':
                 statusBadge = '<span class="badge badge-warning">Pending</span>';
@@ -584,11 +738,20 @@ function subscribeToAllDistributions() {
 }
 
 function updateDistributionProgress(distributionId) {
+    if (pendingRequests[distributionId]) {
+        return;
+    }
+
+    pendingRequests[distributionId] = true;
+
     $.ajax({
         url: '/admin/distributions/' + distributionId + '/progress',
         type: 'GET',
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        complete: function() {
+            pendingRequests[distributionId] = false;
         },
         success: function(data) {
             // Update main table row
@@ -613,7 +776,7 @@ function updateDistributionProgress(distributionId) {
                         statusBadge = '<span class="badge badge-success">Completed</span>';
                         break;
                     case 'in_progress':
-                        statusBadge = '<span class="badge badge-primary">In Progress</span>';
+statusBadge = '<span class="badge badge-primary">En Progreso</span>';
                         break;
                     case 'pending':
                         statusBadge = '<span class="badge badge-warning">Pending</span>';
@@ -632,14 +795,13 @@ function updateDistributionProgress(distributionId) {
             
             // Stop polling if completed or failed
             if (data.status === 'completed' || data.status === 'failed') {
-                if (pollingIntervals[distributionId]) {
-                    clearInterval(pollingIntervals[distributionId]);
-                    delete pollingIntervals[distributionId];
-                }
+                stopPollingDistribution(distributionId);
             }
         },
         error: function(xhr) {
-            console.error('Error fetching distribution progress:', xhr);
+            if (xhr.status === 404) {
+                stopPollingDistribution(distributionId);
+            }
         }
     });
 }
@@ -649,12 +811,15 @@ function startPollingDistribution(distributionId) {
     if (pollingIntervals[distributionId]) {
         clearInterval(pollingIntervals[distributionId]);
     }
-    
+
+    // Save to localStorage so polling continues after page refresh
+    addPendingDistribution(distributionId);
+
     // Start new polling interval
     pollingIntervals[distributionId] = setInterval(function() {
         updateDistributionProgress(distributionId);
     }, POLL_INTERVAL);
-    
+
     // Initial update
     updateDistributionProgress(distributionId);
 }
@@ -664,9 +829,28 @@ function stopPollingDistribution(distributionId) {
         clearInterval(pollingIntervals[distributionId]);
         delete pollingIntervals[distributionId];
     }
+    removePendingDistribution(distributionId);
 }
 
 $(document).ready(function() {
+    // Clean stale localStorage entries (distributions that no longer exist or are done)
+    const storedPending = getPendingDistributions();
+    const activeIds = new Set([
+        @foreach($distributions as $distribution)
+            @if($distribution->status === 'pending' || $distribution->status === 'in_progress')
+                {{ $distribution->id }},
+            @endif
+        @endforeach
+    ]);
+    storedPending.forEach(id => {
+        if (!activeIds.has(id)) {
+            removePendingDistribution(id);
+        }
+    });
+
+    // Try WebSocket first; falls back to polling automatically
+    subscribeToAllDistributions();
+
     // Initialize DataTable
     $('#distributionsTable').DataTable({
         "order": [[0, "desc"]],
@@ -695,22 +879,6 @@ $(document).ready(function() {
             }
         }
     });
-    
-    // Try WebSocket first, fallback to polling if WebSocket fails
-    @foreach($distributions as $distribution)
-        @if($distribution->status === 'pending' || $distribution->status === 'in_progress')
-            subscribeToDistribution({{ $distribution->id }});
-        @endif
-    @endforeach
-    
-    // Fallback polling check every 30 seconds in case WebSocket misses events
-    setInterval(function() {
-        @foreach($distributions as $distribution)
-            @if($distribution->status === 'pending' || $distribution->status === 'in_progress')
-                updateDistributionProgress({{ $distribution->id }});
-            @endif
-        @endforeach
-    }, 30000);
 
     // File input change
     $('#fileInput').change(function() {
@@ -723,15 +891,43 @@ $(document).ready(function() {
         $('#fileList').html(html);
     });
 
+    // Edit File input change
+    $('#editFileInput').change(function() {
+        const files = this.files;
+        if (files.length > 0) {
+            let html = '<ul class="list-group" style="max-height: 150px; overflow-y: auto;">';
+            for (let i = 0; i < files.length; i++) {
+                html += '<li class="list-group-item py-1">' + files[i].name + ' (' + (files[i].size / 1024).toFixed(2) + ' KB) (nuevo)</li>';
+            }
+            html += '</ul>';
+            $('#editFileList').html(html);
+        }
+    });
+
     // Distribution type change (modal)
     $('#modalDistributionType').change(function() {
         $('#modalScheduledRow').toggle(this.value === 'scheduled');
         $('#modalRecurringRow').toggle(this.value === 'recurring');
     });
 
-    // Update type change (modal) - show/hide subfolder
+    // Update type change (modal) - show/hide subfolder or command
     $('#modalDistributionTypeField').change(function() {
-        $('#modalSubfolderRow').toggle(this.value === 'update');
+        const type = this.value;
+        const isCommand = type === 'command';
+        const isFileOrUpdate = type === 'file' || type === 'update';
+
+        if (isCommand) {
+            $('#modalSubfolderRow').addClass('d-none');
+            $('#modalCommandRow').removeClass('d-none').show();
+            $('#modalFileGroup').addClass('d-none');
+        } else {
+            $('#modalSubfolderRow').removeClass('d-none').show();
+            $('#modalCommandRow').addClass('d-none');
+            $('#modalFileGroup').removeClass('d-none').show();
+        }
+
+        // Toggle required attribute
+        $('#fileInput').prop('required', isFileOrUpdate);
     });
 
     // Recurrence change (modal)
@@ -774,10 +970,10 @@ $(document).ready(function() {
     // Form submit
     $('#createDistributionForm').submit(function(e) {
         e.preventDefault();
-        
+
         const formData = new FormData(this);
         const submitBtn = $('#submitBtn');
-        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating...');
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creando...');
 
         $.ajax({
             url: '{{ route("admin.distributions.store") }}',
@@ -786,11 +982,14 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(response) {
+                const distributionId = response.distribution;
+                $('#createDistributionModal').modal('hide');
                 Swal.fire({
                     icon: 'success',
-                    title: 'Success',
-                    text: 'Distribution created successfully!'
+ title: 'Éxito',
+                     text: 'Distribución creada exitosamente!'
                 }).then(() => {
+                    startPollingDistribution(distributionId);
                     location.reload();
                 });
             },
@@ -804,7 +1003,7 @@ $(document).ready(function() {
                     title: 'Error',
                     text: msg
                 });
-                submitBtn.prop('disabled', false).html('<i class="fas fa-upload"></i> Create & Distribute');
+                submitBtn.prop('disabled', false).html('<i class="fas fa-upload"></i> Crear y Distribuir');
             }
         });
     });
@@ -818,8 +1017,8 @@ function deleteDistribution(id, name) {
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'Cancel'
+        confirmButtonText: 'Sí, eliminar!',
+        cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
             stopPollingDistribution(id);
@@ -835,8 +1034,8 @@ function deleteDistribution(id, name) {
                 success: function() {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Deleted',
-                        text: 'Distribution deleted successfully'
+title: 'Eliminado',
+                         text: 'Distribución eliminada exitosamente'
                     }).then(() => {
                         location.reload();
                     });
@@ -861,8 +1060,8 @@ function stopDistribution(id, name) {
         showCancelButton: true,
         confirmButtonColor: '#6c757d',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, stop it!',
-        cancelButtonText: 'Cancel'
+        confirmButtonText: 'Sí, detener!',
+         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
             stopPollingDistribution(id);
@@ -875,8 +1074,8 @@ function stopDistribution(id, name) {
                 success: function() {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Stopped',
-                        text: 'Distribution stopped successfully'
+title: 'Detenido',
+                         text: 'Distribución detenida exitosamente'
                     }).then(() => {
                         location.reload();
                     });
@@ -901,8 +1100,8 @@ function startDistribution(id, name) {
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, start it!',
-        cancelButtonText: 'Cancel'
+        confirmButtonText: 'Sí, iniciar!',
+         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
             startPollingDistribution(id);
@@ -915,8 +1114,8 @@ function startDistribution(id, name) {
                 success: function() {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Started',
-                        text: 'Distribution started successfully'
+title: 'Iniciado',
+                         text: 'Distribución iniciada exitosamente'
                     }).then(() => {
                         location.reload();
                     });
@@ -937,14 +1136,23 @@ function refreshDistribution(id) {
     updateDistributionProgress(id);
 }
 
-function editDistribution(id, name, type, description, scheduledAt) {
+function editDistribution(id, name, type, distributionType, subfolder, description, scheduledAt, filesHtml, targetsCount, computerIdsJson, command, commandArgs) {
     $('#editId').val(id);
     $('#editName').val(name);
     $('#editType').val(type);
+    $('#editDistributionType').val(distributionType || 'file');
+    $('#editSubfolder').val(subfolder || '');
     $('#editDescription').val(description);
-    
+    $('#editCommand').val(command || '');
+    $('#editCommandArgs').val(commandArgs || '');
+
+    // Mostrar/ocultar campos según tipo
+    const isCommand = distributionType === 'command';
+    $('#editSubfolderRow').toggleClass('d-none', isCommand);
+    $('#editCommandRow').toggleClass('d-none', !isCommand);
+    $('#editFilesCard').toggleClass('d-none', isCommand);
+
     if (scheduledAt) {
-        // Convert to datetime-local format
         const date = new Date(scheduledAt);
         const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
         $('#editScheduledAt').val(localDate.toISOString().slice(0, 16));
@@ -953,12 +1161,103 @@ function editDistribution(id, name, type, description, scheduledAt) {
         $('#editScheduledAt').val('');
         $('#editScheduledAtGroup').hide();
     }
-    
-    $('#editType').change(function() {
-        $('#editScheduledAtGroup').toggle(this.value === 'scheduled');
+
+    $('#editFileList').html(filesHtml || '<div class="text-muted">No hay archivos cargados</div>');
+
+    // Preseleccionar computadoras en el multiselect
+    let computerIds = [];
+    try {
+        computerIds = JSON.parse(computerIdsJson || '[]');
+    } catch(e) {}
+    $('#editComputerIds option').prop('selected', false);
+    computerIds.forEach(function(cid) {
+        $('#editComputerIds option[value="' + cid + '"]').prop('selected', true);
     });
-    
+
+    if (targetsCount > 0) {
+        const totalComputers = $('#editComputerIds option').length;
+        if (targetsCount >= totalComputers) {
+            $('#editTargetType').val('all');
+            $('#editModalSpecificComputers').addClass('d-none');
+            $('#editModalGroupsSelect').addClass('d-none');
+        } else {
+            $('#editTargetType').val('specific');
+            $('#editModalSpecificComputers').removeClass('d-none');
+            $('#editModalGroupsSelect').addClass('d-none');
+        }
+    }
+
+    $('#editType').off('change').on('change', function() {
+        if (this.value === 'scheduled') {
+            $('#editScheduledAtGroup').show();
+        } else {
+            $('#editScheduledAtGroup').hide();
+        }
+    });
+
+    $('#editTargetType').off('change').on('change', function() {
+        $('#editModalGroupsSelect').toggleClass('d-none', this.value !== 'group');
+        $('#editModalSpecificComputers').toggleClass('d-none', this.value !== 'specific');
+    });
+
+    $('#editDistributionType').off('change').on('change', function() {
+        const isCmd = this.value === 'command';
+        $('#editSubfolderRow').toggleClass('d-none', isCmd);
+        $('#editCommandRow').toggleClass('d-none', !isCmd);
+        $('#editFilesCard').toggleClass('d-none', isCmd);
+    });
+
     $('#editDistributionModal').modal('show');
+}
+
+function restartDistribution() {
+    const id = $('#editId').val();
+    if (!id) return;
+
+    Swal.fire({
+        title: '¿Reutilizar distribución?',
+        text: 'Esto reiniciará la distribución desde 0, borrando el progreso anterior.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, reiniciar!',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = $('#editDistributionForm').serializeArray().filter(function(field) {
+                return field.name !== '_method';
+            });
+            formData.push({ name: '_token', value: $('meta[name="csrf-token"]').attr('content') });
+            $.ajax({
+                url: '/admin/distributions/' + id + '/restart',
+                type: 'POST',
+                data: $.param(formData),
+                success: function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Reiniciada',
+                        text: 'Distribución reiniciada correctamente'
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    let msg = 'Error al reiniciar distribución';
+                    if (xhr.responseJSON) {
+                        msg = xhr.responseJSON.error || xhr.responseJSON.message || msg;
+                    } else if (xhr.status === 422) {
+                        msg = 'Error de validación';
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: msg
+                    });
+                }
+            });
+        }
+    });
 }
 
 $('#editDistributionForm').submit(function(e) {
@@ -967,7 +1266,7 @@ $('#editDistributionForm').submit(function(e) {
     const formData = new FormData(this);
     const id = $('#editId').val();
     const submitBtn = $('#editSubmitBtn');
-    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
 
     $.ajax({
         url: '/admin/distributions/' + id,
@@ -978,8 +1277,8 @@ $('#editDistributionForm').submit(function(e) {
         success: function(response) {
             Swal.fire({
                 icon: 'success',
-                title: 'Success',
-                text: 'Distribution updated successfully!'
+title: 'Éxito',
+                 text: 'Distribución actualizada exitosamente!'
             }).then(() => {
                 $('#editDistributionModal').modal('hide');
                 location.reload();
@@ -995,7 +1294,7 @@ $('#editDistributionForm').submit(function(e) {
                 title: 'Error',
                 text: msg
             });
-            submitBtn.prop('disabled', false).html('<i class="fas fa-save"></i> Save Changes');
+            submitBtn.prop('disabled', false).html('<i class="fas fa-save"></i> Guardar Cambios');
         }
     });
 });

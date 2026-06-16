@@ -20,17 +20,18 @@ class SyncCarteraAbonosCache extends Command
     public function handle(): int
     {
         $this->info('Iniciando sincronización de cartera abonos...');
-        
+
         $isFull = $this->option('full');
         $periodOption = $this->option('period');
         $dayOption = $this->option('day');
         $lastDaysOption = $this->option('last-days');
         $append = $this->option('append');
-        
+
         if ($periodOption) {
             $parts = explode(',', $periodOption);
             if (count($parts) !== 2) {
                 $this->error('Formato de período inválido. Usar: YYYY-MM-DD,YYYY-MM-DD');
+
                 return Command::FAILURE;
             }
             $start = trim($parts[0]);
@@ -53,7 +54,7 @@ class SyncCarteraAbonosCache extends Command
         $this->info("Período: {$start} hasta {$end}");
 
         try {
-            if (!$append) {
+            if (! $append) {
                 DB::statement('TRUNCATE TABLE cartera_abonos_cache RESTART IDENTITY CASCADE');
                 $this->info('Tabla caché limpiada');
             } else {
@@ -94,14 +95,15 @@ class SyncCarteraAbonosCache extends Command
                     AND c.fecha >= :start AND c.fecha <= :end";
 
             DB::insert($sql, ['start' => $start, 'end' => $end]);
-            
+
             $count = DB::table('cartera_abonos_cache')->count();
             $this->info("Sincronización completada. Registros totales: {$count}");
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            Log::error('Error sincronizando cartera_abonos_cache: ' . $e->getMessage());
-            $this->error('Error: ' . $e->getMessage());
+            Log::error('Error sincronizando cartera_abonos_cache: '.$e->getMessage());
+            $this->error('Error: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

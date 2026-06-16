@@ -1,12 +1,14 @@
 <?php
+
 /**
  * PRUEBA ESPECÍFICA: Problema Original (7,000 registros = 40 segundos)
  * Ejecutar: php test_7000_records.php
  */
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use App\Services\ReportService;
+use Illuminate\Contracts\Http\Kernel;
 
 echo "========================================\n";
 echo "PRUEBA ESPECÍFICA: 7,000 REGISTROS\n";
@@ -21,8 +23,8 @@ echo "• Ejecutando consulta optimizada...\n\n";
 
 try {
     // Inicializar Laravel
-    $app = require_once __DIR__ . '/bootstrap/app.php';
-    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $app = require_once __DIR__.'/bootstrap/app.php';
+    $kernel = $app->make(Kernel::class);
     $kernel->bootstrap();
 
     // Configurar límites altos
@@ -38,14 +40,14 @@ try {
         'fecha_fin' => '2024-02-29', // 2 meses completos
         'plaza' => '', // Sin filtro para más datos
         'tienda' => '',
-        'vendedor' => ''
+        'vendedor' => '',
     ];
 
     echo "FILTROS DE PRUEBA:\n";
     echo "• Periodo: {$filtros['fecha_inicio']} a {$filtros['fecha_fin']}\n";
-    echo "• Plaza: " . ($filtros['plaza'] ?: 'Todas') . "\n";
-    echo "• Tienda: " . ($filtros['tienda'] ?: 'Todas') . "\n";
-    echo "• Vendedor: " . ($filtros['vendedor'] ?: 'Todos') . "\n\n";
+    echo '• Plaza: '.($filtros['plaza'] ?: 'Todas')."\n";
+    echo '• Tienda: '.($filtros['tienda'] ?: 'Todas')."\n";
+    echo '• Vendedor: '.($filtros['vendedor'] ?: 'Todos')."\n\n";
 
     // PRUEBA 1: Primera ejecución (sin cache)
     echo "EJECUCIÓN 1: Sin cache\n";
@@ -59,8 +61,8 @@ try {
     $num_registros = $resultados->count();
 
     echo "✓ Consulta completada\n";
-    echo "• Registros obtenidos: " . number_format($num_registros) . "\n";
-    echo "• Tiempo total: {$tiempo_ejecucion}ms (" . round($tiempo_ejecucion/1000, 2) . "s)\n";
+    echo '• Registros obtenidos: '.number_format($num_registros)."\n";
+    echo "• Tiempo total: {$tiempo_ejecucion}ms (".round($tiempo_ejecucion / 1000, 2)."s)\n";
 
     if ($num_registros > 0) {
         $tiempo_por_registro = round($tiempo_ejecucion / $num_registros, 3);
@@ -70,16 +72,16 @@ try {
     // Evaluar rendimiento
     if ($tiempo_ejecucion < 10000) { // Menos de 10 segundos
         echo "🎉 RENDIMIENTO EXCELENTE (< 10s)\n";
-        $calificacion = "EXCELENTE";
+        $calificacion = 'EXCELENTE';
     } elseif ($tiempo_ejecucion < 30000) { // Menos de 30 segundos
         echo "✅ RENDIMIENTO MUY BUENO (< 30s)\n";
-        $calificacion = "MUY BUENO";
+        $calificacion = 'MUY BUENO';
     } elseif ($tiempo_ejecucion < 60000) { // Menos de 1 minuto
         echo "⚠️ RENDIMIENTO ACEPTABLE (< 1min)\n";
-        $calificacion = "ACEPTABLE";
+        $calificacion = 'ACEPTABLE';
     } else {
         echo "❌ RENDIMIENTO DEFICIENTE (> 1min)\n";
-        $calificacion = "DEFICIENTE";
+        $calificacion = 'DEFICIENTE';
     }
 
     echo "\n";
@@ -117,7 +119,7 @@ try {
     echo "• Sistema inutilizable\n\n";
 
     echo "SOLUCIÓN OPTIMIZADA:\n";
-    echo "• " . number_format($num_registros) . " registros ≈ " . round($tiempo_ejecucion/1000, 2) . " segundos\n";
+    echo '• '.number_format($num_registros).' registros ≈ '.round($tiempo_ejecucion / 1000, 2)." segundos\n";
     echo "• Cache: {$tiempo_cache}ms\n";
     echo "• Calificación: $calificacion\n\n";
 
@@ -131,7 +133,7 @@ try {
     if ($num_registros > 0) {
         $tiempo_estimado_7000 = ($tiempo_ejecucion / $num_registros) * 7000;
         echo "TIEMPO ESTIMADO PARA 7,000 REGISTROS:\n";
-        echo "• {$tiempo_estimado_7000}ms (" . round($tiempo_estimado_7000/1000, 2) . "s)\n";
+        echo "• {$tiempo_estimado_7000}ms (".round($tiempo_estimado_7000 / 1000, 2)."s)\n";
 
         if ($tiempo_estimado_7000 < 10000) {
             echo "🎉 ¡PROBLEMA COMPLETAMENTE RESUELTO!\n";
@@ -162,7 +164,7 @@ try {
 
 } catch (Exception $e) {
     echo "\n❌ ERROR EN PRUEBA ESPECÍFICA:\n";
-    echo $e->getMessage() . "\n\n";
+    echo $e->getMessage()."\n\n";
     echo "SOLUCIONES POSIBLES:\n";
     echo "1. Verificar conexión a BD PostgreSQL\n";
     echo "2. Asegurar que existan datos en el período probado\n";

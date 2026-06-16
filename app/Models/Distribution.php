@@ -14,6 +14,8 @@ class Distribution extends Model
         'type',
         'distribution_type',
         'subfolder',
+        'command',
+        'command_args',
         'schedule',
         'description',
         'created_by',

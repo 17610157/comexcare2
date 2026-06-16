@@ -270,7 +270,7 @@ class ReporteVendedoresController extends Controller
             $resultados = ReportService::getVendedoresReport($filtros);
             $estadisticas = ReportService::calcularEstadisticasVendedores($resultados);
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reportes.vendedores.pdf', compact('resultados', 'estadisticas', 'filtros'))
+            $pdf = Pdf::loadView('reportes.vendedores.pdf', compact('resultados', 'estadisticas', 'filtros'))
                 ->setPaper('a4', 'landscape');
 
             return $pdf->download('Reporte_Vendedores_'.date('Ymd_His').'.pdf');

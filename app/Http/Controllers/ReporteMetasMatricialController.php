@@ -5,11 +5,18 @@ namespace App\Http\Controllers;
 use App\Helpers\RoleHelper;
 use App\Services\ReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReporteMetasMatricialController extends Controller
 {
@@ -231,17 +238,17 @@ class ReporteMetasMatricialController extends Controller
      */
     private function exportWithPhpSpreadsheet($datos, $filtros)
     {
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
 
         // Título
         $sheet->setTitle('Metas Matricial');
         $sheet->setCellValue('A1', 'REPORTE METAS MATRICIAL');
         $num_cols = count($datos['tiendas']) + 1; // tiendas + total
-        $last_col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($num_cols);
+        $last_col = Coordinate::stringFromColumnIndex($num_cols);
         $sheet->mergeCells('A1:'.$last_col.'1');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Información
         $sheet->setCellValue('A2', 'Fecha exportación:');
@@ -272,97 +279,97 @@ class ReporteMetasMatricialController extends Controller
 
         // Encabezados
         $col = 1;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, 'Categoría / Fecha');
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, 'Categoría / Fecha');
 
         foreach ($datos['tiendas'] as $tienda) {
             $col++;
-            $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $tienda);
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $tienda);
         }
 
         $col++;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, 'Total');
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, 'Total');
 
         // Estilo encabezados
-        $header_range = 'A'.$fila.':'.\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila;
+        $header_range = 'A'.$fila.':'.Coordinate::stringFromColumnIndex($col).$fila;
         $sheet->getStyle($header_range)->getFont()->setBold(true);
-        $sheet->getStyle($header_range)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF343A40');
+        $sheet->getStyle($header_range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF343A40');
         $sheet->getStyle($header_range)->getFont()->getColor()->setARGB('FFFFFFFF');
-        $sheet->getStyle($header_range)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle($header_range)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $fila++;
 
         // Fila Plaza
         $col = 1;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, 'Plaza');
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, 'Plaza');
         foreach ($datos['tiendas'] as $tienda) {
             $col++;
-            $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $datos['matriz']['info'][$tienda]['plaza']);
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $datos['matriz']['info'][$tienda]['plaza']);
         }
         $col++;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, '-');
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, '-');
         $fila++;
 
         // Fila Zona
         $col = 1;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, 'Zona');
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, 'Zona');
         foreach ($datos['tiendas'] as $tienda) {
             $col++;
-            $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $datos['matriz']['info'][$tienda]['zona']);
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $datos['matriz']['info'][$tienda]['zona']);
         }
         $col++;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, '-');
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, '-');
         $fila++;
 
         // Filas de totales diarios
         foreach ($datos['fechas'] as $fecha) {
             $col = 1;
-            $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, 'Total '.\Carbon\Carbon::parse($fecha)->format('d/m'));
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, 'Total '.Carbon::parse($fecha)->format('d/m'));
             $suma = 0;
             foreach ($datos['tiendas'] as $tienda) {
                 $col++;
                 $total = $datos['matriz']['datos'][$tienda][$fecha]['total'] ?? 0;
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $total);
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $total);
                 $suma += $total;
             }
             $col++;
-            $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $suma);
-            $sheet->getStyle(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila)->getFont()->setBold(true);
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $suma);
+            $sheet->getStyle(Coordinate::stringFromColumnIndex($col).$fila)->getFont()->setBold(true);
             $fila++;
         }
 
         // Suma Totales
         $col = 1;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, 'Suma de los Días Consultados');
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, 'Suma de los Días Consultados');
         $suma = 0;
         foreach ($datos['tiendas'] as $tienda) {
             $col++;
             $total = $datos['matriz']['totales'][$tienda]['total'] ?? 0;
-            $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $total);
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $total);
             $suma += $total;
         }
         $col++;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $suma);
-        $sheet->getStyle(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila)->getFont()->setBold(true);
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $suma);
+        $sheet->getStyle(Coordinate::stringFromColumnIndex($col).$fila)->getFont()->setBold(true);
         $fila++;
 
         // Objetivo
         $col = 1;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, 'Objetivo');
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, 'Objetivo');
         $suma = 0;
         foreach ($datos['tiendas'] as $tienda) {
             $col++;
             $meta_total = $datos['matriz']['info'][$tienda]['meta_total'] ?? 0;
             if ($meta_total > 0) {
                 $objetivo = $datos['matriz']['totales'][$tienda]['objetivo'] ?? 0;
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $objetivo);
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $objetivo);
                 $suma += $objetivo;
             } else {
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, '-');
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, '-');
             }
         }
         $col++;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila, $suma);
-        $sheet->getStyle(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$fila)->getFont()->setBold(true);
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($col).$fila, $suma);
+        $sheet->getStyle(Coordinate::stringFromColumnIndex($col).$fila)->getFont()->setBold(true);
         $fila++;
 
         // Agregar más filas similares para las demás categorías...
@@ -370,14 +377,14 @@ class ReporteMetasMatricialController extends Controller
         // Ajustar anchos
         $sheet->getColumnDimension('A')->setWidth(20);
         for ($i = 2; $i <= $num_cols; $i++) {
-            $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i))->setWidth(15);
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i))->setWidth(15);
         }
 
         // Descargar
         $filename = 'Metas_Matricial_'.date('Ymd_His').'.xlsx';
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer = new Xlsx($spreadsheet);
 
-        $response = new \Symfony\Component\HttpFoundation\StreamedResponse(
+        $response = new StreamedResponse(
             function () use ($writer) {
                 $writer->save('php://output');
             }

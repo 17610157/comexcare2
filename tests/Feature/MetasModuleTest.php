@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
 use App\Models\ReporteMetasVentas;
 use App\Services\ReportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 use Tests\Traits\RequiresExternalTables;
 
@@ -62,7 +66,7 @@ class MetasModuleTest extends TestCase
         $response = $controller->export($request);
 
         $this->printTestResult('✓ MetasVentasController::export() - Funciona correctamente');
-        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\BinaryFileResponse::class, $response);
+        $this->assertInstanceOf(BinaryFileResponse::class, $response);
     }
 
     public function test_metas_ventas_controller_export_pdf()
@@ -77,7 +81,7 @@ class MetasModuleTest extends TestCase
         $response = $controller->exportPdf($request);
 
         $this->printTestResult('✓ MetasVentasController::exportPdf() - Funciona correctamente');
-        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\Response::class, $response);
+        $this->assertInstanceOf(Response::class, $response);
     }
 
     public function test_metas_ventas_venta_acumulada()
@@ -100,7 +104,7 @@ class MetasModuleTest extends TestCase
      */
     public function test_metas_matricial_controller_index()
     {
-        $controller = new \App\Http\Controllers\ReporteMetasMatricialController;
+        $controller = new ReporteMetasMatricialController;
         $request = Request::create('/reportes/metas-matricial', 'GET', [
             'fecha_inicio' => '2024-01-01',
             'fecha_fin' => '2024-01-31',
@@ -117,7 +121,7 @@ class MetasModuleTest extends TestCase
 
     public function test_metas_matricial_controller_export_excel()
     {
-        $controller = new \App\Http\Controllers\ReporteMetasMatricialController;
+        $controller = new ReporteMetasMatricialController;
         $request = Request::create('/reportes/metas-matricial/export', 'POST', [
             'fecha_inicio' => '2024-01-01',
             'fecha_fin' => '2024-01-31',
@@ -127,12 +131,12 @@ class MetasModuleTest extends TestCase
         $response = $controller->exportExcel($request);
 
         $this->printTestResult('✓ ReporteMetasMatricialController::exportExcel() - Funciona correctamente');
-        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\BinaryFileResponse::class, $response);
+        $this->assertInstanceOf(BinaryFileResponse::class, $response);
     }
 
     public function test_metas_matricial_controller_export_pdf()
     {
-        $controller = new \App\Http\Controllers\ReporteMetasMatricialController;
+        $controller = new ReporteMetasMatricialController;
         $request = Request::create('/reportes/metas-matricial/export-pdf', 'POST', [
             'fecha_inicio' => '2024-01-01',
             'fecha_fin' => '2024-01-31',
@@ -142,7 +146,7 @@ class MetasModuleTest extends TestCase
         $response = $controller->exportPdf($request);
 
         $this->printTestResult('✓ ReporteMetasMatricialController::exportPdf() - Funciona correctamente');
-        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\Response::class, $response);
+        $this->assertInstanceOf(Response::class, $response);
     }
 
     /**
@@ -370,7 +374,7 @@ class MetasModuleTest extends TestCase
         ];
 
         // Limpiar caché específico para esta prueba
-        \Illuminate\Support\Facades\Cache::forget('metas_ventas_report_'.md5(serialize($filtros)));
+        Cache::forget('metas_ventas_report_'.md5(serialize($filtros)));
 
         // Primera llamada (sin caché)
         $start1 = microtime(true);

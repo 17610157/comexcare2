@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 use Tests\Traits\RequiresExternalTables;
@@ -48,7 +49,7 @@ class ReportesPerformanceTest extends TestCase
         $this->assertLessThan(5.0, $tiempo, "El reporte tomó demasiado tiempo: {$tiempo}s");
 
         // Verificar que devuelva una colección
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $resultados);
+        $this->assertInstanceOf(Collection::class, $resultados);
 
         // Verificar que tenga la estructura correcta
         if ($resultados->isNotEmpty()) {
@@ -248,8 +249,8 @@ class ReportesPerformanceTest extends TestCase
         $resultadosSinFiltro = ReportService::getVendedoresReport($filtrosSinPlaza);
 
         // Los resultados pueden ser diferentes, solo verificamos que no fallen
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $resultadosConFiltro);
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $resultadosSinFiltro);
+        $this->assertInstanceOf(Collection::class, $resultadosConFiltro);
+        $this->assertInstanceOf(Collection::class, $resultadosSinFiltro);
     }
 
     /**

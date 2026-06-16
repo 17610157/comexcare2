@@ -29,12 +29,12 @@ class DistributionFactory extends Factory
 
     public function withFiles(int $count = 1): static
     {
-        return $this->has(\Database\Factories\DistributionFileFactory::new()->count($count), 'files');
+        return $this->has(DistributionFileFactory::new()->count($count), 'files');
     }
 
     public function withTargets(int $count = 1): static
     {
-        return $this->has(\Database\Factories\DistributionTargetFactory::new()->count($count), 'targets');
+        return $this->has(DistributionTargetFactory::new()->count($count), 'targets');
     }
 
     public function pending(): static

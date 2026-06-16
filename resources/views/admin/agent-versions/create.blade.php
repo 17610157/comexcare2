@@ -1,9 +1,9 @@
 @extends('adminlte::page')
 
-@section('title', 'Create Agent Version')
+@section('title', 'Crear Versión de Agente')
 
 @section('content_header')
-    <h1>Create Agent Version</h1>
+    <h1>Crear Versión de Agente</h1>
 @stop
 
 @section('content')
@@ -14,17 +14,17 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Version</label>
+                            <label>Versión</label>
                             <input type="text" name="version" class="form-control" required placeholder="e.g. 1.0.0">
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Channel</label>
+                            <label>Canal</label>
                             <select name="channel" class="form-control" required>
                                 <option value="stable">Stable</option>
                                 <option value="beta">Beta</option>
-                                <option value="alpha">Alpha</option>
+                                <option value="alpha">Alfa</option>
                             </select>
                         </div>
                     </div>
@@ -56,10 +56,10 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Changelog</label>
+                    <label>Registro de cambios</label>
                     <textarea name="changelog" class="form-control" rows="3"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">Create</button>
+                <button type="submit" class="btn btn-primary">Crear</button>
             </form>
         </div>
     </div>

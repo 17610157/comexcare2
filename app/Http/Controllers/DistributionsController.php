@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Computer;
 use App\Models\Distribution;
 use App\Models\DistributionTarget;
 use App\Models\Group;
 use App\Services\DistributionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DistributionsController extends Controller
 {
@@ -17,7 +20,7 @@ class DistributionsController extends Controller
             ->orderBy('id', 'desc')
             ->get();
         $groups = Group::all();
-        $computers = \App\Models\Computer::select('id', 'computer_name')->orderBy('computer_name')->get();
+        $computers = Computer::select('id', 'computer_name', 'short_key')->orderBy('computer_name')->get();
 
         return view('admin.distributions.index', compact('distributions', 'groups', 'computers'));
     }
@@ -25,7 +28,7 @@ class DistributionsController extends Controller
     public function create()
     {
         $groups = Group::all();
-        $computers = \App\Models\Computer::select('id', 'computer_name')->orderBy('computer_name')->get();
+        $computers = Computer::select('id', 'computer_name', 'short_key')->orderBy('computer_name')->get();
 
         return view('admin.distributions.create', compact('groups', 'computers'));
     }
@@ -35,8 +38,10 @@ class DistributionsController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:immediate,scheduled,recurring',
-            'distribution_type' => 'nullable|in:file,update',
+            'distribution_type' => 'nullable|in:file,update,command',
             'subfolder' => 'nullable|string|max:255',
+            'command' => 'nullable|string|max:500',
+            'command_args' => 'nullable|string|max:500',
             'files' => 'nullable|array',
             'files.*' => 'file|max:204800', // 200MB
             'target_type' => 'required|in:all,group,specific',
@@ -135,15 +140,31 @@ class DistributionsController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:immediate,scheduled,recurring',
+            'distribution_type' => 'nullable|in:file,update,command',
+            'subfolder' => 'nullable|string|max:255',
+            'command' => 'nullable|string|max:500',
+            'command_args' => 'nullable|string|max:500',
             'description' => 'nullable|string',
             'scheduled_at' => 'nullable|date',
+            'scheduled_time' => 'nullable',
+            'recurrence' => 'nullable',
+            'frequency_interval' => 'nullable|integer',
+            'week_days' => 'nullable|array',
         ]);
 
         $distribution->update([
             'name' => $request->name,
             'type' => $request->type,
+            'distribution_type' => $request->distribution_type,
+            'subfolder' => $request->subfolder,
+            'command' => $request->command,
+            'command_args' => $request->command_args,
             'description' => $request->description,
             'scheduled_at' => $request->scheduled_at,
+            'scheduled_time' => $request->scheduled_time,
+            'recurrence' => $request->recurrence,
+            'frequency_interval' => $request->frequency_interval,
+            'week_days' => $request->week_days,
         ]);
 
         if ($request->expectsJson()) {
@@ -154,6 +175,83 @@ class DistributionsController extends Controller
         }
 
         return redirect()->route('admin.distributions.index')->with('success', 'Distribution updated successfully');
+    }
+
+    public function restart(Distribution $distribution, Request $request, DistributionService $service)
+    {
+        try {
+            DB::beginTransaction();
+
+            $distribution->update([
+                'name' => $request->name,
+                'type' => $request->type,
+                'distribution_type' => $request->distribution_type,
+                'subfolder' => $request->subfolder,
+                'command' => $request->command,
+                'command_args' => $request->command_args,
+                'description' => $request->description,
+                'scheduled_at' => $request->scheduled_at,
+                'scheduled_time' => $request->scheduled_time,
+                'recurrence' => $request->recurrence,
+                'frequency_interval' => $request->frequency_interval,
+                'week_days' => $request->week_days,
+            ]);
+
+            $distribution->targets()->delete();
+
+            $targetType = $request->input('target_type', 'all');
+            $groupIds = $request->input('group_ids', []);
+            $computerIds = $request->input('computer_ids', []);
+
+            $computers = Computer::query();
+
+            if ($targetType === 'group' && ! empty($groupIds)) {
+                $computers->whereIn('group_id', $groupIds);
+            } elseif ($targetType === 'specific' && ! empty($computerIds)) {
+                $computers->whereIn('id', $computerIds);
+            } elseif ($targetType === 'all') {
+                // no filter -- all computers
+            } else {
+                $computers->whereRaw('1 = 0'); // empty set
+            }
+
+            $computerList = $computers->get();
+
+            foreach ($computerList as $computer) {
+                DistributionTarget::create([
+                    'distribution_id' => $distribution->id,
+                    'computer_id' => $computer->id,
+                ]);
+            }
+
+            $distribution->update([
+                'status' => 'pending',
+                'scheduled_at' => now(),
+            ]);
+
+            if ($distribution->type === 'immediate') {
+                $service->startDistribution($distribution);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Distribución reiniciada correctamente',
+                'distribution' => $distribution->id,
+                'targets_count' => $computerList->count(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Error al reiniciar distribución: '.$e->getMessage(), [
+                'distribution_id' => $distribution->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Error al reiniciar distribución: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     public function progress($id)

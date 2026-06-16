@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SCRIPT DE PRUEBA RÁPIDA PARA LARAGON
  * Ejecutar desde línea de comandos: php test_performance_laragon.php
@@ -8,9 +9,10 @@
  */
 
 // Configurar entorno Laravel
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use App\Services\ReportService;
+use Illuminate\Contracts\Http\Kernel;
 
 echo "========================================\n";
 echo "PRUEBA DE RENDIMIENTO - SISTEMA OPTIMIZADO\n";
@@ -18,8 +20,8 @@ echo "========================================\n\n";
 
 try {
     // Inicializar Laravel
-    $app = require_once __DIR__ . '/bootstrap/app.php';
-    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $app = require_once __DIR__.'/bootstrap/app.php';
+    $kernel = $app->make(Kernel::class);
     $kernel->bootstrap();
 
     echo "✓ Laravel inicializado correctamente\n";
@@ -37,7 +39,7 @@ try {
         'fecha_fin' => '2024-01-31',
         'plaza' => '',
         'tienda' => '',
-        'vendedor' => ''
+        'vendedor' => '',
     ];
 
     $tiempo_inicio = microtime(true);
@@ -60,7 +62,7 @@ try {
 
     // Calcular estadísticas
     $estadisticas = ReportService::calcularEstadisticasVendedores($resultados);
-    echo "• Total ventas: $" . number_format($estadisticas['total_ventas'], 2) . "\n";
+    echo '• Total ventas: $'.number_format($estadisticas['total_ventas'], 2)."\n";
     echo "• Total registros: {$estadisticas['total_registros']}\n\n";
 
     // PRUEBA 2: Reporte Matricial
@@ -72,15 +74,15 @@ try {
         'fecha_fin' => '2024-01-15', // Menos días para evitar timeout
         'plaza' => '',
         'tienda' => '',
-        'vendedor' => ''
+        'vendedor' => '',
     ];
 
     $tiempo_inicio = microtime(true);
     $datos_matriciales = ReportService::getVendedoresMatricialReport($filtros_matricial);
     $tiempo_matricial = round((microtime(true) - $tiempo_inicio) * 1000, 2);
 
-    echo "• Días procesados: " . count($datos_matriciales['dias']) . "\n";
-    echo "• Vendedores procesados: " . count($datos_matriciales['vendedores_info']) . "\n";
+    echo '• Días procesados: '.count($datos_matriciales['dias'])."\n";
+    echo '• Vendedores procesados: '.count($datos_matriciales['vendedores_info'])."\n";
     echo "• Tiempo de ejecución: {$tiempo_matricial}ms\n";
 
     if ($tiempo_matricial < 8000) {
@@ -101,7 +103,7 @@ try {
         'fecha_fin' => '2024-01-31',
         'plaza' => '',
         'tienda' => '',
-        'zona' => ''
+        'zona' => '',
     ];
 
     $tiempo_inicio = microtime(true);
@@ -190,7 +192,7 @@ try {
 
 } catch (Exception $e) {
     echo "\n❌ ERROR CRÍTICO EN PRUEBAS:\n";
-    echo $e->getMessage() . "\n\n";
+    echo $e->getMessage()."\n\n";
     echo "Posibles soluciones:\n";
     echo "1. Verificar conexión a base de datos\n";
     echo "2. Ejecutar: php create_tables.php\n";

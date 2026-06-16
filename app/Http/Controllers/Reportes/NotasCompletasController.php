@@ -17,7 +17,7 @@ class NotasCompletasController extends Controller
     {
         $userFilter = RoleHelper::getUserFilter();
 
-        if (!$userFilter['allowed']) {
+        if (! $userFilter['allowed']) {
             return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
         }
 
@@ -26,7 +26,7 @@ class NotasCompletasController extends Controller
 
         // Obtener listas filtradas por asignaciones del usuario
         $listas = RoleHelper::getListasParaFiltros();
-        
+
         $plazas = $listas['plazas'];
         $tiendas = $listas['tiendas'];
 
@@ -67,12 +67,12 @@ class NotasCompletasController extends Controller
             $query = DB::table('notas_completas_cache');
 
             // Filtros según el rol del usuario - plazas
-            if (!empty($plazasPermitidas)) {
+            if (! empty($plazasPermitidas)) {
                 $query->whereIn('plaza_ajustada', $plazasPermitidas);
             }
 
             // Filtros según el rol del usuario - tiendas específicas
-            if (!empty($tiendasPermitidas)) {
+            if (! empty($tiendasPermitidas)) {
                 $query->whereIn('ctienda', $tiendasPermitidas);
             }
 

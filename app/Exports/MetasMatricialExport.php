@@ -4,11 +4,11 @@ namespace App\Exports;
 
 use App\Services\ReportService;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class MetasMatricialExport implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize
+class MetasMatricialExport implements FromCollection, ShouldAutoSize, WithHeadings, WithTitle
 {
     protected $filtros;
 
@@ -128,8 +128,6 @@ class MetasMatricialExport implements FromCollection, WithHeadings, WithTitle, S
         }
         $row[] = $suma;
         $rows[] = $row;
-
-
 
         return collect($rows);
     }

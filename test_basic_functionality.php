@@ -1,20 +1,22 @@
 <?php
+
 /**
  * Script de Prueba de Funcionalidad Básica
  * Verifica que los controladores y servicios funcionen sin errores de cache
  */
 
 // Incluir autoloader
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use App\Services\ReportService;
+use Illuminate\Contracts\Http\Kernel;
 
 echo "=== PRUEBA DE FUNCIONALIDAD BÁSICA ===\n\n";
 
 try {
     // Configurar Laravel
-    $app = require_once __DIR__ . '/bootstrap/app.php';
-    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $app = require_once __DIR__.'/bootstrap/app.php';
+    $kernel = $app->make(Kernel::class);
     $kernel->bootstrap();
 
     echo "✓ Laravel configurado correctamente\n";
@@ -31,7 +33,7 @@ try {
         'fecha_fin' => '2024-01-05', // Rango pequeño para evitar timeouts
         'plaza' => '',
         'tienda' => '',
-        'vendedor' => ''
+        'vendedor' => '',
     ];
 
     $inicio = microtime(true);
@@ -39,7 +41,7 @@ try {
     $tiempo = round((microtime(true) - $inicio) * 1000, 2);
 
     echo "✓ Servicio ejecutado en {$tiempo}ms\n";
-    echo "✓ Registros obtenidos: " . $resultados->count() . "\n";
+    echo '✓ Registros obtenidos: '.$resultados->count()."\n";
 
     if ($resultados->isNotEmpty()) {
         echo "✓ Estructura de datos correcta\n";
@@ -50,8 +52,8 @@ try {
 
     $estadisticas = ReportService::calcularEstadisticasVendedores($resultados);
     echo "✓ Estadísticas calculadas:\n";
-    echo "  - Total ventas: " . number_format($estadisticas['total_ventas'], 2) . "\n";
-    echo "  - Total registros: " . $estadisticas['total_registros'] . "\n";
+    echo '  - Total ventas: '.number_format($estadisticas['total_ventas'], 2)."\n";
+    echo '  - Total registros: '.$estadisticas['total_registros']."\n";
 
     // === PRUEBA 3: Reporte Matricial ===
     echo "\nPRUEBA 3: Reporte matricial\n";
@@ -61,8 +63,8 @@ try {
     $tiempo = round((microtime(true) - $inicio) * 1000, 2);
 
     echo "✓ Reporte matricial ejecutado en {$tiempo}ms\n";
-    echo "✓ Días generados: " . count($matricial['dias']) . "\n";
-    echo "✓ Vendedores procesados: " . count($matricial['vendedores_info']) . "\n";
+    echo '✓ Días generados: '.count($matricial['dias'])."\n";
+    echo '✓ Vendedores procesados: '.count($matricial['vendedores_info'])."\n";
 
     // === PRUEBA 4: Procesamiento en Chunks ===
     echo "\nPRUEBA 4: Procesamiento en chunks\n";
@@ -75,16 +77,16 @@ try {
     echo "✓ Chunks procesados: $chunksProcesados\n";
 
     // === RESULTADO FINAL ===
-    echo "\n" . str_repeat("=", 50) . "\n";
+    echo "\n".str_repeat('=', 50)."\n";
     echo "🎉 TODAS LAS PRUEBAS PASARON EXITOSAMENTE!\n";
     echo "Los reportes deberían funcionar sin errores de cache.\n";
     echo "\nPuedes probar las vistas ahora:\n";
     echo "- /reportes/vendedores\n";
     echo "- /reportes/vendedores-matricial\n";
     echo "- /reportes/metas-ventas\n";
-    echo str_repeat("=", 50) . "\n";
+    echo str_repeat('=', 50)."\n";
 
 } catch (Exception $e) {
-    echo "\n❌ ERROR: " . $e->getMessage() . "\n";
+    echo "\n❌ ERROR: ".$e->getMessage()."\n";
     echo "Solución sugerida: Ejecutar el script create_tables.php o pedir al DBA crear las tablas.\n";
 }

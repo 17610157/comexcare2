@@ -14,7 +14,7 @@ class DistributionFile extends Model
         'file_name',
         'file_path',
         'checksum',
-        'file_size'
+        'file_size',
     ];
 
     public function distribution()

@@ -16,14 +16,14 @@ return new class extends Migration
         try {
             DB::statement('ALTER TABLE receptions DROP CONSTRAINT IF EXISTS receptions_status_check');
             DB::statement("ALTER TABLE receptions ADD CONSTRAINT receptions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled', 'stopped'))");
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Tabla puede no existir
         }
 
         try {
             DB::statement('ALTER TABLE distributions DROP CONSTRAINT IF EXISTS distributions_status_check');
             DB::statement("ALTER TABLE distributions ADD CONSTRAINT distributions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled', 'stopped'))");
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Tabla puede no existir
         }
     }
@@ -39,14 +39,14 @@ return new class extends Migration
         try {
             DB::statement('ALTER TABLE receptions DROP CONSTRAINT IF EXISTS receptions_status_check');
             DB::statement("ALTER TABLE receptions ADD CONSTRAINT receptions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled'))");
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Ignorar
         }
 
         try {
             DB::statement('ALTER TABLE distributions DROP CONSTRAINT IF EXISTS distributions_status_check');
             DB::statement("ALTER TABLE distributions ADD CONSTRAINT distributions_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'failed'))");
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Ignorar
         }
     }

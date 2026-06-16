@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
@@ -45,7 +45,7 @@ class RoleController extends Controller
         }
 
         // Limpiar caché de permisos
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         return response()->json(['success' => true, 'role' => $role]);
     }
@@ -53,13 +53,14 @@ class RoleController extends Controller
     public function show(Role $role)
     {
         $role->load('permissions');
+
         return response()->json($role);
     }
 
     public function update(Request $request, Role $role)
     {
         $request->validate([
-            'name' => 'required|unique:roles,name,' . $role->id,
+            'name' => 'required|unique:roles,name,'.$role->id,
         ]);
 
         $role->update(['name' => $request->name]);
@@ -71,7 +72,7 @@ class RoleController extends Controller
         }
 
         // Limpiar caché de permisos
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         return response()->json(['success' => true, 'role' => $role]);
     }
@@ -85,7 +86,7 @@ class RoleController extends Controller
         $role->delete();
 
         // Limpiar caché de permisos
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         return response()->json(['success' => true]);
     }
@@ -94,6 +95,7 @@ class RoleController extends Controller
     {
         $permissions = Permission::all()->groupBy(function ($permission) {
             $parts = explode('.', $permission->name);
+
             return ucfirst($parts[0] ?? 'General');
         });
 

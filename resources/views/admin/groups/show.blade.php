@@ -1,6 +1,6 @@
 @extends('adminlte::page')
 
-@section('title', 'Group: ' . $group->name)
+@section('title', 'Grupo: ' . $group->name)
 
 @section('content_header')
     <h1>{{ $group->name }}</h1>
@@ -57,7 +57,7 @@
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-primary">
-                            <h3 class="card-title">Short Keys</h3>
+                            <h3 class="card-title">Claves Cortas</h3>
                         </div>
                         <div class="card-body">
                             @if($group->shortKeys->count() > 0)
@@ -67,7 +67,7 @@
                                     @endforeach
                                 </div>
                             @else
-                                <p class="text-muted mb-0">No hay short keys asignadas</p>
+                                <p class="text-muted mb-0">No hay claves cortas asignadas</p>
                             @endif
                         </div>
                     </div>
@@ -84,23 +84,23 @@
                     @csrf
                     @method('PUT')
                     <div class="modal-header">
-                        <h5 class="modal-title">Edit Group</h5>
-                        <button type="button" class="close" data-dismiss="modal">
+                        <h5 class="modal-title">Editar Grupo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar">
                             <span>&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label>Name *</label>
+                            <label>Nombre *</label>
                             <input type="text" name="name" id="editName" class="form-control" required>
                         </div>
                         <div class="form-group">
-                            <label>Short Keys</label>
+                            <label>Claves Cortas</label>
                             <input type="text" name="short_keys" id="editShortKeys" class="form-control" placeholder="TCE001, TCE002, TCE003">
                             <small class="form-text text-muted">Separa múltiples short keys con coma</small>
                         </div>
                         <div class="form-group">
-                            <label>Type</label>
+                            <label>Tipo</label>
                             <select name="type" id="editType" class="form-control">
                                 <option value="">Seleccionar...</option>
                                 <option value="tienda">Tienda</option>
@@ -117,8 +117,8 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update</button>
+<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                         <button type="submit" class="btn btn-primary">Actualizar</button>
                     </div>
                 </form>
             </div>

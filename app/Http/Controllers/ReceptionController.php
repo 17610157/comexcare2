@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Command;
 use App\Models\Computer;
 use App\Models\Group;
 use App\Models\Reception;
@@ -111,7 +112,7 @@ class ReceptionController extends Controller
             // Crear comando para el agente
             $computer = Computer::find($computerId);
             if ($computer) {
-                \App\Models\Command::create([
+                Command::create([
                     'computer_id' => $computerId,
                     'type' => 'receive',
                     'data' => json_encode([
@@ -202,7 +203,7 @@ class ReceptionController extends Controller
         $computer = $target->computer;
 
         if ($computer) {
-            \App\Models\Command::create([
+            Command::create([
                 'computer_id' => $computer->id,
                 'type' => 'receive',
                 'status' => 'pending',

@@ -5,6 +5,7 @@ namespace Tests\Unit\Models;
 use App\Models\Computer;
 use App\Models\Distribution;
 use App\Models\DistributionTarget;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -37,7 +38,7 @@ class DistributionTargetTest extends TestCase
             'next_retry_at' => '2024-01-15 14:30:00',
         ]);
 
-        $this->assertInstanceOf(\Carbon\Carbon::class, $distributionTarget->next_retry_at);
+        $this->assertInstanceOf(Carbon::class, $distributionTarget->next_retry_at);
         $this->assertEquals('2024-01-15 14:30:00', $distributionTarget->next_retry_at->format('Y-m-d H:i:s'));
     }
 
