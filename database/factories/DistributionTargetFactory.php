@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\DistributionTarget;
-use App\Models\Distribution;
 use App\Models\Computer;
+use App\Models\Distribution;
+use App\Models\DistributionTarget;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\DistributionTarget>
+ * @extends Factory<DistributionTarget>
  */
 class DistributionTargetFactory extends Factory
 {

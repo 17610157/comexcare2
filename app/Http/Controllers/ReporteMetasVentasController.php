@@ -315,7 +315,7 @@ class ReporteMetasVentasController extends Controller
             $estadisticas = ReporteMetasVentas::obtenerEstadisticas($resultados);
 
             $html = view('reportes.metas_ventas_pdf', compact('resultados', 'estadisticas', 'fecha_inicio', 'fecha_fin'))->render();
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'landscape');
+            $pdf = Pdf::loadHTML($html)->setPaper('a4', 'landscape');
 
             return $pdf->download('Reporte_Metas_Ventas_'.date('Ymd_His').'.pdf');
 
@@ -373,7 +373,7 @@ class ReporteMetasVentasController extends Controller
                         LEFT JOIN metas_dias f ON (m.periodo = f.periodo) 
                         WHERE m.plaza = ? AND m.tienda = ? AND f.periodo = ?';
 
-                $resultados = \Illuminate\Support\Facades\DB::select($sql, [$plaza, $tienda, $periodo]);
+                $resultados = DB::select($sql, [$plaza, $tienda, $periodo]);
 
                 if (empty($resultados)) {
                     $mensaje_informativo = "No se encontraron datos para el período {$periodo} con los filtros especificados";
@@ -389,7 +389,7 @@ class ReporteMetasVentasController extends Controller
                         GROUP BY m.plaza, m.tienda, f.periodo, f.descripcion, f.fecha
                         ORDER BY f.fecha';
 
-                $resultados = \Illuminate\Support\Facades\DB::select($sql, [$plaza, $tienda, $periodo]);
+                $resultados = DB::select($sql, [$plaza, $tienda, $periodo]);
 
                 if (empty($resultados)) {
                     $mensaje_informativo = "No se encontraron datos para el período {$periodo} con los filtros especificados";

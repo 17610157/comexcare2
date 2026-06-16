@@ -3,14 +3,15 @@
 namespace App\Imports;
 
 use App\Models\MetaMensual;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Illuminate\Support\Facades\Log;
 
 class MetaMensualImport implements ToModel, WithHeadingRow, WithValidation
 {
     private $rowCount = 0;
+
     private $errors = [];
 
     public function model(array $row)
@@ -19,9 +20,10 @@ class MetaMensualImport implements ToModel, WithHeadingRow, WithValidation
             $this->rowCount++;
 
             // Validar que los datos requeridos existan
-            if (!isset($row['plaza']) || !isset($row['tienda']) || 
-                !isset($row['periodo']) || !isset($row['meta'])) {
+            if (! isset($row['plaza']) || ! isset($row['tienda']) ||
+                ! isset($row['periodo']) || ! isset($row['meta'])) {
                 $this->errors[] = "Fila {$this->rowCount}: Faltan datos requeridos";
+
                 return null;
             }
 
@@ -32,14 +34,16 @@ class MetaMensualImport implements ToModel, WithHeadingRow, WithValidation
             $meta = floatval($row['meta']);
 
             // Validar formato del periodo (YYYY-MM)
-            if (!preg_match('/^\d{4}-\d{2}$/', $periodo)) {
+            if (! preg_match('/^\d{4}-\d{2}$/', $periodo)) {
                 $this->errors[] = "Fila {$this->rowCount}: Formato de periodo inválido (debe ser YYYY-MM)";
+
                 return null;
             }
 
             // Validar que la meta sea mayor que cero
             if ($meta <= 0) {
                 $this->errors[] = "Fila {$this->rowCount}: La meta debe ser mayor que cero";
+
                 return null;
             }
 
@@ -51,8 +55,9 @@ class MetaMensualImport implements ToModel, WithHeadingRow, WithValidation
             ]);
 
         } catch (\Exception $e) {
-            $this->errors[] = "Fila {$this->rowCount}: Error al procesar - " . $e->getMessage();
-            Log::error("Error en fila {$this->rowCount}: " . $e->getMessage());
+            $this->errors[] = "Fila {$this->rowCount}: Error al procesar - ".$e->getMessage();
+            Log::error("Error en fila {$this->rowCount}: ".$e->getMessage());
+
             return null;
         }
     }

@@ -10,6 +10,9 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class VendedoresB2bExport implements FromCollection, ShouldAutoSize, WithColumnFormatting, WithEvents, WithHeadings, WithTitle
@@ -81,18 +84,18 @@ class VendedoresB2bExport implements FromCollection, ShouldAutoSize, WithColumnF
                         'color' => ['rgb' => 'FFFFFF'],
                     ],
                     'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'fillType' => Fill::FILL_SOLID,
                         'startColor' => ['rgb' => '28A745'],
                     ],
                     'alignment' => [
-                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
                     ],
                 ]);
 
                 $event->sheet->getStyle('A1:J'.($event->sheet->getHighestRow()))
                     ->getBorders()
                     ->getAllBorders()
-                    ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+                    ->setBorderStyle(Border::BORDER_THIN);
             },
         ];
     }

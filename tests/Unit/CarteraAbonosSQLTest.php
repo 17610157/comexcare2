@@ -2,9 +2,9 @@
 
 namespace Tests\Unit;
 
-use Tests\TestCase;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
 use Illuminate\Http\Request;
+use Tests\TestCase;
 
 class CarteraAbonosSQLTest extends TestCase
 {
@@ -46,15 +46,15 @@ class CarteraAbonosSQLTest extends TestCase
         $this->assertStringContainsString('WHERE c.cargo_ab', $sql);
         $this->assertStringContainsString('plaza', $sql);
         $this->assertStringContainsString('tienda', $sql);
-        
+
         // Verificar que los alias estén en minúsculas
         $this->assertStringContainsString('AS plaza', $sql);
         $this->assertStringContainsString('AS tienda', $sql);
         $this->assertStringContainsString('AS fecha', $sql);
         $this->assertStringContainsString('AS nombre', $sql);
         $this->assertStringContainsString('AS monto_fa', $sql);
-        
-        $this->printTestResult("✓ Construcción SQL - Sintaxis correcta");
+
+        $this->printTestResult('✓ Construcción SQL - Sintaxis correcta');
     }
 
     /**
@@ -65,11 +65,11 @@ class CarteraAbonosSQLTest extends TestCase
         $expectedColumns = [
             'plaza', 'tienda', 'fecha', 'fecha_vta', 'concepto',
             'tipo', 'factura', 'clave', 'rfc', 'nombre',
-            'monto_fa', 'monto_dv', 'monto_cd', 'dias_cred', 'dias_vencidos'
+            'monto_fa', 'monto_dv', 'monto_cd', 'dias_cred', 'dias_vencidos',
         ];
 
-        $controller = new CarteraAbonosController();
-        
+        $controller = new CarteraAbonosController;
+
         // Simular la estructura de datos que debería devolver
         $mockData = [];
         foreach ($expectedColumns as $column) {
@@ -81,7 +81,7 @@ class CarteraAbonosSQLTest extends TestCase
             $this->assertArrayHasKey($column, $mockData, "Falta columna: {$column}");
         }
 
-        $this->printTestResult("✓ Columnas requeridas - Todas presentes");
+        $this->printTestResult('✓ Columnas requeridas - Todas presentes');
     }
 
     /**
@@ -94,7 +94,7 @@ class CarteraAbonosSQLTest extends TestCase
             'plaza' => '01',
             'tienda' => '001',
             'period_start' => '2024-01-01',
-            'period_end' => '2024-01-31'
+            'period_end' => '2024-01-31',
         ]);
 
         // Verificar que los parámetros se procesen correctamente
@@ -104,7 +104,7 @@ class CarteraAbonosSQLTest extends TestCase
         $this->assertEquals('2024-01-01', $request->input('period_start'));
         $this->assertEquals('2024-01-31', $request->input('period_end'));
 
-        $this->printTestResult("✓ Parámetros de búsqueda - Procesados correctamente");
+        $this->printTestResult('✓ Parámetros de búsqueda - Procesados correctamente');
     }
 
     /**
@@ -121,9 +121,9 @@ class CarteraAbonosSQLTest extends TestCase
                     'plaza' => '01',
                     'tienda' => '001',
                     'fecha' => '2024-01-01',
-                    'nombre' => 'Test Cliente'
-                ]
-            ]
+                    'nombre' => 'Test Cliente',
+                ],
+            ],
         ];
 
         // Verificar estructura de respuesta DataTable
@@ -131,11 +131,11 @@ class CarteraAbonosSQLTest extends TestCase
         $this->assertArrayHasKey('recordsTotal', $mockResponse);
         $this->assertArrayHasKey('recordsFiltered', $mockResponse);
         $this->assertArrayHasKey('data', $mockResponse);
-        
+
         // Verificar que data es un array
         $this->assertIsArray($mockResponse['data']);
 
-        $this->printTestResult("✓ Estructura de respuesta - DataTable correcta");
+        $this->printTestResult('✓ Estructura de respuesta - DataTable correcta');
     }
 
     /**
@@ -148,7 +148,7 @@ class CarteraAbonosSQLTest extends TestCase
             'this_month' => 'Este mes',
             'last_7_days' => 'Últimos 7 días',
             'last_30_days' => 'Últimos 30 días',
-            'year_to_date' => 'Año actual'
+            'year_to_date' => 'Año actual',
         ];
 
         foreach ($periodRanges as $value => $label) {
@@ -156,7 +156,7 @@ class CarteraAbonosSQLTest extends TestCase
             $this->assertNotEmpty($label);
         }
 
-        $this->printTestResult("✓ Rangos de fechas - Configuración correcta");
+        $this->printTestResult('✓ Rangos de fechas - Configuración correcta');
     }
 
     /**
@@ -164,6 +164,6 @@ class CarteraAbonosSQLTest extends TestCase
      */
     private function printTestResult($message)
     {
-        echo "\n" . $message . "\n";
+        echo "\n".$message."\n";
     }
 }

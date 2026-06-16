@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('periodo', 7); // Formato: 2026-01
             $table->decimal('meta', 12, 4);
             $table->timestamps();
-            
+
             // Índices únicos para evitar duplicados
             $table->unique(['plaza', 'tienda', 'periodo']);
             $table->index(['plaza', 'tienda']);

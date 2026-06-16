@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AuditLog;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -43,7 +44,7 @@ class AuditMiddleware
             ];
 
             if (class_exists('\App\Models\AuditLog')) {
-                \App\Models\AuditLog::create($auditData);
+                AuditLog::create($auditData);
             }
 
             if (config('audit.log_to_file', false)) {

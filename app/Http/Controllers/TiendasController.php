@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Computer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -38,7 +39,7 @@ class TiendasController extends Controller
             ->get();
 
         $shortKeys = $tiendas->pluck('clave_tienda')->merge($tiendas->pluck('clave_alterna'))->filter()->unique()->toArray();
-        $computers = \App\Models\Computer::whereIn('short_key', $shortKeys)->get()->keyBy('short_key');
+        $computers = Computer::whereIn('short_key', $shortKeys)->get()->keyBy('short_key');
 
         $data = $tiendas->map(function ($tienda) use ($computers) {
             $computer = $computers->get($tienda->clave_tienda) ?? $computers->get($tienda->clave_alterna);

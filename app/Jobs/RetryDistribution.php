@@ -20,7 +20,7 @@ class RetryDistribution implements ShouldQueue
 
     public function handle(): void
     {
-        $service = new DistributionService();
+        $service = new DistributionService;
         $service->sendDownloadCommand($this->target);
     }
 }

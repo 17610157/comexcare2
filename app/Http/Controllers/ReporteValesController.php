@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Computer;
 use App\Models\Vale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,9 +43,7 @@ class ReporteValesController extends Controller
             ->filter()
             ->values();
 
-        $today = now()->format('Y-m-d');
-
-        return view('reportes.vales.index', compact('plazas', 'procedencias', 'tiendas', 'tiposMovim', 'today'));
+        return view('reportes.vales.index', compact('plazas', 'procedencias', 'tiendas', 'tiposMovim'));
     }
 
     public function data(Request $request)
@@ -90,13 +89,19 @@ class ReporteValesController extends Controller
             if ($request->filled('fecha_desde')) {
                 $query->whereDate('fecha', '>=', $request->fecha_desde);
             } else {
-                $query->whereDate('fecha', '>=', $today);
+                $query->where(function ($q) use ($today) {
+                    $q->whereDate('fecha', '>=', $today)
+                        ->orWhereDate('created_at', '>=', $today);
+                });
             }
 
             if ($request->filled('fecha_hasta')) {
                 $query->whereDate('fecha', '<=', $request->fecha_hasta);
             } else {
-                $query->whereDate('fecha', '<=', $today);
+                $query->where(function ($q) use ($today) {
+                    $q->whereDate('fecha', '<=', $today)
+                        ->orWhereDate('created_at', '<=', $today);
+                });
             }
 
             if ($request->filled('no_consec')) {
@@ -125,7 +130,7 @@ class ReporteValesController extends Controller
                 $plaza = $vale->plaza ?? '';
 
                 if (! $plaza && $vale->computer_id) {
-                    $computer = \App\Models\Computer::find($vale->computer_id);
+                    $computer = Computer::find($vale->computer_id);
                     if ($computer && $computer->plaza) {
                         $plaza = $computer->plaza;
                     }
@@ -247,7 +252,7 @@ class ReporteValesController extends Controller
                     $plaza = $vale->plaza ?? '';
 
                     if (! $plaza && $vale->computer_id) {
-                        $computer = \App\Models\Computer::find($vale->computer_id);
+                        $computer = Computer::find($vale->computer_id);
                         if ($computer && $computer->plaza) {
                             $plaza = $computer->plaza;
                         }

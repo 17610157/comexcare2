@@ -10,18 +10,18 @@ class MetaMensual extends Model
     use HasFactory;
 
     protected $table = 'metas_mensual';
-    
+
     protected $fillable = [
         'plaza',
-        'tienda', 
+        'tienda',
         'periodo',
-        'meta'
+        'meta',
     ];
 
     protected $casts = [
         'meta' => 'decimal:4',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     /**

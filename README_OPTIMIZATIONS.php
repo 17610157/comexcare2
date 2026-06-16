@@ -1,9 +1,9 @@
 <?php
+
 /**
  * GUÍA DE EJECUCIÓN PARA LARAGON
  * Cómo probar las optimizaciones implementadas
  */
-
 echo "========================================\n";
 echo "GUÍA DE EJECUCIÓN - OPTIMIZACIONES LARAGON\n";
 echo "========================================\n\n";

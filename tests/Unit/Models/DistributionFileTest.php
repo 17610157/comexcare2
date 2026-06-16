@@ -4,6 +4,7 @@ namespace Tests\Unit\Models;
 
 use App\Models\Distribution;
 use App\Models\DistributionFile;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -115,7 +116,7 @@ class DistributionFileTest extends TestCase
     {
         $distribution = Distribution::factory()->create();
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         DistributionFile::create([
             'distribution_id' => $distribution->id,

@@ -1,19 +1,21 @@
 <?php
+
 /**
  * PRUEBA RÁPIDA DE PAGINACIÓN Y RENDIMIENTO
  * Ejecutar con: php quick_performance_test.php
  */
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use App\Services\ReportService;
+use Illuminate\Contracts\Http\Kernel;
 
 echo "=== PRUEBA RÁPIDA DE PAGINACIÓN ===\n\n";
 
 try {
     // Configurar Laravel
-    $app = require_once __DIR__ . '/bootstrap/app.php';
-    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $app = require_once __DIR__.'/bootstrap/app.php';
+    $kernel = $app->make(Kernel::class);
     $kernel->bootstrap();
 
     echo "✓ Laravel configurado\n";
@@ -31,7 +33,7 @@ try {
         'fecha_fin' => '2024-01-31',
         'plaza' => '',
         'tienda' => '',
-        'vendedor' => ''
+        'vendedor' => '',
     ];
 
     echo "PRUEBA 1: Consulta sin paginación\n";
@@ -62,20 +64,20 @@ try {
     $tiempo_estadisticas = round((microtime(true) - $inicio) * 1000, 2);
 
     echo "✓ Estadísticas calculadas en {$tiempo_estadisticas}ms\n";
-    echo "  - Total ventas: " . number_format($estadisticas['total_ventas'], 2) . "\n";
+    echo '  - Total ventas: '.number_format($estadisticas['total_ventas'], 2)."\n";
     echo "  - Total registros: {$estadisticas['total_registros']}\n";
 
     // Análisis de resultados
-    echo "\n" . str_repeat("=", 50) . "\n";
+    echo "\n".str_repeat('=', 50)."\n";
     echo "ANÁLISIS DE RESULTADOS:\n";
-    echo str_repeat("=", 50) . "\n";
+    echo str_repeat('=', 50)."\n";
 
     $tiempo_promedio_por_registro = $tiempo_sin_paginacion / max($total_registros, 1);
-    echo "Tiempo promedio por registro: " . round($tiempo_promedio_por_registro, 3) . "ms\n";
+    echo 'Tiempo promedio por registro: '.round($tiempo_promedio_por_registro, 3)."ms\n";
 
     if ($total_registros >= 7000) {
         $tiempo_estimado_7k = $tiempo_promedio_por_registro * 7000;
-        echo "Tiempo estimado para 7,000 registros: " . round($tiempo_estimado_7k, 2) . "ms (" . round($tiempo_estimado_7k / 1000, 2) . "s)\n";
+        echo 'Tiempo estimado para 7,000 registros: '.round($tiempo_estimado_7k, 2).'ms ('.round($tiempo_estimado_7k / 1000, 2)."s)\n";
 
         if ($tiempo_estimado_7k > 30000) { // 30 segundos
             echo "❌ PROBLEMA: Consulta muy lenta (>30s para 7k registros)\n";
@@ -94,6 +96,6 @@ try {
     echo "\n🎉 PRUEBA COMPLETADA - PAGINACIÓN FUNCIONANDO!\n";
 
 } catch (Exception $e) {
-    echo "\n❌ ERROR: " . $e->getMessage() . "\n";
+    echo "\n❌ ERROR: ".$e->getMessage()."\n";
     echo "Verifica la conexión a base de datos y las credenciales.\n";
 }

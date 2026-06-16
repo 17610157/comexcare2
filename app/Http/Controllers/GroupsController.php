@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Computer;
 use App\Models\Group;
 use App\Models\GroupShortKey;
-use App\Models\Computer;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class GroupsController extends Controller
 {
@@ -17,18 +18,26 @@ class GroupsController extends Controller
         $groups = Group::withCount('computers')
             ->with('shortKeys')
             ->paginate(20);
-        return view('admin.groups.index', compact('groups'));
+
+        $plazas = Computer::distinct()->pluck('plaza')->filter()->sort()->values();
+        $computers = Computer::orderBy('computer_name')->get();
+
+        return view('admin.groups.index', compact('groups', 'plazas', 'computers'));
     }
 
     public function create()
     {
-        return view('admin.groups.create');
+        $plazas = Computer::distinct()->pluck('plaza')->filter()->sort()->values();
+        $computers = Computer::orderBy('computer_name')->get();
+
+        return view('admin.groups.create', compact('plazas', 'computers'));
     }
 
     public function show(Group $group)
     {
         $group->load('shortKeys');
         $group->loadCount('computers');
+
         return view('admin.groups.show', compact('group'));
     }
 
@@ -51,7 +60,7 @@ class GroupsController extends Controller
             $group = Group::create($request->only(['name', 'type', 'description']));
 
             foreach ($shortKeys as $shortKey) {
-                if (!empty($shortKey)) {
+                if (! empty($shortKey)) {
                     GroupShortKey::create([
                         'group_id' => $group->id,
                         'short_key' => strtoupper(trim($shortKey)),
@@ -59,11 +68,19 @@ class GroupsController extends Controller
                 }
             }
 
+            $computerIds = $request->input('computer_ids', '');
+            if (! empty($computerIds)) {
+                $ids = array_map('intval', explode(',', $computerIds));
+                Computer::whereIn('id', $ids)->update(['group_id' => $group->id]);
+            }
+
             DB::commit();
+
             return redirect()->route('admin.groups.index')->with('success', 'Grupo creado exitosamente');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error al crear: ' . $e->getMessage())->withInput();
+
+            return redirect()->back()->with('error', 'Error al crear: '.$e->getMessage())->withInput();
         }
     }
 
@@ -92,9 +109,9 @@ class GroupsController extends Controller
 
             if ($request->has('short_keys')) {
                 $group->shortKeys()->delete();
-                
+
                 foreach ($shortKeys as $shortKey) {
-                    if (!empty($shortKey)) {
+                    if (! empty($shortKey)) {
                         GroupShortKey::create([
                             'group_id' => $group->id,
                             'short_key' => strtoupper(trim($shortKey)),
@@ -103,11 +120,22 @@ class GroupsController extends Controller
                 }
             }
 
+            $computerIds = $request->input('computer_ids', '');
+            if ($computerIds !== '') {
+                Computer::where('group_id', $group->id)->update(['group_id' => null]);
+                $ids = array_map('intval', explode(',', $computerIds));
+                Computer::whereIn('id', $ids)->update(['group_id' => $group->id]);
+            } else {
+                Computer::where('group_id', $group->id)->update(['group_id' => null]);
+            }
+
             DB::commit();
+
             return redirect()->route('admin.groups.index')->with('success', 'Grupo actualizado exitosamente');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error al actualizar: ' . $e->getMessage())->withInput();
+
+            return redirect()->back()->with('error', 'Error al actualizar: '.$e->getMessage())->withInput();
         }
     }
 
@@ -115,6 +143,7 @@ class GroupsController extends Controller
     {
         $group->shortKeys()->delete();
         $group->delete();
+
         return redirect()->route('admin.groups.index')->with('success', 'Grupo eliminado exitosamente');
     }
 
@@ -126,7 +155,7 @@ class GroupsController extends Controller
 
         try {
             $file = $request->file('file');
-            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
+            $spreadsheet = IOFactory::load($file);
             $sheet = $spreadsheet->getActiveSheet();
             $rows = $sheet->toArray();
 
@@ -149,6 +178,7 @@ class GroupsController extends Controller
 
                 if (empty($name)) {
                     $errors[] = "Fila {$rowNumber}: Nombre es requerido";
+
                     continue;
                 }
 
@@ -169,12 +199,12 @@ class GroupsController extends Controller
                     $imported++;
                 }
 
-                if (!empty($shortKeysInput)) {
+                if (! empty($shortKeysInput)) {
                     $group->shortKeys()->delete();
-                    
+
                     $shortKeys = array_map('trim', explode(',', $shortKeysInput));
                     foreach ($shortKeys as $shortKey) {
-                        if (!empty($shortKey)) {
+                        if (! empty($shortKey)) {
                             GroupShortKey::create([
                                 'group_id' => $group->id,
                                 'short_key' => strtoupper($shortKey),
@@ -183,7 +213,7 @@ class GroupsController extends Controller
                     }
                 }
 
-                if (!empty($tiendaIds)) {
+                if (! empty($tiendaIds)) {
                     $ids = array_map('trim', explode(',', $tiendaIds));
                     foreach ($ids as $tiendaId) {
                         if (is_numeric($tiendaId)) {
@@ -198,9 +228,9 @@ class GroupsController extends Controller
 
             $message = "Importación completada: {$imported} grupos creados, {$updated} actualizados";
             if (count($errors) > 0) {
-                $message .= ". Errores: " . implode('; ', array_slice($errors, 0, 10));
+                $message .= '. Errores: '.implode('; ', array_slice($errors, 0, 10));
                 if (count($errors) > 10) {
-                    $message .= " y " . (count($errors) - 10) . " más...";
+                    $message .= ' y '.(count($errors) - 10).' más...';
                 }
             }
 
@@ -209,7 +239,8 @@ class GroupsController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error importing groups', ['error' => $e->getMessage()]);
-            return redirect()->route('admin.groups.index')->with('error', 'Error al importar: ' . $e->getMessage());
+
+            return redirect()->route('admin.groups.index')->with('error', 'Error al importar: '.$e->getMessage());
         }
     }
 
@@ -231,7 +262,7 @@ class GroupsController extends Controller
             ];
         }
 
-        $filename = 'grupos_' . date('Y-m-d_His') . '.csv';
+        $filename = 'grupos_'.date('Y-m-d_His').'.csv';
         $handle = fopen('php://temp', 'r+');
 
         foreach ($csvData as $row) {
@@ -242,11 +273,11 @@ class GroupsController extends Controller
         $content = stream_get_contents($handle);
         fclose($handle);
 
-        $content = chr(239) . chr(187) . chr(191) . $content;
+        $content = chr(239).chr(187).chr(191).$content;
 
         return Response::make($content, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -255,30 +286,34 @@ class GroupsController extends Controller
         if (empty($input)) {
             return [];
         }
+
         return array_map('trim', explode(',', $input));
     }
 
     private function checkDuplicateShortKeys(array $shortKeys, ?int $excludeGroupId = null): ?string
     {
         foreach ($shortKeys as $shortKey) {
-            if (empty($shortKey)) continue;
-            
+            if (empty($shortKey)) {
+                continue;
+            }
+
             $shortKey = strtoupper(trim($shortKey));
             $existing = GroupShortKey::where('short_key', $shortKey);
-            
+
             if ($excludeGroupId) {
                 $existing = $existing->where('group_id', '!=', $excludeGroupId);
             }
-            
+
             $found = $existing->first();
-            
+
             if ($found) {
                 $group = Group::find($found->group_id);
                 $groupName = $group ? $group->name : 'otro grupo';
+
                 return "La short key '{$shortKey}' ya está asignada al grupo '{$groupName}'";
             }
         }
-        
+
         return null;
     }
 }

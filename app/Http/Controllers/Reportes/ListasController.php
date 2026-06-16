@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Reportes;
 
 use App\Http\Controllers\Controller;
@@ -11,6 +12,7 @@ class ListasController extends Controller
     public function plazas()
     {
         $list = DB::table('cobranza')->distinct()->pluck('cplaza');
+
         return response()->json($list);
     }
 
@@ -22,6 +24,7 @@ class ListasController extends Controller
             ->where('cplaza', $plaza)
             ->distinct()
             ->pluck('ctienda');
+
         return response()->json($list);
     }
 }

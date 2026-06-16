@@ -2,17 +2,20 @@
 
 namespace App\Exports;
 
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class NotasCompletasExport implements FromQuery, WithHeadings
 {
     protected $start;
+
     protected $end;
+
     protected $plaza;
+
     protected $tienda;
+
     protected $vendedor;
 
     public function __construct($start, $end, $plaza = '', $tienda = '', $vendedor = '')
@@ -29,15 +32,15 @@ class NotasCompletasExport implements FromQuery, WithHeadings
         $query = DB::table('notas_completas_cache')
             ->whereBetween('fecha_vta', [$this->start, $this->end]);
 
-        if (!empty($this->plaza)) {
+        if (! empty($this->plaza)) {
             $query->where('plaza_ajustada', trim($this->plaza));
         }
 
-        if (!empty($this->tienda)) {
+        if (! empty($this->tienda)) {
             $query->where('ctienda', trim($this->tienda));
         }
 
-        if (!empty($this->vendedor)) {
+        if (! empty($this->vendedor)) {
             $query->where('vend_clave', trim($this->vendedor));
         }
 
@@ -63,7 +66,7 @@ class NotasCompletasExport implements FromQuery, WithHeadings
             'Precio Venta',
             'Costo',
             'Total con IVA',
-            'Total sin IVA'
+            'Total sin IVA',
         ];
     }
 }

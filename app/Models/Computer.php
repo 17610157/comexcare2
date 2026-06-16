@@ -18,10 +18,13 @@ class Computer extends Model
         'ip_address',
         'group_id',
         'agent_version',
+        'resurtido_agent_version',
         'pvsi_version',
         'pvsi_fecha',
         'pvsi_hora',
         'pvsi_files',
+        'resurtido_version',
+        'resurtido_fecha',
         'windows_version',
         'architecture',
         'total_ram',
@@ -43,6 +46,7 @@ class Computer extends Model
         'download_path_8',
         'download_path_9',
         'download_path_10',
+        'agent_file',
     ];
 
     protected $casts = [

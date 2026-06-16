@@ -1,13 +1,20 @@
 @extends('adminlte::page')
 
-@section('title', 'Computer: ' . $computer->computer_name)
+@section('title', 'Computadora: ' . $computer->computer_name)
 
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
         <h1>{{ $computer->computer_name }}</h1>
-        <div>
+        <div class="d-flex align-items-center gap-2">
+            <form action="{{ route('admin.computers.destroy', $computer) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta computadora?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </form>
             <span class="badge badge-lg {{ $computer->status === 'online' ? 'badge-success' : 'badge-danger' }}">
-                {{ $computer->status }}
+                {{ $computer->status === 'online' ? 'En línea' : 'Fuera de línea' }}
             </span>
         </div>
     </div>
@@ -25,7 +32,7 @@
                     <table class="table table-sm">
                         <tr><th width="40%">Nombre:</th><td>{{ $computer->computer_name }}</td></tr>
                         @if($computer->short_key)
-                        <tr><th>Short Key:</th><td><span class="badge badge-info">{{ $computer->short_key }}</span></td></tr>
+                        <tr><th>Clave Corta:</th><td><span class="badge badge-info">{{ $computer->short_key }}</span></td></tr>
                         @endif
                         <tr><th>MAC:</th><td>{{ $computer->mac_address }}</td></tr>
                         <tr><th>IP:</th><td>{{ $computer->ip_address }}</td></tr>

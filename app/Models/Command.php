@@ -16,7 +16,7 @@ class Command extends Model
         'status',
         'sent_at',
         'completed_at',
-        'response'
+        'response',
     ];
 
     protected $casts = [

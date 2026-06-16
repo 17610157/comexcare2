@@ -93,7 +93,7 @@ return new class extends Migration
                     if (! $this->indexExists($table, $index['name'])) {
                         DB::statement("CREATE INDEX {$index['name']} ON {$table} ({$index['cols']})");
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Silenciar errores de índices
                 }
             }
@@ -120,7 +120,7 @@ return new class extends Migration
                     if (! $this->indexExists($table, $index['name'])) {
                         DB::statement("CREATE INDEX {$index['name']} ON {$table} ({$index['cols']})");
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Silenciar errores
                 }
             }
@@ -175,7 +175,7 @@ return new class extends Migration
                             $tableObj->index($index['cols'], $index['name']);
                         });
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Silenciar errores
                 }
             }
@@ -192,7 +192,7 @@ return new class extends Migration
     {
         try {
             return Schema::hasTable($table);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -224,7 +224,7 @@ return new class extends Migration
 
                 return ! empty($result);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return true; // Asumir que existe si hay error
         }
 

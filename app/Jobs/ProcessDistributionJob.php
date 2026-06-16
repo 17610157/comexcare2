@@ -66,17 +66,41 @@ class ProcessDistributionJob implements ShouldQueue
                 $targetIds[] = $target->id;
                 $target->update(['status' => 'in_progress', 'progress' => 0]);
 
-                foreach ($distribution->files as $file) {
+                // Si es tipo comando/ejecutar
+                if ($distribution->distribution_type === 'command' && $distribution->command) {
+                    $commandData = [
+                        'command' => $distribution->command,
+                        'command_args' => $distribution->command_args ?? '',
+                        'distribution_target_id' => $target->id,
+                    ];
+
                     $commands[] = [
                         'computer_id' => $target->computer_id,
-                        'type' => 'download',
-                        'data' => json_encode([
-                            'file_id' => $file->id,
-                            'distribution_target_id' => $target->id,
-                        ]),
+                        'type' => 'execute',
+                        'data' => json_encode($commandData),
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
+                } else {
+                    // Tipo archivo normal o update
+                    foreach ($distribution->files as $file) {
+                        $commandData = [
+                            'file_id' => $file->id,
+                            'distribution_target_id' => $target->id,
+                        ];
+
+                        if ($distribution->subfolder) {
+                            $commandData['subfolder'] = $distribution->subfolder;
+                        }
+
+                        $commands[] = [
+                            'computer_id' => $target->computer_id,
+                            'type' => 'download',
+                            'data' => json_encode($commandData),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
                 }
             }
 

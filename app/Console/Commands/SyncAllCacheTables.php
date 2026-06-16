@@ -61,8 +61,8 @@ class SyncAllCacheTables extends Command
         }
         $this->info('========================================');
 
-        return in_array(false, array_column($results, 'success')) 
-            ? Command::FAILURE 
+        return in_array(false, array_column($results, 'success'))
+            ? Command::FAILURE
             : Command::SUCCESS;
     }
 
@@ -71,7 +71,7 @@ class SyncAllCacheTables extends Command
         $this->info('Sincronizando cartera_abonos_cache...');
 
         try {
-            if (!$append) {
+            if (! $append) {
                 DB::statement('TRUNCATE TABLE cartera_abonos_cache RESTART IDENTITY CASCADE');
             }
 
@@ -114,8 +114,9 @@ class SyncAllCacheTables extends Command
 
             return ['name' => 'Cartera Abonos', 'success' => true, 'count' => $count];
         } catch (\Exception $e) {
-            Log::error('Error sincronizando cartera_abonos_cache: ' . $e->getMessage());
+            Log::error('Error sincronizando cartera_abonos_cache: '.$e->getMessage());
             $this->error("Error: {$e->getMessage()}");
+
             return ['name' => 'Cartera Abonos', 'success' => false, 'count' => 0];
         }
     }
@@ -125,7 +126,7 @@ class SyncAllCacheTables extends Command
         $this->info('Sincronizando notas_completas_cache...');
 
         try {
-            if (!$append) {
+            if (! $append) {
                 DB::statement('TRUNCATE TABLE notas_completas_cache RESTART IDENTITY CASCADE');
             }
 
@@ -174,8 +175,9 @@ class SyncAllCacheTables extends Command
 
             return ['name' => 'Notas Completas', 'success' => true, 'count' => $count];
         } catch (\Exception $e) {
-            Log::error('Error sincronizando notas_completas_cache: ' . $e->getMessage());
+            Log::error('Error sincronizando notas_completas_cache: '.$e->getMessage());
             $this->error("Error: {$e->getMessage()}");
+
             return ['name' => 'Notas Completas', 'success' => false, 'count' => 0];
         }
     }
@@ -185,7 +187,7 @@ class SyncAllCacheTables extends Command
         $this->info('Sincronizando compras_directo_cache...');
 
         try {
-            if (!$append) {
+            if (! $append) {
                 DB::statement('TRUNCATE TABLE compras_directo_cache RESTART IDENTITY CASCADE');
             }
 
@@ -226,8 +228,9 @@ class SyncAllCacheTables extends Command
 
             return ['name' => 'Compras Directo', 'success' => true, 'count' => $count];
         } catch (\Exception $e) {
-            Log::error('Error sincronizando compras_directo_cache: ' . $e->getMessage());
+            Log::error('Error sincronizando compras_directo_cache: '.$e->getMessage());
             $this->error("Error: {$e->getMessage()}");
+
             return ['name' => 'Compras Directo', 'success' => false, 'count' => 0];
         }
     }
@@ -237,7 +240,7 @@ class SyncAllCacheTables extends Command
         $this->info('Sincronizando redenciones_club_cache...');
 
         try {
-            if (!$append) {
+            if (! $append) {
                 DB::statement('TRUNCATE TABLE redenciones_club_cache RESTART IDENTITY CASCADE');
             }
 
@@ -285,8 +288,9 @@ class SyncAllCacheTables extends Command
 
             return ['name' => 'Redenciones Club', 'success' => true, 'count' => $count];
         } catch (\Exception $e) {
-            Log::error('Error sincronizando redenciones_club_cache: ' . $e->getMessage());
+            Log::error('Error sincronizando redenciones_club_cache: '.$e->getMessage());
             $this->error("Error: {$e->getMessage()}");
+
             return ['name' => 'Redenciones Club', 'success' => false, 'count' => 0];
         }
     }
@@ -296,7 +300,7 @@ class SyncAllCacheTables extends Command
         $this->info('Sincronizando vendedores_cache...');
 
         try {
-            if (!$append) {
+            if (! $append) {
                 DB::statement('TRUNCATE TABLE vendedores_cache RESTART IDENTITY CASCADE');
             }
 
@@ -335,8 +339,9 @@ class SyncAllCacheTables extends Command
 
             return ['name' => 'Vendedores', 'success' => true, 'count' => $count];
         } catch (\Exception $e) {
-            Log::error('Error sincronizando vendedores_cache: ' . $e->getMessage());
+            Log::error('Error sincronizando vendedores_cache: '.$e->getMessage());
             $this->error("Error: {$e->getMessage()}");
+
             return ['name' => 'Vendedores', 'success' => false, 'count' => 0];
         }
     }
@@ -346,7 +351,7 @@ class SyncAllCacheTables extends Command
         $this->info('Sincronizando metas_cache...');
 
         try {
-            if (!$append) {
+            if (! $append) {
                 DB::statement('TRUNCATE TABLE metas_cache RESTART IDENTITY CASCADE');
             }
 
@@ -385,8 +390,9 @@ class SyncAllCacheTables extends Command
 
             return ['name' => 'Metas', 'success' => true, 'count' => $count];
         } catch (\Exception $e) {
-            Log::error('Error sincronizando metas_cache: ' . $e->getMessage());
+            Log::error('Error sincronizando metas_cache: '.$e->getMessage());
             $this->error("Error: {$e->getMessage()}");
+
             return ['name' => 'Metas', 'success' => false, 'count' => 0];
         }
     }

@@ -1,5 +1,13 @@
 <?php
 
+use JeroenNoten\LaravelAdminLte\Menu\Filters\ActiveFilter;
+use JeroenNoten\LaravelAdminLte\Menu\Filters\ClassesFilter;
+use JeroenNoten\LaravelAdminLte\Menu\Filters\DataFilter;
+use JeroenNoten\LaravelAdminLte\Menu\Filters\GateFilter;
+use JeroenNoten\LaravelAdminLte\Menu\Filters\HrefFilter;
+use JeroenNoten\LaravelAdminLte\Menu\Filters\LangFilter;
+use JeroenNoten\LaravelAdminLte\Menu\Filters\SearchFilter;
+
 return [
 
     /*
@@ -300,7 +308,7 @@ return [
 
     'menu' => [
         [
-            'text' => 'Dashboard',
+            'text' => 'Panel de Control',
             'url' => '/home',
             'icon' => 'fas fa-tachometer-alt',
         ],
@@ -342,7 +350,7 @@ return [
             'can' => 'metas.ver',
         ],
         [
-            'text' => 'Distributions',
+            'text' => 'Distribuciones',
             'url' => 'admin/distributions',
             'icon' => 'fas fa-upload',
             'can' => 'distribution.ver',
@@ -354,28 +362,28 @@ return [
             'can' => 'distribution.ver',
         ],
         [
-            'text' => 'Computers',
+            'text' => 'Computadoras',
             'url' => 'admin/computers',
             'icon' => 'fas fa-desktop',
             'can' => 'distribution.ver',
         ],
         [
-            'text' => 'Groups',
+            'text' => 'Grupos',
             'url' => 'admin/groups',
             'icon' => 'fas fa-users',
             'can' => 'distribution.ver',
         ],
         [
-            'text' => 'Agent Versions',
+            'text' => 'Versiones de Agente',
             'url' => 'admin/agent-versions',
             'icon' => 'fas fa-code-branch',
             'can' => 'distribution.ver',
         ],
         [
-            'text' => 'Archivos DBF',
-            'icon' => 'far fa-file-alt',
-            'url' => 'reportes/dbf-files',
-            'can' => 'reportes.compras-directo.ver',
+            'text' => 'CareAgent Resurtido',
+            'url' => 'admin/resurtido-agent-versions',
+            'icon' => 'fas fa-truck-loading',
+            'can' => 'distribution.ver',
         ],
         [
             'text' => 'Reportes',
@@ -455,6 +463,12 @@ return [
                     'url' => 'reportes/redenciones-club',
                     'can' => 'reportes.redenciones_club.ver',
                 ],
+                [
+                 'text' => 'Archivos DBF',
+                 'icon' => 'far fa-file-alt',
+                 'url' => 'reportes/dbf-files',
+                 'can' => 'dbf-files.ver',
+                 ],
             ],
         ],
     ],
@@ -472,13 +486,13 @@ return [
     */
 
     'filters' => [
-        JeroenNoten\LaravelAdminLte\Menu\Filters\GateFilter::class,
-        JeroenNoten\LaravelAdminLte\Menu\Filters\HrefFilter::class,
-        JeroenNoten\LaravelAdminLte\Menu\Filters\SearchFilter::class,
-        JeroenNoten\LaravelAdminLte\Menu\Filters\ActiveFilter::class,
-        JeroenNoten\LaravelAdminLte\Menu\Filters\ClassesFilter::class,
-        JeroenNoten\LaravelAdminLte\Menu\Filters\LangFilter::class,
-        JeroenNoten\LaravelAdminLte\Menu\Filters\DataFilter::class,
+        GateFilter::class,
+        HrefFilter::class,
+        SearchFilter::class,
+        ActiveFilter::class,
+        ClassesFilter::class,
+        LangFilter::class,
+        DataFilter::class,
     ],
 
     /*

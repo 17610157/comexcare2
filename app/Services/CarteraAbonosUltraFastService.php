@@ -2,18 +2,21 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class CarteraAbonosUltraFastService
 {
     private const CACHE_PREFIX = 'cartera_ultra_';
+
     private const PRELOAD_CACHE_TTL = 7200; // 2 horas
+
     private const INCREMENTAL_CACHE_TTL = 300; // 5 minutos
+
     private const MAX_USERS_CONCURRENT = 500;
-    
+
     /**
      * Arquitectura Ultra-Fast para 500 usuarios:
      * 1. Pre-carga de datos del periodo anterior en Redis
@@ -21,46 +24,46 @@ class CarteraAbonosUltraFastService
      * 3. Actualizaciones incrementales en background
      * 4. Zero database queries en tiempo real
      */
-    
+
     /**
      * Obtener datos pre-cargados (sin queries a BD)
      */
     public function getPreloadedData(): array
     {
         $cacheKey = $this->getPreloadCacheKey();
-        
+
         try {
             // Intentar obtener de Redis (memoria)
             $cachedData = Redis::get($cacheKey);
-            
+
             if ($cachedData) {
                 $data = json_decode($cachedData, true);
-                
+
                 Log::info('Datos obtenidos de cache Redis', [
                     'cache_key' => $cacheKey,
                     'records_count' => count($data['data'] ?? []),
-                    'memory_usage' => memory_get_usage(true)
+                    'memory_usage' => memory_get_usage(true),
                 ]);
-                
+
                 return $data;
             }
-            
+
             // Si no está en cache, pre-cargar asíncronamente
             $this->triggerPreloadAsync();
-            
+
             // Devolver datos vacíos mientras carga
             return $this->getEmptyResponse();
-            
+
         } catch (\Exception $e) {
             Log::error('Error obteniendo datos pre-cargados', [
                 'error' => $e->getMessage(),
-                'cache_key' => $cacheKey
+                'cache_key' => $cacheKey,
             ]);
-            
+
             return $this->getEmptyResponse();
         }
     }
-    
+
     /**
      * Pre-cargar datos del periodo anterior en background
      */
@@ -68,89 +71,89 @@ class CarteraAbonosUltraFastService
     {
         $startTime = microtime(true);
         $period = $this->getPreviousPeriod();
-        
+
         try {
             // Query optimizado para pre-carga (única vez)
             $data = $this->executePreloadQuery($period);
-            
+
             // Estructurar datos para filtrado cliente-side
             $structuredData = $this->structureDataForClientSide($data);
-            
+
             // Guardar en Redis con TTL largo
             $cacheKey = $this->getPreloadCacheKey();
             Redis::setex($cacheKey, self::PRELOAD_CACHE_TTL, json_encode($structuredData));
-            
+
             // Crear índices de búsqueda en Redis
             $this->createSearchIndexes($structuredData);
-            
+
             $loadTime = (microtime(true) - $startTime) * 1000;
-            
+
             Log::info('Pre-carga completada exitosamente', [
                 'period' => $period,
                 'records_count' => count($data),
                 'load_time_ms' => round($loadTime, 2),
                 'cache_key' => $cacheKey,
-                'memory_mb' => round(memory_get_peak_usage(true) / 1024 / 1024, 2)
+                'memory_mb' => round(memory_get_peak_usage(true) / 1024 / 1024, 2),
             ]);
-            
+
             return [
                 'status' => 'success',
                 'records_count' => count($data),
                 'load_time_ms' => round($loadTime, 2),
                 'period' => $period,
-                'cache_key' => $cacheKey
+                'cache_key' => $cacheKey,
             ];
-            
+
         } catch (\Exception $e) {
             Log::error('Error en pre-carga de datos', [
                 'error' => $e->getMessage(),
-                'period' => $period
+                'period' => $period,
             ]);
-            
+
             throw $e;
         }
     }
-    
+
     /**
      * Actualización incremental (sin afectar usuarios)
      */
     public function incrementalUpdate(): array
     {
         $startTime = microtime(true);
-        
+
         try {
             // Obtener cambios desde última actualización
             $changes = $this->getIncrementalChanges();
-            
+
             if (empty($changes)) {
                 return ['status' => 'no_changes', 'records_updated' => 0];
             }
-            
+
             // Actualizar cache en Redis sin bloquear
             $this->updateRedisIncremental($changes);
-            
+
             $updateTime = (microtime(true) - $startTime) * 1000;
-            
+
             Log::info('Actualización incremental completada', [
                 'changes_count' => count($changes),
-                'update_time_ms' => round($updateTime, 2)
+                'update_time_ms' => round($updateTime, 2),
             ]);
-            
+
             return [
                 'status' => 'success',
                 'records_updated' => count($changes),
-                'update_time_ms' => round($updateTime, 2)
+                'update_time_ms' => round($updateTime, 2),
             ];
-            
+
         } catch (\Exception $e) {
             Log::error('Error en actualización incremental', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             return ['status' => 'error', 'error' => $e->getMessage()];
         }
     }
-    
+
     /**
      * Query optimizado para pre-carga (se ejecuta una sola vez)
      */
@@ -208,13 +211,13 @@ class CarteraAbonosUltraFastService
             (fecha - COALESCE(fecha_venc, fecha)) as dias_vencidos
         FROM abonos_optimized
         ORDER BY cplaza, ctienda, fecha DESC";
-        
+
         return DB::select($sql, [
             'start' => $period['start'],
-            'end' => $period['end']
+            'end' => $period['end'],
         ]);
     }
-    
+
     /**
      * Estructurar datos para filtrado cliente-side ultra-rápido
      */
@@ -229,27 +232,27 @@ class CarteraAbonosUltraFastService
                 'nombre' => [],
                 'rfc' => [],
                 'factura' => [],
-                'clave' => []
+                'clave' => [],
             ],
             'stats' => [
                 'total_records' => count($data),
                 'unique_plazas' => 0,
                 'unique_tiendas' => 0,
                 'total_monto' => 0,
-                'period' => $this->getPreviousPeriod()
+                'period' => $this->getPreviousPeriod(),
             ],
             'metadata' => [
                 'created_at' => now()->toISOString(),
                 'expires_at' => now()->addSeconds(self::PRELOAD_CACHE_TTL)->toISOString(),
-                'version' => '1.0.0'
-            ]
+                'version' => '1.0.0',
+            ],
         ];
-        
+
         // Procesar datos y crear índices
         foreach ($data as $row) {
             $record = (array) $row;
             $structured['data'][] = $record;
-            
+
             // Crear índices para búsqueda instantánea
             $this->addToIndex($structured['indexes'], 'plaza', $record['plaza'], count($structured['data']) - 1);
             $this->addToIndex($structured['indexes'], 'tienda', $record['tienda'], count($structured['data']) - 1);
@@ -258,40 +261,40 @@ class CarteraAbonosUltraFastService
             $this->addToIndex($structured['indexes'], 'rfc', strtolower($record['rfc']), count($structured['data']) - 1);
             $this->addToIndex($structured['indexes'], 'factura', $record['factura'], count($structured['data']) - 1);
             $this->addToIndex($structured['indexes'], 'clave', $record['clave'], count($structured['data']) - 1);
-            
+
             // Calcular estadísticas
             $structured['stats']['total_monto'] += ($record['monto_fa'] + $record['monto_dv'] + $record['monto_cd']);
         }
-        
+
         // Calcular únicos
         $structured['stats']['unique_plazas'] = count(array_unique(array_column($data, 'plaza')));
         $structured['stats']['unique_tiendas'] = count(array_unique(array_column($data, 'tienda')));
-        
+
         return $structured;
     }
-    
+
     /**
      * Agregar a índice para búsqueda instantánea
      */
     private function addToIndex(array &$indexes, string $field, string $value, int $position): void
     {
-        if (!isset($indexes[$field][$value])) {
+        if (! isset($indexes[$field][$value])) {
             $indexes[$field][$value] = [];
         }
         $indexes[$field][$value][] = $position;
     }
-    
+
     /**
      * Crear índices de búsqueda en Redis para filtrado instantáneo
      */
     private function createSearchIndexes(array $structuredData): void
     {
-        $indexKey = $this->getPreloadCacheKey() . '_indexes';
-        
+        $indexKey = $this->getPreloadCacheKey().'_indexes';
+
         // Guardar índices por separado para búsquedas ultra-rápidas
         Redis::setex($indexKey, self::PRELOAD_CACHE_TTL, json_encode($structuredData['indexes']));
     }
-    
+
     /**
      * Obtener cambios incrementales
      */
@@ -299,10 +302,10 @@ class CarteraAbonosUltraFastService
     {
         // Lógica para obtener solo cambios desde última actualización
         // Esto se ejecuta en background sin afectar usuarios
-        
+
         return [];
     }
-    
+
     /**
      * Actualizar Redis incrementalmente
      */
@@ -311,40 +314,42 @@ class CarteraAbonosUltraFastService
         // Actualizar cache sin bloquear a usuarios
         // Implementar lógica de actualización atómica
     }
-    
+
     /**
      * Obtener periodo anterior
      */
     private function getPreviousPeriod(): array
     {
         $now = Carbon::now();
+
         return [
             'start' => $now->copy()->subMonth()->startOfMonth()->toDateString(),
             'end' => $now->copy()->subMonth()->endOfMonth()->toDateString(),
-            'name' => $now->copy()->subMonth()->format('Y-m')
+            'name' => $now->copy()->subMonth()->format('Y-m'),
         ];
     }
-    
+
     /**
      * Obtener cache key para pre-carga
      */
     private function getPreloadCacheKey(): string
     {
         $period = $this->getPreviousPeriod();
-        return self::CACHE_PREFIX . 'preload_' . $period['name'];
+
+        return self::CACHE_PREFIX.'preload_'.$period['name'];
     }
-    
+
     /**
      * Disparar pre-carga asíncrona
      */
     private function triggerPreloadAsync(): void
     {
         // Usar queue para pre-carga en background
-        dispatch(function() {
+        dispatch(function () {
             $this->preloadPeriodData();
         })->onQueue('preload')->afterResponse();
     }
-    
+
     /**
      * Respuesta vacía mientras carga
      */
@@ -358,25 +363,26 @@ class CarteraAbonosUltraFastService
                 'unique_plazas' => 0,
                 'unique_tiendas' => 0,
                 'total_monto' => 0,
-                'period' => $this->getPreviousPeriod()
+                'period' => $this->getPreviousPeriod(),
             ],
             'metadata' => [
                 'status' => 'loading',
                 'message' => 'Pre-cargando datos del periodo anterior...',
-                'created_at' => now()->toISOString()
-            ]
+                'created_at' => now()->toISOString(),
+            ],
         ];
     }
-    
+
     /**
      * Verificar si hay datos pre-cargados
      */
     public function hasPreloadedData(): bool
     {
         $cacheKey = $this->getPreloadCacheKey();
+
         return Redis::exists($cacheKey);
     }
-    
+
     /**
      * Forzar recarga de datos pre-cargados
      */
@@ -385,11 +391,11 @@ class CarteraAbonosUltraFastService
         // Eliminar cache existente
         $cacheKey = $this->getPreloadCacheKey();
         Redis::del($cacheKey);
-        
+
         // Pre-cargar nuevamente
         return $this->preloadPeriodData();
     }
-    
+
     /**
      * Obtener estadísticas del sistema
      */
@@ -400,19 +406,20 @@ class CarteraAbonosUltraFastService
             'cache_keys' => $this->getCacheKeys(),
             'redis_memory' => $this->getRedisMemoryUsage(),
             'concurrent_users' => $this->getConcurrentUsers(),
-            'period' => $this->getPreviousPeriod()
+            'period' => $this->getPreviousPeriod(),
         ];
     }
-    
+
     /**
      * Obtener cache keys activas
      */
     private function getCacheKeys(): array
     {
-        $pattern = self::CACHE_PREFIX . '*';
+        $pattern = self::CACHE_PREFIX.'*';
+
         return Redis::keys($pattern);
     }
-    
+
     /**
      * Obtener uso de memoria Redis
      */
@@ -420,10 +427,10 @@ class CarteraAbonosUltraFastService
     {
         return [
             'used_memory' => Redis::info('memory')['used_memory_human'] ?? 'Unknown',
-            'used_memory_peak' => Redis::info('memory')['used_memory_peak_human'] ?? 'Unknown'
+            'used_memory_peak' => Redis::info('memory')['used_memory_peak_human'] ?? 'Unknown',
         ];
     }
-    
+
     /**
      * Obtener usuarios concurrentes
      */

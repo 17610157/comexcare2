@@ -2,26 +2,30 @@
 
 namespace App\Jobs;
 
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
 
 class CarteraAbonosSyncJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 1800; // 30 minutos máximo
+
     public $tries = 3;
+
     public $backoff = [60, 300, 900]; // 1min, 5min, 15min
 
     private string $syncType;
+
     private array $params;
+
     private string $batchId;
 
     /**
@@ -32,7 +36,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
         $this->syncType = $syncType;
         $this->params = $params;
         $this->batchId = $this->generateBatchId();
-        
+
         // Configurar cola específica para sincronización
         $this->onQueue('sync');
     }
@@ -43,16 +47,16 @@ class CarteraAbonosSyncJob implements ShouldQueue
     public function handle(): void
     {
         $startTime = microtime(true);
-        
+
         try {
-            Log::info("Iniciando sincronización Cartera Abonos", [
+            Log::info('Iniciando sincronización Cartera Abonos', [
                 'batch_id' => $this->batchId,
                 'sync_type' => $this->syncType,
-                'params' => $this->params
+                'params' => $this->params,
             ]);
 
             // Determinar tipo de sincronización
-            $result = match($this->syncType) {
+            $result = match ($this->syncType) {
                 'full' => $this->performFullSync(),
                 'incremental' => $this->performIncrementalSync(),
                 'delta' => $this->performDeltaSync(),
@@ -64,12 +68,12 @@ class CarteraAbonosSyncJob implements ShouldQueue
             // Actualizar caché después de sincronización exitosa
             $this->updateCacheAfterSync();
 
-            Log::info("Sincronización Cartera Abonos completada", [
+            Log::info('Sincronización Cartera Abonos completada', [
                 'batch_id' => $this->batchId,
                 'sync_type' => $this->syncType,
                 'records_processed' => $result['records_processed'],
                 'execution_time_ms' => round($executionTime, 2),
-                'memory_usage' => memory_get_peak_usage(true)
+                'memory_usage' => memory_get_peak_usage(true),
             ]);
 
             // Notificar completion (si es necesario)
@@ -86,18 +90,18 @@ class CarteraAbonosSyncJob implements ShouldQueue
      */
     private function performFullSync(): array
     {
-        Log::info("Ejecutando sincronización completa", ['batch_id' => $this->batchId]);
+        Log::info('Ejecutando sincronización completa', ['batch_id' => $this->batchId]);
 
         // Ejecutar procedimiento almacenado de full sync
-        $result = DB::selectOne("SELECT sync_cartera_abonos_full() as records_count");
-        
+        $result = DB::selectOne('SELECT sync_cartera_abonos_full() as records_count');
+
         // Obtener estadísticas de la sincronización
         $stats = $this->getSyncStats($this->batchId);
 
         return [
             'records_processed' => $result->records_count ?? 0,
             'sync_type' => 'full',
-            'stats' => $stats
+            'stats' => $stats,
         ];
     }
 
@@ -106,23 +110,24 @@ class CarteraAbonosSyncJob implements ShouldQueue
      */
     private function performIncrementalSync(): array
     {
-        Log::info("Ejecutando sincronización incremental", ['batch_id' => $this->batchId]);
+        Log::info('Ejecutando sincronización incremental', ['batch_id' => $this->batchId]);
 
         // Verificar si hay cambios pendientes
         $pendingChanges = $this->getPendingChangesCount();
-        
+
         if ($pendingChanges == 0) {
-            Log::info("No hay cambios pendientes", ['batch_id' => $this->batchId]);
+            Log::info('No hay cambios pendientes', ['batch_id' => $this->batchId]);
+
             return [
                 'records_processed' => 0,
                 'sync_type' => 'incremental',
-                'skipped' => true
+                'skipped' => true,
             ];
         }
 
         // Ejecutar sincronización incremental
-        $result = DB::selectOne("SELECT sync_cartera_abonos_incremental() as records_count");
-        
+        $result = DB::selectOne('SELECT sync_cartera_abonos_incremental() as records_count');
+
         // Obtener estadísticas
         $stats = $this->getSyncStats($this->batchId);
 
@@ -130,7 +135,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
             'records_processed' => $result->records_count ?? 0,
             'sync_type' => 'incremental',
             'pending_changes' => $pendingChanges,
-            'stats' => $stats
+            'stats' => $stats,
         ];
     }
 
@@ -139,7 +144,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
      */
     private function performDeltaSync(): array
     {
-        Log::info("Ejecutando sincronización delta", ['batch_id' => $this->batchId]);
+        Log::info('Ejecutando sincronización delta', ['batch_id' => $this->batchId]);
 
         $processedRecords = 0;
         $chunkSize = 1000;
@@ -147,7 +152,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
         // Procesar cambios en chunks
         do {
             $changes = $this->getPendingChanges($chunkSize);
-            
+
             if (empty($changes)) {
                 break;
             }
@@ -165,7 +170,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
 
         return [
             'records_processed' => $processedRecords,
-            'sync_type' => 'delta'
+            'sync_type' => 'delta',
         ];
     }
 
@@ -175,11 +180,11 @@ class CarteraAbonosSyncJob implements ShouldQueue
     private function processChange(object $change): void
     {
         try {
-            match($change->action) {
+            match ($change->action) {
                 'INSERT' => $this->processInsert($change),
                 'UPDATE' => $this->processUpdate($change),
                 'DELETE' => $this->processDelete($change),
-                default => Log::warning("Acción desconocida", ['action' => $change->action])
+                default => Log::warning('Acción desconocida', ['action' => $change->action])
             };
 
             // Marcar como procesado
@@ -187,13 +192,13 @@ class CarteraAbonosSyncJob implements ShouldQueue
                 ->where('id', $change->id)
                 ->update([
                     'processed' => true,
-                    'processed_at' => now()
+                    'processed_at' => now(),
                 ]);
 
         } catch (\Exception $e) {
-            Log::error("Error procesando cambio", [
+            Log::error('Error procesando cambio', [
                 'change_id' => $change->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -206,7 +211,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
     {
         // Obtener datos completos de la fuente
         $sourceData = $this->getSourceData($change->source_id);
-        
+
         if ($sourceData) {
             // Insertar en tabla materializada
             DB::table('cartera_abonos_materialized')->insert([
@@ -223,7 +228,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
                 'source_id' => $change->source_id,
                 'sync_status' => 'active',
                 'sync_batch' => $this->batchId,
-                'last_updated' => now()
+                'last_updated' => now(),
             ]);
         }
     }
@@ -234,7 +239,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
     private function processUpdate(object $change): void
     {
         $sourceData = $this->getSourceData($change->source_id);
-        
+
         if ($sourceData) {
             DB::table('cartera_abonos_materialized')
                 ->where('source_id', $change->source_id)
@@ -251,7 +256,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
                     'monto_cd' => $this->calculateMontoCD($sourceData),
                     'sync_status' => 'active',
                     'sync_batch' => $this->batchId,
-                    'last_updated' => now()
+                    'last_updated' => now(),
                 ]);
         }
     }
@@ -266,7 +271,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
             ->update([
                 'sync_status' => 'deleted',
                 'sync_batch' => $this->batchId,
-                'last_updated' => now()
+                'last_updated' => now(),
             ]);
     }
 
@@ -276,10 +281,10 @@ class CarteraAbonosSyncJob implements ShouldQueue
     private function getSourceData(int $sourceId): ?object
     {
         return DB::table('cobranza as c')
-            ->leftJoin('cliente_depurado as cl', function($join) {
+            ->leftJoin('cliente_depurado as cl', function ($join) {
                 $join->on('c.ctienda', '=', 'cl.ctienda')
-                     ->on('c.cplaza', '=', 'cl.cplaza')
-                     ->on('c.clave_cl', '=', 'cl.clie_clave');
+                    ->on('c.cplaza', '=', 'cl.cplaza')
+                    ->on('c.clave_cl', '=', 'cl.clie_clave');
             })
             ->where('c.id', $sourceId)
             ->where('c.cargo_ab', 'A')
@@ -334,7 +339,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
         // Invalidar cachés relacionadas
         $patterns = [
             'cartera_abonos_*',
-            'reporte_cartera_abonos_*'
+            'reporte_cartera_abonos_*',
         ];
 
         foreach ($patterns as $pattern) {
@@ -374,7 +379,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
             'completed_at' => now()->toISOString(),
             'batch_id' => $this->batchId,
             'sync_type' => $this->syncType,
-            'records_processed' => $result['records_processed']
+            'records_processed' => $result['records_processed'],
         ], 3600); // 1 hora
     }
 
@@ -385,13 +390,13 @@ class CarteraAbonosSyncJob implements ShouldQueue
     {
         $executionTime = (microtime(true) - $startTime) * 1000;
 
-        Log::error("Error en sincronización Cartera Abonos", [
+        Log::error('Error en sincronización Cartera Abonos', [
             'batch_id' => $this->batchId,
             'sync_type' => $this->syncType,
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString(),
             'execution_time_ms' => round($executionTime, 2),
-            'attempt' => $this->attempts()
+            'attempt' => $this->attempts(),
         ]);
 
         // Actualizar estado en control de sincronización
@@ -400,7 +405,7 @@ class CarteraAbonosSyncJob implements ShouldQueue
             ->update([
                 'status' => 'failed',
                 'error_message' => $e->getMessage(),
-                'completed_at' => now()
+                'completed_at' => now(),
             ]);
     }
 
@@ -409,8 +414,8 @@ class CarteraAbonosSyncJob implements ShouldQueue
      */
     private function generateBatchId(): string
     {
-        return strtoupper($this->syncType) . '_' . 
-               Carbon::now()->format('Ymd_His') . '_' . 
+        return strtoupper($this->syncType).'_'.
+               Carbon::now()->format('Ymd_His').'_'.
                uniqid();
     }
 
@@ -419,8 +424,8 @@ class CarteraAbonosSyncJob implements ShouldQueue
      */
     private function calculateMontoFA(object $sourceData): float
     {
-        return ($sourceData->tipo_ref === 'FA' && $sourceData->concepto !== 'DV') 
-            ? (float) $sourceData->IMPORTE 
+        return ($sourceData->tipo_ref === 'FA' && $sourceData->concepto !== 'DV')
+            ? (float) $sourceData->IMPORTE
             : 0;
     }
 
@@ -429,8 +434,8 @@ class CarteraAbonosSyncJob implements ShouldQueue
      */
     private function calculateMontoDV(object $sourceData): float
     {
-        return ($sourceData->tipo_ref === 'FA' && $sourceData->concepto === 'DV') 
-            ? (float) $sourceData->IMPORTE 
+        return ($sourceData->tipo_ref === 'FA' && $sourceData->concepto === 'DV')
+            ? (float) $sourceData->IMPORTE
             : 0;
     }
 
@@ -439,8 +444,8 @@ class CarteraAbonosSyncJob implements ShouldQueue
      */
     private function calculateMontoCD(object $sourceData): float
     {
-        return ($sourceData->tipo_ref === 'CD' && $sourceData->concepto !== 'DV') 
-            ? (float) $sourceData->IMPORTE 
+        return ($sourceData->tipo_ref === 'CD' && $sourceData->concepto !== 'DV')
+            ? (float) $sourceData->IMPORTE
             : 0;
     }
 
@@ -449,11 +454,11 @@ class CarteraAbonosSyncJob implements ShouldQueue
      */
     public function failed(\Exception $exception): void
     {
-        Log::error("Job de sincronización Cartera Abonos falló permanentemente", [
+        Log::error('Job de sincronización Cartera Abonos falló permanentemente', [
             'batch_id' => $this->batchId,
             'sync_type' => $this->syncType,
             'error' => $exception->getMessage(),
-            'attempts' => $this->attempts()
+            'attempts' => $this->attempts(),
         ]);
     }
 }

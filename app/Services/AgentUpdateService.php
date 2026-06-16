@@ -35,7 +35,7 @@ class AgentUpdateService
 
         DB::table('agent_versions')
             ->where('channel', $channel)
-            ->where('is_active', DB::raw('true'))
+            ->whereRaw('"is_active" = true')
             ->update([
                 'is_active' => DB::raw('false'),
                 'updated_at' => now(),
@@ -84,7 +84,7 @@ class AgentUpdateService
     public function getLatestVersion(string $channel = 'stable'): ?AgentVersion
     {
         return AgentVersion::where('channel', $channel)
-            ->where('is_active', true)
+            ->whereRaw('"is_active" = true')
             ->orderBy('created_at', 'desc')
             ->first();
     }

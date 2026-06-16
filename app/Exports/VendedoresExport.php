@@ -4,15 +4,18 @@ namespace App\Exports;
 
 use App\Services\ReportService;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 
-class VendedoresExport implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents, WithColumnFormatting
+class VendedoresExport implements FromCollection, ShouldAutoSize, WithColumnFormatting, WithEvents, WithHeadings, WithTitle
 {
     protected $filtros;
 
@@ -36,7 +39,7 @@ class VendedoresExport implements FromCollection, WithHeadings, WithTitle, Shoul
                 'Fecha' => $item['fecha'],
                 'Venta Total' => $item['venta_total'],
                 'Devolución' => $item['devolucion'],
-                'Venta Neta' => $item['venta_neta']
+                'Venta Neta' => $item['venta_neta'],
             ];
         });
     }
@@ -53,7 +56,7 @@ class VendedoresExport implements FromCollection, WithHeadings, WithTitle, Shoul
             'Fecha',
             'Venta Total',
             'Devolución',
-            'Venta Neta'
+            'Venta Neta',
         ];
     }
 
@@ -74,27 +77,27 @@ class VendedoresExport implements FromCollection, WithHeadings, WithTitle, Shoul
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
+            AfterSheet::class => function (AfterSheet $event) {
                 // Estilo para encabezados
                 $event->sheet->getStyle('A1:J1')->applyFromArray([
                     'font' => [
                         'bold' => true,
-                        'color' => ['rgb' => 'FFFFFF']
+                        'color' => ['rgb' => 'FFFFFF'],
                     ],
                     'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => '4472C4']
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '4472C4'],
                     ],
                     'alignment' => [
-                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
-                    ]
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    ],
                 ]);
 
                 // Agregar bordes
-                $event->sheet->getStyle('A1:J' . ($event->sheet->getHighestRow()))
+                $event->sheet->getStyle('A1:J'.($event->sheet->getHighestRow()))
                     ->getBorders()
                     ->getAllBorders()
-                    ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+                    ->setBorderStyle(Border::BORDER_THIN);
             },
         ];
     }

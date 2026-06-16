@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class AsesoresVvt extends Model
 {
     protected $table = 'asesores_vvt';
+
     protected $primaryKey = 'id';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -15,7 +17,7 @@ class AsesoresVvt extends Model
         'asesor',
         'nombre',
         'tipo',
-        'estatus'
+        'estatus',
     ];
 
     /**
@@ -24,8 +26,6 @@ class AsesoresVvt extends Model
     public function canotas()
     {
         return $this->hasMany(Canota::class, 'vend_clave', 'asesor')
-                    ->whereColumn('cplaza', 'plaza');
+            ->whereColumn('cplaza', 'plaza');
     }
-
-    
 }

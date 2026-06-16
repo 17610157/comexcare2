@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Canota extends Model
 {
     protected $table = 'canota';
+
     protected $primaryKey = 'id';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -16,6 +18,6 @@ class Canota extends Model
         'ctienda',
         'vend_clave',
         'nota_impor',
-        'ban_status'
+        'ban_status',
     ];
 }

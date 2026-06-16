@@ -33,7 +33,22 @@ class ComputersController extends Controller
                 $query->where('group_id', $request->group_id);
             }
 
-            if ($request->filled('status')) {
+            if ($request->filled('plaza')) {
+                $query->where('plaza', $request->plaza);
+            }
+
+            if ($request->filled('status_type')) {
+                $statusType = $request->status_type;
+                $fiveMinAgo = now()->subMinutes(5);
+                if ($statusType === 'online') {
+                    $query->where('last_seen', '>=', $fiveMinAgo);
+                } elseif ($statusType === 'offline') {
+                    $query->where(function ($q) use ($fiveMinAgo) {
+                        $q->whereNull('last_seen')
+                            ->orWhere('last_seen', '<', $fiveMinAgo);
+                    });
+                }
+            } elseif ($request->filled('status')) {
                 $query->where('status', $request->status);
             }
 
@@ -89,6 +104,8 @@ class ComputersController extends Controller
                     'pvsi_fecha' => $computer->pvsi_fecha ?? '-',
                     'pvsi_hora' => $computer->pvsi_hora ?? '-',
                     'pvsi_files' => $computer->pvsi_files ?? [],
+                    'resurtido_version' => $computer->resurtido_version ?? '-',
+                    'resurtido_fecha' => $computer->resurtido_fecha ?? '-',
                     'windows_version' => $computer->windows_version ?? '-',
                     'plaza' => $plaza,
                     'bitlocker_status' => $computer->bitlocker_status ? json_decode($computer->bitlocker_status, true) : null,
@@ -110,8 +127,9 @@ class ComputersController extends Controller
 
         $groups = Group::orderBy('name')->get();
         $statuses = Computer::distinct()->pluck('status')->filter()->values()->toArray();
+        $plazas = Computer::distinct()->pluck('plaza')->filter()->sort()->values()->toArray();
 
-        return view('admin.computers.index', compact('groups', 'statuses'));
+        return view('admin.computers.index', compact('groups', 'statuses', 'plazas'));
     }
 
     public function show(Computer $computer)
@@ -210,6 +228,10 @@ class ComputersController extends Controller
     {
         $computer->delete();
 
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Agente eliminado correctamente']);
+        }
+
         return redirect()->route('admin.computers.index')->with('success', 'Agente eliminado correctamente');
     }
 
@@ -271,6 +293,7 @@ class ComputersController extends Controller
         $csvData[] = [
             'Short Key', 'Nombre', 'MAC', 'IP', 'Estado', 'Plaza', 'Grupo',
             'Agent', 'PVSI', 'PVSI Fecha', 'PVSI Hora',
+            'AgentResurtido', 'Resurtido Fecha',
             'Windows', 'Arquitectura', 'RAM (GB)', 'Disco (GB)',
             'BitLocker', 'Download Path', 'Última Actividad',
         ];
@@ -296,13 +319,12 @@ class ComputersController extends Controller
                 $status,
                 $plaza,
                 $computer->group->name ?? '',
-                $computer->status,
-                $plaza,
-                $computer->group->name ?? 'N/A',
                 $computer->agent_version ?? '',
                 $computer->pvsi_version ?? '',
                 $computer->pvsi_fecha ?? '',
                 $computer->pvsi_hora ?? '',
+                $computer->resurtido_version ?? '',
+                $computer->resurtido_fecha ?? '',
                 $computer->windows_version ?? '',
                 $computer->architecture ?? '',
                 $computer->total_ram ? round($computer->total_ram / 1073741824) : '',

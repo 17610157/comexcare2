@@ -11,7 +11,7 @@ class ReleaseDatabaseConnection
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
-        
+
         try {
             DB::disconnect();
         } catch (\Exception $e) {

@@ -9,7 +9,7 @@ class RoleHelper
 {
     /**
      * Obtener el filtro de usuario basado en su rol y asignaciones
-     * 
+     *
      * Lógica:
      * - Si tiene asignaciones específicas (plaza/tienda): usar esas asignaciones
      * - Si es super_admin/admin Y NO tiene asignaciones: acceso completo
@@ -20,7 +20,7 @@ class RoleHelper
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return [
                 'allowed' => false,
                 'message' => 'No autenticado',
@@ -41,16 +41,16 @@ class RoleHelper
         // Verificar si el usuario tiene PlazaTienda asignada
         if (method_exists($user, 'plazaTiendas')) {
             $userPlazaTiendas = $user->plazaTiendas()->get();
-            
+
             foreach ($userPlazaTiendas as $upt) {
                 // Agregar plaza si no existe
-                if ($upt->plaza && !in_array($upt->plaza, $plazasAsignadas)) {
+                if ($upt->plaza && ! in_array($upt->plaza, $plazasAsignadas)) {
                     $plazasAsignadas[] = $upt->plaza;
                     $tiendasPorPlaza[$upt->plaza] = [];
                 }
-                
+
                 // Agregar tienda específica si existe
-                if ($upt->tienda && !in_array($upt->tienda, $tiendasAsignadas)) {
+                if ($upt->tienda && ! in_array($upt->tienda, $tiendasAsignadas)) {
                     $tiendasAsignadas[] = $upt->tienda;
                     if ($upt->plaza) {
                         $tiendasPorPlaza[$upt->plaza][] = $upt->tienda;
@@ -62,9 +62,9 @@ class RoleHelper
         // Si es super_admin o admin Y tiene asignaciones específicas, usarlas
         // Solo dar acceso completo si NO tiene asignaciones
         $esAdmin = $user->hasRole(['super_admin', 'admin']);
-        $tieneAsignaciones = !empty($plazasAsignadas) || !empty($tiendasAsignadas);
+        $tieneAsignaciones = ! empty($plazasAsignadas) || ! empty($tiendasAsignadas);
 
-        if ($esAdmin && !$tieneAsignaciones) {
+        if ($esAdmin && ! $tieneAsignaciones) {
             // Admin sin asignaciones = acceso completo
             return [
                 'allowed' => true,
@@ -79,7 +79,7 @@ class RoleHelper
         }
 
         // Si no tiene asignaciones y no es admin, denegar acceso
-        if (!$tieneAsignaciones) {
+        if (! $tieneAsignaciones) {
             return [
                 'allowed' => false,
                 'message' => 'No tiene plazas o tiendas asignadas. Contacte al administrador.',
@@ -94,13 +94,13 @@ class RoleHelper
 
         // Determinar si tiene acceso a todas las tiendas de sus plazas
         // Si tiene plazas pero NO tiene tiendas específicas, tiene acceso a todas las tiendas de esas plazas
-        $accesoTodasTiendas = empty($tiendasAsignadas) && !empty($plazasAsignadas);
+        $accesoTodasTiendas = empty($tiendasAsignadas) && ! empty($plazasAsignadas);
 
         return [
             'allowed' => true,
             'message' => $esAdmin ? 'Acceso limitado (admin con asignaciones)' : 'Acceso limitado',
-            'plaza' => !empty($plazasAsignadas) ? $plazasAsignadas : null,
-            'tienda' => !empty($tiendasAsignadas) ? $tiendasAsignadas : null,
+            'plaza' => ! empty($plazasAsignadas) ? $plazasAsignadas : null,
+            'tienda' => ! empty($tiendasAsignadas) ? $tiendasAsignadas : null,
             'plazas_asignadas' => $plazasAsignadas,
             'tiendas_asignadas' => $tiendasAsignadas,
             'tiendas_por_plaza' => $tiendasPorPlaza,
@@ -115,8 +115,8 @@ class RoleHelper
     public static function getTiendasAcceso()
     {
         $filter = self::getUserFilter();
-        
-        if (!$filter['allowed']) {
+
+        if (! $filter['allowed']) {
             return [];
         }
 
@@ -129,7 +129,7 @@ class RoleHelper
         }
 
         // Si tiene tiendas específicas, devolverlas
-        if (!empty($filter['tiendas_asignadas'])) {
+        if (! empty($filter['tiendas_asignadas'])) {
             return $filter['tiendas_asignadas'];
         }
 
@@ -151,8 +151,8 @@ class RoleHelper
     public static function hasAccessToPlaza($plaza)
     {
         $filter = self::getUserFilter();
-        
-        if (!$filter['allowed']) {
+
+        if (! $filter['allowed']) {
             return false;
         }
 
@@ -171,8 +171,8 @@ class RoleHelper
     public static function hasAccessToTienda($tienda)
     {
         $filter = self::getUserFilter();
-        
-        if (!$filter['allowed']) {
+
+        if (! $filter['allowed']) {
             return false;
         }
 
@@ -186,7 +186,7 @@ class RoleHelper
             $tiendaPlaza = DB::table('bi_sys_tiendas')
                 ->where('clave_tienda', $tienda)
                 ->value('id_plaza');
-            
+
             return $tiendaPlaza && in_array($tiendaPlaza, $filter['plazas_asignadas']);
         }
 
@@ -201,7 +201,7 @@ class RoleHelper
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return [];
         }
 
@@ -233,6 +233,7 @@ class RoleHelper
     public static function hasPermission($permission)
     {
         $permissions = self::getUserPermissions();
+
         return in_array($permission, $permissions);
     }
 
@@ -243,8 +244,8 @@ class RoleHelper
     public static function getFiltrosReporte()
     {
         $filter = self::getUserFilter();
-        
-        if (!$filter['allowed']) {
+
+        if (! $filter['allowed']) {
             return [
                 'plazas' => [],
                 'tiendas' => [],
@@ -259,8 +260,8 @@ class RoleHelper
         return [
             'plazas' => $plazas,
             'tiendas' => $tiendas,
-            'plaza_string' => !empty($plazas) ? implode(',', $plazas) : '',
-            'tienda_string' => !empty($tiendas) ? implode(',', $tiendas) : '',
+            'plaza_string' => ! empty($plazas) ? implode(',', $plazas) : '',
+            'tienda_string' => ! empty($tiendas) ? implode(',', $tiendas) : '',
             'acceso_todas_tiendas' => $filter['acceso_todas_tiendas'] ?? false,
         ];
     }
@@ -272,7 +273,7 @@ class RoleHelper
     public static function getListasParaFiltros()
     {
         $filter = self::getUserFilter();
-        
+
         $plazasQuery = DB::table('bi_sys_tiendas')
             ->distinct()
             ->whereNotNull('id_plaza')
@@ -286,12 +287,12 @@ class RoleHelper
         $plazasAsignadas = $filter['plazas_asignadas'] ?? [];
         $tiendasAsignadas = self::getTiendasAcceso();
 
-        if (!empty($plazasAsignadas)) {
+        if (! empty($plazasAsignadas)) {
             $plazasQuery->whereIn('id_plaza', $plazasAsignadas);
             $tiendasQuery->whereIn('id_plaza', $plazasAsignadas);
         }
 
-        if (!empty($tiendasAsignadas)) {
+        if (! empty($tiendasAsignadas)) {
             $tiendasQuery->whereIn('clave_tienda', $tiendasAsignadas);
         }
 

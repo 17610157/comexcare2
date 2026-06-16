@@ -1,6 +1,16 @@
 <?php
 
+use App\Http\Controllers\AgentVersionsController;
+use App\Http\Controllers\Api\AgentController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\ComputersController;
+use App\Http\Controllers\DistributionsController;
+use App\Http\Controllers\FileReceptionController;
+use App\Http\Controllers\GroupsController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MetasMensualController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteDbfFilesController;
 use App\Http\Controllers\ReporteDesgloseController;
@@ -14,8 +24,12 @@ use App\Http\Controllers\ReporteValesController;
 use App\Http\Controllers\ReporteVendedoresB2bController;
 use App\Http\Controllers\ReporteVendedoresController;
 use App\Http\Controllers\ReporteVendedoresMatricialController;
+use App\Http\Controllers\ResurtidoAgentVersionsController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\TiendasController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserPlazaTiendaController;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -23,14 +37,14 @@ Route::get('/', function () {
     return auth()->check() ? redirect()->route('home') : redirect()->route('login');
 });
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->middleware('auth')->name('home');
+Route::get('/home', [HomeController::class, 'index'])->middleware('auth')->name('home');
 
-Route::get('/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
-Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // Rutas de usuarios (protegidas por auth)
-Route::middleware(['auth', 'web'])->prefix('admin/usuarios')->group(function () {
+Route::middleware(['auth'])->prefix('admin/usuarios')->group(function () {
     Route::get('/', [UserController::class, 'index'])->name('usuarios.index');
     Route::get('/data', [UserController::class, 'data'])->name('usuarios.data');
     Route::post('/', [UserController::class, 'store'])->name('usuarios.store');
@@ -40,7 +54,7 @@ Route::middleware(['auth', 'web'])->prefix('admin/usuarios')->group(function () 
 });
 
 // Rutas de roles (protegidas por auth)
-Route::middleware(['auth', 'web'])->prefix('admin/roles')->group(function () {
+Route::middleware(['auth'])->prefix('admin/roles')->group(function () {
     Route::get('/', [RoleController::class, 'index'])->name('roles.index');
     Route::get('/data', [RoleController::class, 'data'])->name('roles.data');
     Route::post('/', [RoleController::class, 'store'])->name('roles.store');
@@ -51,7 +65,7 @@ Route::middleware(['auth', 'web'])->prefix('admin/roles')->group(function () {
 });
 
 // Rutas de permisos (protegidas por auth)
-Route::middleware(['auth', 'web'])->prefix('admin/permissions')->group(function () {
+Route::middleware(['auth'])->prefix('admin/permissions')->group(function () {
     Route::get('/', [PermissionController::class, 'index'])->name('permissions.index')->middleware('can:admin.permissions.ver');
     Route::get('/data', [PermissionController::class, 'data'])->name('permissions.data')->middleware('can:admin.permissions.ver');
     Route::post('/', [PermissionController::class, 'store'])->name('permissions.store')->middleware('can:admin.permissions.crear');
@@ -61,7 +75,7 @@ Route::middleware(['auth', 'web'])->prefix('admin/permissions')->group(function 
 });
 
 // Rutas de reportes
-Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
+Route::middleware(['auth'])->prefix('reportes')->group(function () {
     Route::get('/', function () {
         return redirect()->route('reportes.vendedores');
     })->name('reportes.index')->middleware('can:reportes.ver');
@@ -202,19 +216,19 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
 
     // REPORTE: DBF Files (Computadoras)
     Route::get('dbf-files', [ReporteDbfFilesController::class, 'index'])
-        ->name('reportes.dbf-files')->middleware('can:reportes.compras-directo.ver');
+        ->name('reportes.dbf-files')->middleware('can:dbf-files.ver');
     Route::get('dbf-files/data', [ReporteDbfFilesController::class, 'data'])
-        ->name('reportes.dbf-files.data')->middleware('can:reportes.compras-directo.ver');
+        ->name('reportes.dbf-files.data')->middleware('can:dbf-files.ver');
     Route::get('dbf-files/export', [ReporteDbfFilesController::class, 'export'])
-        ->name('reportes.dbf-files.export')->middleware('can:reportes.compras-directo.ver');
+        ->name('reportes.dbf-files.export')->middleware('can:dbf-files.ver');
 
     // REPORTE: Vales
     Route::get('vales', [ReporteValesController::class, 'index'])
-        ->name('reportes.vales')->middleware('can:reportes.compras-directo.ver');
+        ->name('reportes.vales')->middleware('can:reportes.vales.ver');
     Route::get('vales/data', [ReporteValesController::class, 'data'])
-        ->name('reportes.vales.data')->middleware('can:reportes.compras-directo.ver');
+        ->name('reportes.vales.data')->middleware('can:reportes.vales.ver');
     Route::get('vales/export', [ReporteValesController::class, 'export'])
-        ->name('reportes.vales.export')->middleware('can:reportes.compras-directo.ver');
+        ->name('reportes.vales.export')->middleware('can:reportes.vales.ver');
 
     // Redenciones Club Comex
     Route::get('redenciones-club', [ReporteRedencionesClubController::class, 'index'])
@@ -232,95 +246,98 @@ Route::middleware(['auth', 'web'])->prefix('reportes')->group(function () {
 });
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:admin.ver')->group(function () {
-    Route::resource('distributions', \App\Http\Controllers\DistributionsController::class);
-    Route::post('distributions/{distribution}/stop', [\App\Http\Controllers\DistributionsController::class, 'stop'])->name('distributions.stop');
-    Route::post('distributions/{distribution}/start', [\App\Http\Controllers\DistributionsController::class, 'start'])->name('distributions.start');
-    Route::post('distributions/target/{target}/retry', [\App\Http\Controllers\DistributionsController::class, 'retryTarget'])->name('distributions.retry-target');
-    Route::get('distributions/{distribution}/progress', [\App\Http\Controllers\DistributionsController::class, 'progress'])->name('distributions.progress');
+    Route::resource('distributions', DistributionsController::class);
+    Route::post('distributions/{distribution}/stop', [DistributionsController::class, 'stop'])->name('distributions.stop');
+    Route::post('distributions/{distribution}/start', [DistributionsController::class, 'start'])->name('distributions.start');
+    Route::post('distributions/{distribution}/restart', [DistributionsController::class, 'restart'])->name('distributions.restart');
+    Route::post('distributions/target/{target}/retry', [DistributionsController::class, 'retryTarget'])->name('distributions.retry-target');
+    Route::get('distributions/{distribution}/progress', [DistributionsController::class, 'progress'])->name('distributions.progress');
 
-    Route::resource('computers', \App\Http\Controllers\ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
-    Route::get('computers/{computer}/logs', [\App\Http\Controllers\ComputersController::class, 'logs'])->name('computers.logs');
-    Route::get('computers/{computer}/status', [\App\Http\Controllers\ComputersController::class, 'status'])->name('computers.status');
-    Route::get('computers-exportar', [\App\Http\Controllers\ComputersController::class, 'export'])->name('computers.export');
-    Route::get('groups/export', [\App\Http\Controllers\GroupsController::class, 'export'])->name('groups.export');
-    Route::post('groups/import-excel', [\App\Http\Controllers\GroupsController::class, 'importExcel'])->name('groups.import-excel');
-    Route::resource('groups', \App\Http\Controllers\GroupsController::class);
-    Route::resource('agent-versions', \App\Http\Controllers\AgentVersionsController::class);
+    Route::resource('computers', ComputersController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
+    Route::get('computers/{computer}/logs', [ComputersController::class, 'logs'])->name('computers.logs');
+    Route::get('computers/{computer}/status', [ComputersController::class, 'status'])->name('computers.status');
+    Route::get('computers-exportar', [ComputersController::class, 'export'])->name('computers.export');
+    Route::get('groups/export', [GroupsController::class, 'export'])->name('groups.export');
+    Route::post('groups/import-excel', [GroupsController::class, 'importExcel'])->name('groups.import-excel');
+    Route::resource('groups', GroupsController::class);
+    Route::resource('agent-versions', AgentVersionsController::class);
+    Route::resource('resurtido-agent-versions', ResurtidoAgentVersionsController::class);
+    Route::post('resurtido-agent-versions/{resurtido_agent_version}/deploy', [ResurtidoAgentVersionsController::class, 'deploy'])->name('resurtido-agent-versions.deploy');
 
-    Route::post('reception/{reception}/stop', [\App\Http\Controllers\ReceptionController::class, 'stop'])->name('reception.stop');
-    Route::post('reception/{reception}/start', [\App\Http\Controllers\ReceptionController::class, 'start'])->name('reception.start');
-    Route::post('reception/target/{target}/retry', [\App\Http\Controllers\ReceptionController::class, 'retryTarget'])->name('reception.retry-target');
-    Route::get('reception/computer/{computer}', [\App\Http\Controllers\ReceptionController::class, 'showComputer'])->name('reception.computer');
-    Route::resource('reception', \App\Http\Controllers\ReceptionController::class);
+    Route::post('reception/{reception}/stop', [ReceptionController::class, 'stop'])->name('reception.stop');
+    Route::post('reception/{reception}/start', [ReceptionController::class, 'start'])->name('reception.start');
+    Route::post('reception/target/{target}/retry', [ReceptionController::class, 'retryTarget'])->name('reception.retry-target');
+    Route::get('reception/computer/{computer}', [ReceptionController::class, 'showComputer'])->name('reception.computer');
+    Route::resource('reception', ReceptionController::class);
 
     // File Reception (Subida de archivos)
-    Route::resource('file-receptions', \App\Http\Controllers\FileReceptionController::class);
+    Route::resource('file-receptions', FileReceptionController::class);
 
     // User Plaza Tienda - Solo super_admin
     Route::middleware('can:admin.usuarios.ver')->group(function () {
-        Route::get('user-plaza-tienda', [\App\Http\Controllers\UserPlazaTiendaController::class, 'index'])->name('user-plaza-tienda.index');
-        Route::get('user-plaza-tienda/{user}/edit', [\App\Http\Controllers\UserPlazaTiendaController::class, 'edit'])->name('user-plaza-tienda.edit');
-        Route::get('user-plaza-tienda/tiendas', [\App\Http\Controllers\UserPlazaTiendaController::class, 'getTiendas'])->name('user-plaza-tienda.tiendas');
+        Route::get('user-plaza-tienda', [UserPlazaTiendaController::class, 'index'])->name('user-plaza-tienda.index');
+        Route::get('user-plaza-tienda/{user}/edit', [UserPlazaTiendaController::class, 'edit'])->name('user-plaza-tienda.edit');
+        Route::get('user-plaza-tienda/tiendas', [UserPlazaTiendaController::class, 'getTiendas'])->name('user-plaza-tienda.tiendas');
     });
 
     Route::middleware('can:admin.usuarios.editar')->group(function () {
-        Route::put('user-plaza-tienda/{user}', [\App\Http\Controllers\UserPlazaTiendaController::class, 'update'])->name('user-plaza-tienda.update');
+        Route::put('user-plaza-tienda/{user}', [UserPlazaTiendaController::class, 'update'])->name('user-plaza-tienda.update');
     });
 
     // Tiendas - Solo super_admin
     Route::middleware('can:tiendas.ver')->group(function () {
-        Route::get('tiendas', [\App\Http\Controllers\TiendasController::class, 'index'])->name('tiendas.index');
-        Route::get('tiendas/data', [\App\Http\Controllers\TiendasController::class, 'data'])->name('tiendas.data');
-        Route::get('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'show'])->name('tiendas.show');
+        Route::get('tiendas', [TiendasController::class, 'index'])->name('tiendas.index');
+        Route::get('tiendas/data', [TiendasController::class, 'data'])->name('tiendas.data');
+        Route::get('tiendas/{tienda}', [TiendasController::class, 'show'])->name('tiendas.show');
     });
 
     Route::middleware('can:tiendas.crear')->group(function () {
-        Route::post('tiendas', [\App\Http\Controllers\TiendasController::class, 'store'])->name('tiendas.store');
+        Route::post('tiendas', [TiendasController::class, 'store'])->name('tiendas.store');
     });
 
     Route::middleware('can:tiendas.editar')->group(function () {
-        Route::put('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'update'])->name('tiendas.update');
+        Route::put('tiendas/{tienda}', [TiendasController::class, 'update'])->name('tiendas.update');
     });
 
     Route::middleware('can:tiendas.eliminar')->group(function () {
-        Route::delete('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'destroy'])->name('tiendas.destroy');
+        Route::delete('tiendas/{tienda}', [TiendasController::class, 'destroy'])->name('tiendas.destroy');
     });
 
     Route::middleware('can:tiendas.crear')->group(function () {
-        Route::post('tiendas', [\App\Http\Controllers\TiendasController::class, 'store'])->name('tiendas.store');
+        Route::post('tiendas', [TiendasController::class, 'store'])->name('tiendas.store');
     });
 
     Route::middleware('can:tiendas.editar')->group(function () {
-        Route::put('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'update'])->name('tiendas.update');
+        Route::put('tiendas/{tienda}', [TiendasController::class, 'update'])->name('tiendas.update');
     });
 
     Route::middleware('can:tiendas.eliminar')->group(function () {
-        Route::delete('tiendas/{tienda}', [\App\Http\Controllers\TiendasController::class, 'destroy'])->name('tiendas.destroy');
+        Route::delete('tiendas/{tienda}', [TiendasController::class, 'destroy'])->name('tiendas.destroy');
     });
 });
 
 // Metas Mensual Import routes (protected by auth)
 Route::middleware(['auth'])->group(function () {
-    Route::get('/metas-mensual', [App\Http\Controllers\MetasMensualController::class, 'index'])->name('metas.index')->middleware('can:metas.ver');
-    Route::post('/metas-mensual/import', [App\Http\Controllers\MetasMensualController::class, 'import'])->name('metas.import')->middleware('can:metas.importar');
+    Route::get('/metas-mensual', [MetasMensualController::class, 'index'])->name('metas.index')->middleware('can:metas.ver');
+    Route::post('/metas-mensual/import', [MetasMensualController::class, 'import'])->name('metas.import')->middleware('can:metas.importar');
     // CRUD for metas_mensual
-    Route::post('/metas-mensual/store', [App\Http\Controllers\MetasMensualController::class, 'store'])->name('metas.store')->middleware('can:metas.crear');
-    Route::post('/metas-mensual/update', [App\Http\Controllers\MetasMensualController::class, 'update'])->name('metas.update')->middleware('can:metas.editar');
-    Route::post('/metas-mensual/delete', [App\Http\Controllers\MetasMensualController::class, 'destroy'])->name('metas.destroy')->middleware('can:metas.eliminar');
-    Route::post('/metas-mensual/generar', [App\Http\Controllers\MetasMensualController::class, 'generarMetas'])->name('metas.generar')->middleware('can:metas.crear');
+    Route::post('/metas-mensual/store', [MetasMensualController::class, 'store'])->name('metas.store')->middleware('can:metas.crear');
+    Route::post('/metas-mensual/update', [MetasMensualController::class, 'update'])->name('metas.update')->middleware('can:metas.editar');
+    Route::post('/metas-mensual/delete', [MetasMensualController::class, 'destroy'])->name('metas.destroy')->middleware('can:metas.eliminar');
+    Route::post('/metas-mensual/generar', [MetasMensualController::class, 'generarMetas'])->name('metas.generar')->middleware('can:metas.crear');
 });
 
 // Agent API routes (no auth, no CSRF for agents)
-Route::get('/api/register', [App\Http\Controllers\Api\AgentController::class, 'register'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::post('/api/heartbeat', [App\Http\Controllers\Api\AgentController::class, 'heartbeat'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/commands/{id}', [App\Http\Controllers\Api\AgentController::class, 'getCommands'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::post('/api/report', [App\Http\Controllers\Api\AgentController::class, 'report'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/check-update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/computer/{computer_id}/update', [App\Http\Controllers\Api\AgentController::class, 'checkUpdateByComputerId'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::post('/api/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::post('/api/upload-reception', [App\Http\Controllers\Api\AgentController::class, 'uploadReception'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+Route::get('/api/register', [AgentController::class, 'register'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::post('/api/heartbeat', [AgentController::class, 'heartbeat'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/commands/{id}', [AgentController::class, 'getCommands'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::post('/api/report', [AgentController::class, 'report'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/download/{fileId}', [AgentController::class, 'download'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/update/{version}', [AgentController::class, 'checkUpdate'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/check-update/{version}', [AgentController::class, 'checkUpdate'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/computer/{computer_id}/update', [AgentController::class, 'checkUpdateByComputerId'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::post('/api/inventory', [AgentController::class, 'inventory'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::post('/api/upload-reception', [AgentController::class, 'uploadReception'])->withoutMiddleware([VerifyCsrfToken::class]);
 
 // Serve agent updates directly without middleware
 Route::get('/agent-updates/{path}', function (string $path) {
@@ -332,8 +349,8 @@ Route::get('/agent-updates/{path}', function (string $path) {
     }
 
     return response()->file($fullPath);
-})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::get('/api/dias-periodo', [App\Http\Controllers\MetasMensualController::class, 'getDiasPeriodo'])->middleware('can:metas.ver');
-Route::post('/metas-dias/generate', [App\Http\Controllers\MetasMensualController::class, 'generateDias'])->name('metas_dias.generate')->middleware('can:metas.crear');
-Route::get('/metas-mensual/performance-test', [App\Http\Controllers\MetasMensualController::class, 'performanceTest'])
+})->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/dias-periodo', [MetasMensualController::class, 'getDiasPeriodo'])->middleware('can:metas.ver');
+Route::post('/metas-dias/generate', [MetasMensualController::class, 'generateDias'])->name('metas_dias.generate')->middleware('can:metas.crear');
+Route::get('/metas-mensual/performance-test', [MetasMensualController::class, 'performanceTest'])
     ->name('metas.performance.test')->middleware('can:metas.ver');

@@ -1,9 +1,9 @@
 <?php
+
 /**
  * Script para crear tablas básicas de Laravel manualmente
  * Ejecutar con: php create_tables.php
  */
-
 echo "=== CREANDO TABLAS BÁSICAS DE LARAVEL ===\n\n";
 
 try {
@@ -24,29 +24,29 @@ try {
     echo "✓ Conexión a PostgreSQL exitosa\n";
 
     // Crear tabla cache
-    $sqlCache = "
+    $sqlCache = '
     CREATE TABLE IF NOT EXISTS cache (
         key VARCHAR(255) PRIMARY KEY,
         value TEXT,
         expiration INTEGER
     );
-    ";
+    ';
     $pdo->exec($sqlCache);
     echo "✓ Tabla 'cache' creada/verificada\n";
 
     // Crear tabla cache_locks
-    $sqlCacheLocks = "
+    $sqlCacheLocks = '
     CREATE TABLE IF NOT EXISTS cache_locks (
         key VARCHAR(255) PRIMARY KEY,
         owner VARCHAR(255),
         expiration INTEGER
     );
-    ";
+    ';
     $pdo->exec($sqlCacheLocks);
     echo "✓ Tabla 'cache_locks' creada/verificada\n";
 
     // Crear tabla jobs (para colas)
-    $sqlJobs = "
+    $sqlJobs = '
     CREATE TABLE IF NOT EXISTS jobs (
         id BIGSERIAL PRIMARY KEY,
         queue VARCHAR(255) NOT NULL,
@@ -56,12 +56,12 @@ try {
         available_at INTEGER NOT NULL,
         created_at INTEGER NOT NULL
     );
-    ";
+    ';
     $pdo->exec($sqlJobs);
     echo "✓ Tabla 'jobs' creada/verificada\n";
 
     // Crear tabla failed_jobs
-    $sqlFailedJobs = "
+    $sqlFailedJobs = '
     CREATE TABLE IF NOT EXISTS failed_jobs (
         id BIGSERIAL PRIMARY KEY,
         uuid VARCHAR(255) UNIQUE NOT NULL,
@@ -71,12 +71,12 @@ try {
         exception TEXT NOT NULL,
         failed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    ";
+    ';
     $pdo->exec($sqlFailedJobs);
     echo "✓ Tabla 'failed_jobs' creada/verificada\n";
 
     // Crear tabla users
-    $sqlUsers = "
+    $sqlUsers = '
     CREATE TABLE IF NOT EXISTS users (
         id BIGSERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -87,7 +87,7 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    ";
+    ';
     $pdo->exec($sqlUsers);
     echo "✓ Tabla 'users' creada/verificada\n";
 
@@ -100,14 +100,14 @@ try {
             AND table_name = '$table'
         )");
         $exists = $result->fetch()['exists'];
-        echo "✓ Verificación tabla '$table': " . ($exists ? 'EXISTE' : 'NO EXISTE') . "\n";
+        echo "✓ Verificación tabla '$table': ".($exists ? 'EXISTE' : 'NO EXISTE')."\n";
     }
 
     echo "\n🎉 TODAS LAS TABLAS BÁSICAS DE LARAVEL HAN SIDO CREADAS!\n";
     echo "\nAhora puedes probar los reportes sin errores de tabla faltante.\n";
 
 } catch (Exception $e) {
-    echo "\n❌ ERROR: " . $e->getMessage() . "\n";
+    echo "\n❌ ERROR: ".$e->getMessage()."\n";
     echo "Posibles causas:\n";
     echo "- Sin permisos para crear tablas\n";
     echo "- Conexión a BD fallida\n";

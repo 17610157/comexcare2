@@ -1,12 +1,14 @@
 <?php
+
 /**
  * SCRIPT DE VERIFICACIÓN - Reporte Metas Matricial
  * Ejecutar con: php verificar_metas_matricial.php
  */
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use App\Services\ReportService;
+use Illuminate\Contracts\Http\Kernel;
 
 echo "========================================\n";
 echo "VERIFICACIÓN - REPORTE METAS MATRICIAL\n";
@@ -14,8 +16,8 @@ echo "========================================\n\n";
 
 try {
     // Inicializar Laravel
-    $app = require_once __DIR__ . '/bootstrap/app.php';
-    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $app = require_once __DIR__.'/bootstrap/app.php';
+    $kernel = $app->make(Kernel::class);
     $kernel->bootstrap();
 
     echo "✓ Laravel inicializado correctamente\n";
@@ -62,7 +64,7 @@ try {
         }
     }
 
-    if (!empty($metasMatricialRoutes)) {
+    if (! empty($metasMatricialRoutes)) {
         echo "✓ Rutas registradas:\n";
         foreach ($metasMatricialRoutes as $route) {
             echo "  - {$route}\n";
@@ -80,7 +82,7 @@ try {
         'fecha_fin' => '2024-01-05',
         'plaza' => '',
         'tienda' => '',
-        'zona' => ''
+        'zona' => '',
     ];
 
     $inicio = microtime(true);
@@ -89,15 +91,15 @@ try {
         $tiempo = round((microtime(true) - $inicio) * 1000, 2);
 
         echo "✓ Método ejecutado correctamente en {$tiempo}ms\n";
-        echo "✓ Datos obtenidos: " . count($datos['tiendas'] ?? []) . " tiendas\n";
-        echo "✓ Fechas procesadas: " . count($datos['fechas'] ?? []) . "\n";
+        echo '✓ Datos obtenidos: '.count($datos['tiendas'] ?? [])." tiendas\n";
+        echo '✓ Fechas procesadas: '.count($datos['fechas'] ?? [])."\n";
 
         if (isset($datos['matriz'])) {
             echo "✓ Estructura de matriz correcta\n";
         }
 
     } catch (Exception $e) {
-        echo "❌ ERROR en ejecución: " . $e->getMessage() . "\n";
+        echo '❌ ERROR en ejecución: '.$e->getMessage()."\n";
         echo "Esto puede ser normal si no hay datos en las fechas de prueba.\n";
     }
 
@@ -121,6 +123,6 @@ try {
     echo "========================================\n";
 
 } catch (Exception $e) {
-    echo "\n❌ ERROR CRÍTICO: " . $e->getMessage() . "\n";
+    echo "\n❌ ERROR CRÍTICO: ".$e->getMessage()."\n";
     echo "Verifica la configuración de Laravel y la conexión a base de datos.\n";
 }

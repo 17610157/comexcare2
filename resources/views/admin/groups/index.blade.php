@@ -1,9 +1,9 @@
 @extends('adminlte::page')
 
-@section('title', 'Groups')
+@section('title', 'Grupos')
 
 @section('content_header')
-    <h1>Groups</h1>
+    <h1>Grupos</h1>
 @stop
 
 @section('content')
@@ -26,7 +26,7 @@
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div class="btn-group flex-wrap">
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createGroupModal">
-                        <i class="fas fa-plus"></i> <span class="d-none d-sm-inline">Create</span>
+                        <i class="fas fa-plus"></i> <span class="d-none d-sm-inline">Crear</span>
                     </button>
                     <button type="button" class="btn btn-success" data-toggle="modal" data-target="#importExcelModal">
                         <i class="fas fa-file-import"></i> <span class="d-none d-sm-inline">Importar</span>
@@ -45,12 +45,12 @@
                 <table class="table table-bordered table-striped table-hover table-sm mb-0">
                     <thead class="bg-dark">
                         <tr>
-                            <th class="text-nowrap">Name</th>
-                            <th class="text-nowrap">Short Keys</th>
-                            <th class="text-nowrap">Type</th>
+                            <th class="text-nowrap">Nombre</th>
+                            <th class="text-nowrap">Claves Cortas</th>
+                            <th class="text-nowrap">Tipo</th>
                             <th class="text-nowrap d-none d-lg-table-cell">Description</th>
-                            <th class="text-nowrap text-center">Computers</th>
-                            <th class="text-nowrap text-center">Actions</th>
+                            <th class="text-nowrap text-center">Computadoras</th>
+                            <th class="text-nowrap text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -86,7 +86,7 @@
                                     </a>
                                 </td>
                                 <td class="text-center text-nowrap">
-                                    <button class="btn btn-warning btn-sm" onclick='editGroup({{ $group->id }}, {{ json_encode($group->name) }}, {{ json_encode($group->description) }}, {{ json_encode($group->type) }}, {{ json_encode($group->shortKeys->pluck('short_key')->toArray()) }})' title="Editar">
+                                    <button class="btn btn-warning btn-sm" onclick='editGroup({{ $group->id }}, {{ json_encode($group->name) }}, {{ json_encode($group->description) }}, {{ json_encode($group->type) }}, {{ json_encode($group->computers->pluck('id')->toArray()) }}, {{ json_encode($group->computers->pluck('plaza')->toArray()) }})' title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-danger btn-sm" onclick='deleteGroup({{ $group->id }}, {{ json_encode($group->name) }})' title="Eliminar">
@@ -114,28 +114,23 @@
 
     <!-- Create Modal -->
     <div class="modal fade" id="createGroupModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <form action="{{ route('admin.groups.store') }}" method="POST">
                     @csrf
                     <div class="modal-header">
-                        <h5 class="modal-title">Create Group</h5>
+                        <h5 class="modal-title">Crear Grupo</h5>
                         <button type="button" class="close" data-dismiss="modal">
                             <span>&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
-                        <div class="form-group">
-                            <label>Name *</label>
-                            <input type="text" name="name" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Short Keys</label>
-                            <input type="text" name="short_keys" id="createShortKeys" class="form-control" placeholder="TCE001, TCE002, TCE003 (separados por coma)">
-                            <small class="form-text text-muted">Separa múltiples short keys con coma</small>
-                        </div>
-                        <div class="form-group">
-                            <label>Type</label>
+<div class="form-group">
+                             <label>Nombre *</label>
+                             <input type="text" name="name" class="form-control" required>
+                         </div>
+                         <div class="form-group">
+                             <label>Tipo</label>
                             <select name="type" class="form-control">
                                 <option value="">Seleccionar...</option>
                                 <option value="tienda">Tienda</option>
@@ -146,14 +141,42 @@
                                 <option value="cobranza">Cobranza</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <textarea name="description" class="form-control" rows="2"></textarea>
+<div class="form-group">
+                             <label>Descripción</label>
+                             <textarea name="description" class="form-control" rows="2"></textarea>
+                         </div>
+ 
+                         <div class="card card-info mt-3">
+                             <div class="card-header">
+                                 <h6 class="card-title mb-0"><i class="fas fa-desktop"></i> Agregar Computadoras al Grupo</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group mb-3">
+                                    <label>Seleccionar Plaza</label>
+                                    <select id="plazaSelect" class="form-control">
+                                        <option value="">-- Seleccionar Plaza --</option>
+                                        @foreach($plazas as $plaza)
+                                            <option value="{{ $plaza }}">{{ $plaza }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div id="computersContainer" class="d-none">
+                                    <label>Computers en la Plaza seleccionada:</label>
+                                    <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                        <div id="computersList"></div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-link" onclick="selectAllComputers()">Seleccionar todas</button>
+                                        <button type="button" class="btn btn-sm btn-link" onclick="deselectAllComputers()">Deseleccionar todas</button>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="computer_ids" id="computerIds">
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Create</button>
+<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                         <button type="submit" class="btn btn-primary">Crear</button>
                     </div>
                 </form>
             </div>
@@ -168,7 +191,7 @@
                     @csrf
                     @method('PUT')
                     <div class="modal-header">
-                        <h5 class="modal-title">Edit Group</h5>
+                        <h5 class="modal-title">Editar Grupo</h5>
                         <button type="button" class="close" data-dismiss="modal">
                             <span>&times;</span>
                         </button>
@@ -177,11 +200,6 @@
                         <div class="form-group">
                             <label>Name *</label>
                             <input type="text" name="name" id="editName" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Short Keys</label>
-                            <input type="text" name="short_keys" id="editShortKeys" class="form-control" placeholder="TCE001, TCE002, TCE003 (separados por coma)">
-                            <small class="form-text text-muted">Separa múltiples short keys con coma. Se reemplazarán las existentes.</small>
                         </div>
                         <div class="form-group">
                             <label>Type</label>
@@ -199,10 +217,38 @@
                             <label>Description</label>
                             <textarea name="description" id="editDescription" class="form-control" rows="2"></textarea>
                         </div>
+
+                        <div class="card card-info mt-3">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0"><i class="fas fa-desktop"></i> Asignar Computers al Grupo</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group mb-3">
+                                    <label>Seleccionar Plaza</label>
+                                    <select id="editPlazaSelect" class="form-control">
+                                        <option value="">-- Seleccionar Plaza --</option>
+                                        @foreach($plazas as $plaza)
+                                            <option value="{{ $plaza }}">{{ $plaza }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div id="editComputersContainer" class="d-none">
+                                    <label>Computers en la Plaza seleccionada:</label>
+                                    <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                        <div id="editComputersList"></div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-link" onclick="editSelectAllComputers()">Seleccionar todas</button>
+                                        <button type="button" class="btn btn-sm btn-link" onclick="editDeselectAllComputers()">Deseleccionar todas</button>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="computer_ids" id="editComputerIds">
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update</button>
+<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                         <button type="submit" class="btn btn-primary">Actualizar</button>
                     </div>
                 </form>
             </div>
@@ -229,7 +275,7 @@
                                     <thead class="thead-light">
                                         <tr>
                                             <th>Nombre</th>
-                                            <th>Short Keys (separados por coma)</th>
+                                            <th>Claves Cortas (separadas por coma)</th>
                                             <th>Tipo</th>
                                             <th>Descripción</th>
                                             <th>IDs Tiendas</th>
@@ -254,9 +300,9 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-upload"></i> Importar
+<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                         <button type="submit" class="btn btn-success">
+                             <i class="fas fa-upload"></i> Importar
                         </button>
                     </div>
                 </form>
@@ -267,12 +313,45 @@
 
 @section('js')
 <script>
-function editGroup(id, name, description, type, shortKeysArray) {
+const computersData = @json($computers);
+
+let selectedComputerIds = [];
+
+function editGroup(id, name, description, type, computerIdsArray, computerPlazas) {
     document.getElementById('editGroupForm').action = '{{ url("admin/groups") }}/' + id;
     document.getElementById('editName').value = name;
     document.getElementById('editDescription').value = description || '';
     document.getElementById('editType').value = type || '';
-    document.getElementById('editShortKeys').value = (shortKeysArray || []).join(', ');
+
+    editSelectedComputerIds = computerIdsArray || [];
+    document.getElementById('editComputerIds').value = editSelectedComputerIds.join(',');
+
+    document.getElementById('editPlazaSelect').value = '';
+    document.getElementById('editComputersContainer').classList.add('d-none');
+
+    if (computerPlazas && computerPlazas.length > 0) {
+        const uniquePlazas = [...new Set(computerPlazas)];
+        if (uniquePlazas.length === 1) {
+            document.getElementById('editPlazaSelect').value = uniquePlazas[0];
+            document.getElementById('editPlazaSelect').dispatchEvent(new Event('change'));
+        } else {
+            document.getElementById('editComputersContainer').classList.remove('d-none');
+            const listContainer = document.getElementById('editComputersList');
+            const allGroupComputers = computersData.filter(c => computerIdsArray.includes(c.id));
+            listContainer.innerHTML = allGroupComputers.map(c => `
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input edit-computer-checkbox"
+                           id="edit_computer_${c.id}" value="${c.id}" checked
+                           onchange="editToggleComputer(${c.id})">
+                    <label class="form-check-label" for="edit_computer_${c.id}">
+                        ${c.computer_name} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
+                        <span class="badge badge-info ml-1">${c.plaza}</span>
+                    </label>
+                </div>
+            `).join('');
+        }
+    }
+
     $('#editGroupModal').modal('show');
 }
 
@@ -306,6 +385,150 @@ function deleteGroup(id, name) {
         }
     });
 }
+
+document.getElementById('plazaSelect').addEventListener('change', function() {
+    const plaza = this.value;
+    const container = document.getElementById('computersContainer');
+    const listContainer = document.getElementById('computersList');
+
+    if (!plaza) {
+        container.classList.add('d-none');
+        return;
+    }
+
+    const computersInPlaza = computersData.filter(c => c.plaza === plaza);
+
+    if (computersInPlaza.length === 0) {
+        listContainer.innerHTML = '<div class="text-muted">No hay computadoras en esta plaza</div>';
+        container.classList.remove('d-none');
+        return;
+    }
+
+    listContainer.innerHTML = computersInPlaza.map(c => `
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input computer-checkbox"
+                   id="computer_${c.id}" value="${c.id}"
+                   ${selectedComputerIds.includes(c.id) ? 'checked' : ''}
+                   onchange="toggleComputer(${c.id})">
+            <label class="form-check-label" for="computer_${c.id}">
+                ${c.computer_name} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
+            </label>
+        </div>
+    `).join('');
+
+    container.classList.remove('d-none');
+});
+
+function toggleComputer(id) {
+    const index = selectedComputerIds.indexOf(id);
+    if (index === -1) {
+        selectedComputerIds.push(id);
+    } else {
+        selectedComputerIds.splice(index, 1);
+    }
+    document.getElementById('computerIds').value = selectedComputerIds.join(',');
+}
+
+function selectAllComputers() {
+    const checkboxes = document.querySelectorAll('.computer-checkbox');
+    checkboxes.forEach(cb => {
+        const id = parseInt(cb.value);
+        if (!selectedComputerIds.includes(id)) {
+            selectedComputerIds.push(id);
+        }
+        cb.checked = true;
+    });
+    document.getElementById('computerIds').value = selectedComputerIds.join(',');
+}
+
+function deselectAllComputers() {
+    const checkboxes = document.querySelectorAll('.computer-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+    });
+    selectedComputerIds = [];
+    document.getElementById('computerIds').value = '';
+}
+
+$('#createGroupModal').on('hidden.bs.modal', function() {
+    selectedComputerIds = [];
+    document.getElementById('plazaSelect').value = '';
+    document.getElementById('computersContainer').classList.add('d-none');
+    document.getElementById('computerIds').value = '';
+});
+
+let editSelectedComputerIds = [];
+
+document.getElementById('editPlazaSelect').addEventListener('change', function() {
+    const plaza = this.value;
+    const container = document.getElementById('editComputersContainer');
+    const listContainer = document.getElementById('editComputersList');
+
+    if (!plaza) {
+        container.classList.add('d-none');
+        return;
+    }
+
+    const computersInPlaza = computersData.filter(c => c.plaza === plaza);
+
+    if (computersInPlaza.length === 0) {
+        listContainer.innerHTML = '<div class="text-muted">No hay computadoras en esta plaza</div>';
+        container.classList.remove('d-none');
+        return;
+    }
+
+    listContainer.innerHTML = computersInPlaza.map(c => `
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input edit-computer-checkbox"
+                   id="edit_computer_${c.id}" value="${c.id}"
+                   ${editSelectedComputerIds.includes(c.id) ? 'checked' : ''}
+                   onchange="editToggleComputer(${c.id})">
+            <label class="form-check-label" for="edit_computer_${c.id}">
+                ${c.computer_name} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
+            </label>
+        </div>
+    `).join('');
+
+    container.classList.remove('d-none');
+});
+
+function editToggleComputer(id) {
+    const index = editSelectedComputerIds.indexOf(id);
+    if (index === -1) {
+        editSelectedComputerIds.push(id);
+    } else {
+        editSelectedComputerIds.splice(index, 1);
+    }
+    document.getElementById('editComputerIds').value = editSelectedComputerIds.join(',');
+}
+
+function editSelectAllComputers() {
+    const checkboxes = document.querySelectorAll('.edit-computer-checkbox');
+    checkboxes.forEach(cb => {
+        const id = parseInt(cb.value);
+        if (!editSelectedComputerIds.includes(id)) {
+            editSelectedComputerIds.push(id);
+        }
+        cb.checked = true;
+    });
+    document.getElementById('editComputerIds').value = editSelectedComputerIds.join(',');
+}
+
+function editDeselectAllComputers() {
+    const checkboxes = document.querySelectorAll('.edit-computer-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+    });
+    editSelectedComputerIds = [];
+    document.getElementById('editComputerIds').value = '';
+}
+
+$('#editGroupModal').on('hidden.bs.modal', function() {
+    editSelectedComputerIds = [];
+    document.getElementById('editPlazaSelect').value = '';
+    document.getElementById('editComputersContainer').classList.add('d-none');
+    document.getElementById('editComputerIds').value = '';
+});
 
 $(document).ready(function() {
     setTimeout(function() {

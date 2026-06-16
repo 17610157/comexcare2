@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Jobs\ProcessDistributionJob;
 use App\Jobs\RetryDistribution;
+use App\Models\Command;
 use App\Models\Computer;
 use App\Models\Distribution;
 use App\Models\DistributionFile;
@@ -135,7 +136,7 @@ class DistributionServiceTest extends TestCase
 
         $this->service->sendDownloadCommand($target);
 
-        $command = \App\Models\Command::where('computer_id', $computer->id)
+        $command = Command::where('computer_id', $computer->id)
             ->where('type', 'download')
             ->first();
 

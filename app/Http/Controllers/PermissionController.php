@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionController extends Controller
 {
@@ -46,7 +46,7 @@ class PermissionController extends Controller
     public function update(Request $request, Permission $permission)
     {
         $request->validate([
-            'name' => 'required|unique:permissions,name,' . $permission->id,
+            'name' => 'required|unique:permissions,name,'.$permission->id,
             'guard_name' => 'required',
         ]);
 
@@ -69,16 +69,16 @@ class PermissionController extends Controller
     {
         try {
             // Limpiar caché de permisos
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Caché de permisos limpiada correctamente'
+                'message' => 'Caché de permisos limpiada correctamente',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al sincronizar permisos: ' . $e->getMessage()
+                'message' => 'Error al sincronizar permisos: '.$e->getMessage(),
             ], 500);
         }
     }

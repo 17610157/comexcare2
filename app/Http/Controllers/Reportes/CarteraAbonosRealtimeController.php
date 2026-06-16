@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Reportes;
 
 use App\Http\Controllers\Controller;
 use App\Services\CarteraAbonosMaterializedService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CarteraAbonosRealtimeController extends Controller
 {
@@ -38,7 +38,7 @@ class CarteraAbonosRealtimeController extends Controller
             $params = $this->extractParams($request);
 
             // Validar parámetros
-            if (!$this->validateParams($params)) {
+            if (! $this->validateParams($params)) {
                 return $this->errorResponse('Parámetros inválidos');
             }
 
@@ -60,7 +60,7 @@ class CarteraAbonosRealtimeController extends Controller
                 'records_count' => count($data),
                 'total_records' => $total,
                 'data_source' => $result['data_source'] ?? 'unknown',
-                'last_sync' => $result['last_sync']?->toISOString()
+                'last_sync' => $result['last_sync']?->toISOString(),
             ]);
 
             return response()->json([
@@ -74,15 +74,15 @@ class CarteraAbonosRealtimeController extends Controller
                     'data_source' => $result['data_source'] ?? 'materialized',
                     'last_sync' => $result['last_sync'] ?? null,
                     'is_fresh_data' => $this->isDataFresh(),
-                    'performance_tier' => $this->getPerformanceTier($responseTime)
-                ]
+                    'performance_tier' => $this->getPerformanceTier($responseTime),
+                ],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Cartera Abonos Realtime - Error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'params' => $request->all()
+                'params' => $request->all(),
             ]);
 
             return $this->errorResponse('Error interno del servidor');
@@ -114,13 +114,14 @@ class CarteraAbonosRealtimeController extends Controller
                     'data_source' => 'materialized',
                     'is_fresh' => $syncStats['is_fresh'] ?? false,
                     'last_sync' => $syncStats['last_sync']?->toISOString(),
-                    'pending_changes' => $syncStats['pending_changes'] ?? 0
+                    'pending_changes' => $syncStats['pending_changes'] ?? 0,
                 ],
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error en stats realtime', ['error' => $e->getMessage()]);
+
             return $this->errorResponse('Error al obtener estadísticas');
         }
     }
@@ -132,21 +133,21 @@ class CarteraAbonosRealtimeController extends Controller
     {
         try {
             $health = $this->materializedService->healthCheck();
-            
+
             $statusCode = $health['overall_status'] === 'healthy' ? 200 : 503;
 
             return response()->json([
                 'status' => $health['overall_status'],
                 'checks' => $health,
                 'timestamp' => now()->toISOString(),
-                'version' => '1.0.0'
+                'version' => '1.0.0',
             ], $statusCode);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'unhealthy',
                 'error' => $e->getMessage(),
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ], 503);
         }
     }
@@ -161,11 +162,12 @@ class CarteraAbonosRealtimeController extends Controller
 
             return response()->json([
                 'result' => $result,
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error forzando sync', ['error' => $e->getMessage()]);
+
             return $this->errorResponse('Error al forzar sincronización');
         }
     }
@@ -185,7 +187,7 @@ class CarteraAbonosRealtimeController extends Controller
             'Access-Control-Allow-Origin' => '*',
         ];
 
-        $response = response()->stream(function() use ($params) {
+        $response = response()->stream(function () use ($params) {
             $lastSyncTime = now();
             $iteration = 0;
 
@@ -196,15 +198,15 @@ class CarteraAbonosRealtimeController extends Controller
                     // Verificar si hay nuevos datos
                     $syncStats = $this->materializedService->getSyncStats();
                     $currentSyncTime = $syncStats['last_sync'];
-                    
+
                     if ($currentSyncTime && $currentSyncTime->greaterThan($lastSyncTime)) {
                         // Hay nuevos datos, enviar actualización
                         $data = $this->materializedService->getData($params);
-                        
+
                         $this->sendSSEEvent('update', [
                             'data' => $this->formatDataForDataTable($data['data'] ?? []),
                             'sync_time' => $currentSyncTime->toISOString(),
-                            'iteration' => $iteration
+                            'iteration' => $iteration,
                         ]);
 
                         $lastSyncTime = $currentSyncTime;
@@ -214,7 +216,7 @@ class CarteraAbonosRealtimeController extends Controller
                     if ($iteration % 6 === 0) {
                         $this->sendSSEEvent('heartbeat', [
                             'timestamp' => now()->toISOString(),
-                            'iteration' => $iteration
+                            'iteration' => $iteration,
                         ]);
                     }
 
@@ -224,7 +226,7 @@ class CarteraAbonosRealtimeController extends Controller
                 } catch (\Exception $e) {
                     $this->sendSSEEvent('error', [
                         'error' => $e->getMessage(),
-                        'timestamp' => now()->toISOString()
+                        'timestamp' => now()->toISOString(),
                     ]);
                     break;
                 }
@@ -242,31 +244,31 @@ class CarteraAbonosRealtimeController extends Controller
         // Query directo a tabla materializada para stats
         $stats = DB::table('cartera_abonos_materialized')
             ->where('sync_status', 'active')
-            ->when(!empty($params['start']), function($query) use ($params) {
+            ->when(! empty($params['start']), function ($query) use ($params) {
                 $query->where('fecha', '>=', $params['start']);
             })
-            ->when(!empty($params['end']), function($query) use ($params) {
+            ->when(! empty($params['end']), function ($query) use ($params) {
                 $query->where('fecha', '<=', $params['end']);
             })
-            ->when(!empty($params['plaza']), function($query) use ($params) {
+            ->when(! empty($params['plaza']), function ($query) use ($params) {
                 $query->where('plaza', $params['plaza']);
             })
-            ->when(!empty($params['tienda']), function($query) use ($params) {
+            ->when(! empty($params['tienda']), function ($query) use ($params) {
                 $query->where('tienda', $params['tienda']);
             })
             ->selectRaw([
-            'COUNT(*) as total_abonos',
-            'COUNT(DISTINCT plaza) as unique_plazas',
-            'COUNT(DISTINCT tienda) as unique_tiendas',
-            'COUNT(DISTINCT clave) as unique_clientes',
-            'SUM(monto_fa) as total_monto_fa',
-            'SUM(monto_dv) as total_monto_dv',
-            'SUM(monto_cd) as total_monto_cd',
-            'AVG(dias_cred) as avg_dias_cred',
-            'MAX(dias_vencidos) as max_dias_vencidos',
-            'MIN(fecha) as earliest_date',
-            'MAX(fecha) as latest_date'
-        ])->first();
+                'COUNT(*) as total_abonos',
+                'COUNT(DISTINCT plaza) as unique_plazas',
+                'COUNT(DISTINCT tienda) as unique_tiendas',
+                'COUNT(DISTINCT clave) as unique_clientes',
+                'SUM(monto_fa) as total_monto_fa',
+                'SUM(monto_dv) as total_monto_dv',
+                'SUM(monto_cd) as total_monto_cd',
+                'AVG(dias_cred) as avg_dias_cred',
+                'MAX(dias_vencidos) as max_dias_vencidos',
+                'MIN(fecha) as earliest_date',
+                'MAX(fecha) as latest_date',
+            ])->first();
 
         return [
             'total_abonos' => (int) ($stats->total_abonos ?? 0),
@@ -281,8 +283,8 @@ class CarteraAbonosRealtimeController extends Controller
             'max_dias_vencidos' => (int) ($stats->max_dias_vencidos ?? 0),
             'date_range' => [
                 'earliest' => $stats->earliest_date,
-                'latest' => $stats->latest_date
-            ]
+                'latest' => $stats->latest_date,
+            ],
         ];
     }
 
@@ -298,7 +300,7 @@ class CarteraAbonosRealtimeController extends Controller
             'plaza' => trim(strtoupper($request->input('plaza', ''))),
             'tienda' => trim(strtoupper($request->input('tienda', ''))),
             'offset' => (int) $request->input('start', 0),
-            'limit' => (int) $request->input('length', 10)
+            'limit' => (int) $request->input('length', 10),
         ];
     }
 
@@ -308,7 +310,7 @@ class CarteraAbonosRealtimeController extends Controller
     private function validateParams(array $params): bool
     {
         // Validar fechas
-        if (!strtotime($params['start']) || !strtotime($params['end'])) {
+        if (! strtotime($params['start']) || ! strtotime($params['end'])) {
             return false;
         }
 
@@ -317,11 +319,11 @@ class CarteraAbonosRealtimeController extends Controller
         }
 
         // Validar formatos
-        if (!empty($params['plaza']) && !preg_match('/^[A-Z0-9]{5}$/', $params['plaza'])) {
+        if (! empty($params['plaza']) && ! preg_match('/^[A-Z0-9]{5}$/', $params['plaza'])) {
             return false;
         }
 
-        if (!empty($params['tienda']) && !preg_match('/^[A-Z0-9]{1,10}$/', $params['tienda'])) {
+        if (! empty($params['tienda']) && ! preg_match('/^[A-Z0-9]{1,10}$/', $params['tienda'])) {
             return false;
         }
 
@@ -333,7 +335,7 @@ class CarteraAbonosRealtimeController extends Controller
      */
     private function formatDataForDataTable(array $data): array
     {
-        return array_map(function($row) {
+        return array_map(function ($row) {
             return [
                 'plaza' => $row->plaza ?? '',
                 'tienda' => $row->tienda ?? '',
@@ -349,7 +351,7 @@ class CarteraAbonosRealtimeController extends Controller
                 'monto_dv' => floatval($row->monto_dv ?? 0),
                 'monto_cd' => floatval($row->monto_cd ?? 0),
                 'dias_cred' => intval($row->dias_cred ?? 0),
-                'dias_vencidos' => intval($row->dias_vencidos ?? 0)
+                'dias_vencidos' => intval($row->dias_vencidos ?? 0),
             ];
         }, $data);
     }
@@ -376,6 +378,7 @@ class CarteraAbonosRealtimeController extends Controller
     private function isDataFresh(): bool
     {
         $syncStats = $this->materializedService->getSyncStats();
+
         return $syncStats['is_fresh'] ?? false;
     }
 
@@ -385,7 +388,7 @@ class CarteraAbonosRealtimeController extends Controller
     private function sendSSEEvent(string $type, array $data): void
     {
         echo "event: {$type}\n";
-        echo "data: " . json_encode($data) . "\n\n";
+        echo 'data: '.json_encode($data)."\n\n";
         ob_flush();
         flush();
     }
@@ -397,7 +400,7 @@ class CarteraAbonosRealtimeController extends Controller
     {
         return response()->json([
             'error' => $message,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ], $status);
     }
 }

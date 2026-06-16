@@ -54,7 +54,28 @@ class Vale extends Model
         'cost_tot' => 'decimal:5',
         'no_partida' => 'decimal:5',
         'campo2n' => 'decimal:5',
-        'ncampo2' => 'decimal:5',
-        'lcampo4' => 'boolean',
+        'ncampo4' => 'decimal:5',
     ];
+
+    // Mutator para lcampo4 (columna integer en PostgreSQL)
+    public function setLcampo4Attribute($value)
+    {
+        $this->attributes['lcampo4'] = ($value === '1' || $value === 1 || $value === true || $value === 'true') ? 1 : 0;
+    }
+
+    // Mutators para varchar, convertir explicitamente a string
+    public function setAfectadoAttribute($value)
+    {
+        $this->attributes['afectado'] = ($value === '1' || $value === 1 || $value === true || $value === 'true') ? '1' : '0';
+    }
+
+    public function setEstadoAttribute($value)
+    {
+        $this->attributes['estado'] = ($value === '1' || $value === 1 || $value === true || $value === 'true') ? '1' : '0';
+    }
+
+    public function setYaExportaAttribute($value)
+    {
+        $this->attributes['ya_exporta'] = ($value === '1' || $value === 1 || $value === true || $value === 'true') ? '1' : '0';
+    }
 }

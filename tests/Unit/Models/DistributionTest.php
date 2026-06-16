@@ -6,6 +6,7 @@ use App\Models\Distribution;
 use App\Models\DistributionFile;
 use App\Models\DistributionTarget;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,7 +35,7 @@ class DistributionTest extends TestCase
         $this->assertIsArray($distribution->schedule);
         $this->assertEquals(['frequency' => 'daily', 'time' => '09:00'], $distribution->schedule);
 
-        $this->assertInstanceOf(\Carbon\Carbon::class, $distribution->scheduled_at);
+        $this->assertInstanceOf(Carbon::class, $distribution->scheduled_at);
         $this->assertEquals('2024-01-15 10:30:00', $distribution->scheduled_at->format('Y-m-d H:i:s'));
     }
 
@@ -191,7 +192,7 @@ class DistributionTest extends TestCase
         $scheduledTime = now()->addDays(3);
         $distribution = Distribution::factory()->create(['scheduled_at' => $scheduledTime]);
 
-        $this->assertInstanceOf(\Carbon\Carbon::class, $distribution->scheduled_at);
+        $this->assertInstanceOf(Carbon::class, $distribution->scheduled_at);
         $this->assertEquals($scheduledTime->format('Y-m-d H:i:s'), $distribution->scheduled_at->format('Y-m-d H:i:s'));
     }
 

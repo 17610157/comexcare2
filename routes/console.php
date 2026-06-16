@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\ProcessScheduledDistributions;
+use App\Jobs\ProcessScheduledReceptions;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -10,8 +12,8 @@ Artisan::command('inspire', function () {
 
 Schedule::command('queue:work --stop-when-empty')->everyMinute();
 Schedule::command('computers:check-status --minutes=30')->everyFiveMinutes();
-Schedule::job(new \App\Jobs\ProcessScheduledDistributions)->everyMinute();
-Schedule::job(new \App\Jobs\ProcessScheduledReceptions)->everyMinute();
+Schedule::job(new ProcessScheduledDistributions)->everyMinute();
+Schedule::job(new ProcessScheduledReceptions)->everyMinute();
 
 Schedule::command('sync:cache-incremental')->twiceDaily(0, 11);
 

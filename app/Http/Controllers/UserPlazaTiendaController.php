@@ -12,7 +12,7 @@ class UserPlazaTiendaController extends Controller
     public function index(Request $request)
     {
         $users = User::with('plazaTiendas')->get();
-        
+
         $plazasData = DB::table('bi_sys_tiendas')
             ->distinct()
             ->whereNotNull('id_plaza')
@@ -27,7 +27,7 @@ class UserPlazaTiendaController extends Controller
     public function edit(User $user)
     {
         $user->load('plazaTiendas');
-        
+
         $plazas = DB::table('bi_sys_tiendas')
             ->distinct()
             ->whereNotNull('id_plaza')
@@ -68,7 +68,7 @@ class UserPlazaTiendaController extends Controller
 
         DB::transaction(function () use ($user, $plazas, $tiendas) {
             UserPlazaTienda::where('user_id', $user->id)->delete();
-            
+
             foreach ($plazas as $plaza) {
                 if (empty($tiendas)) {
                     UserPlazaTienda::create([
@@ -88,13 +88,13 @@ class UserPlazaTiendaController extends Controller
             }
         });
 
-        return redirect()->route('admin.user-plaza-tienda.index')->with('success', 'Asignaciones actualizadas correctamente para ' . $user->name);
+        return redirect()->route('admin.user-plaza-tienda.index')->with('success', 'Asignaciones actualizadas correctamente para '.$user->name);
     }
 
     public function getTiendas(Request $request)
     {
         $plaza = $request->input('plaza');
-        
+
         $tiendas = DB::table('bi_sys_tiendas')
             ->where('id_plaza', $plaza)
             ->whereNotNull('clave_tienda')

@@ -9,7 +9,9 @@ use App\Models\Command;
 use App\Models\Computer;
 use App\Models\ComputerLog;
 use App\Models\DistributionFile;
+use App\Models\DistributionTarget;
 use App\Models\Group;
+use App\Models\ReceptionTarget;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +31,7 @@ class AgentController extends Controller
             Log::info('Agent registration request', $data);
 
             $validator = Validator::make($data, [
+                'id' => 'nullable|integer',
                 'computer_name' => 'required|string|max:255',
                 'mac_address' => 'required|string',
                 'agent_version' => 'required|string',
@@ -39,6 +42,38 @@ class AgentController extends Controller
 
             if ($validator->fails()) {
                 return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()->toArray(), 'data' => $data], 422);
+            }
+
+            if (! empty($data['id'])) {
+                $existing = Computer::find($data['id']);
+                if ($existing) {
+                    $existing->update([
+                        'computer_name' => $data['computer_name'],
+                        'mac_address' => $data['mac_address'],
+                        'ip_address' => $request->ip(),
+                        'agent_version' => $data['agent_version'],
+                        'status' => 'online',
+                        'last_seen' => now(),
+                        'system_info' => $data['system_info'] ?? null,
+                        'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
+                    ]);
+
+                    if (! empty($data['short_key'])) {
+                        $existing->update(['short_key' => strtoupper($data['short_key'])]);
+                    }
+
+                    $computer = $existing->fresh();
+
+                    return response()->json([
+                        'id' => $computer->id,
+                        'message' => 'Registered successfully',
+                        'group_id' => $computer->group_id,
+                        'group_name' => $computer->group?->name,
+                        'short_key' => $computer->short_key,
+                    ]);
+                }
+
+                $data['computer_id'] = $data['id'];
             }
 
             $existingWithMac = Computer::withTrashed()->where('mac_address', $data['mac_address'])->first();
@@ -95,7 +130,15 @@ class AgentController extends Controller
                 if ($groupId) {
                     $createData['group_id'] = $groupId;
                 }
-                $computer = Computer::create($createData);
+
+                if (! empty($data['computer_id'])) {
+                    $createData['id'] = $data['computer_id'];
+                    $computerId = DB::table('computers')->insertGetId($createData);
+                    DB::statement("SELECT setval('computers_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM computers), false)");
+                    $computer = Computer::find($computerId);
+                } else {
+                    $computer = Computer::create($createData);
+                }
             }
 
             return response()->json([
@@ -117,9 +160,16 @@ class AgentController extends Controller
         $validator = Validator::make($request->all(), [
             'computer_id' => 'required|integer',
             'agent_version' => 'required|string',
+            'computer_name' => 'nullable|string|max:255',
+            'short_key' => 'nullable|string|max:50',
             'system_info' => 'nullable|array',
             'logs' => 'nullable|string',
             'dbf_files' => 'nullable|array',
+            'agent_file' => 'nullable|array',
+            'agent_file.name' => 'nullable|string|max:255',
+            'agent_file.path' => 'nullable|string|max:500',
+            'agent_file.size' => 'nullable|integer',
+            'agent_file.modified' => 'nullable|string|max:50',
             'receive_paths' => 'nullable|array',
             'pvsi_version' => 'nullable|string|max:50',
             'pvsi_fecha' => 'nullable|string|max:20',
@@ -156,16 +206,28 @@ class AgentController extends Controller
         $computer = Computer::find($request->computer_id);
 
         if (! $computer) {
-            $computerWithMac = Computer::withTrashed()->where('id', $request->computer_id)->first();
-            if ($computerWithMac && $computerWithMac->trashed()) {
-                return response()->json([
-                    'error' => 'Computer was deleted. Please re-register.',
-                    'needs_registration' => true,
-                    'mac_address' => $computerWithMac->mac_address,
-                ], 404);
+            $trashed = Computer::withTrashed()->where('id', $request->computer_id)->first();
+            if ($trashed && $trashed->trashed()) {
+                $trashed->restore();
+                $computer = $trashed;
+            } else {
+                $computerId = (int) $request->computer_id;
+                DB::table('computers')->insert([
+                    'id' => $computerId,
+                    'computer_name' => $request->filled('computer_name') ? $request->computer_name : 'Recuperado-'.$computerId,
+                    'mac_address' => 'AUTO-REC-'.$computerId,
+                    'short_key' => $request->filled('short_key') ? strtoupper($request->short_key) : null,
+                    'ip_address' => $request->ip(),
+                    'agent_version' => $request->agent_version,
+                    'status' => 'online',
+                    'last_seen' => now(),
+                    'download_path' => 'C:\ProgramData\DistributionAgent\files',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                DB::statement("SELECT setval('computers_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM computers), false)");
+                $computer = Computer::find($computerId);
             }
-
-            return response()->json(['error' => 'Computer not found. Please register first.'], 404);
         }
 
         $updateData = [
@@ -176,8 +238,55 @@ class AgentController extends Controller
             'system_info' => $request->system_info ?? $computer->system_info,
         ];
 
-        if ($request->filled('dbf_files')) {
-            $updateData['agent_config'] = array_merge($computer->agent_config ?? [], ['dbf_files' => $request->dbf_files]);
+        if ($request->filled('computer_name')) {
+            $updateData['computer_name'] = $request->computer_name;
+        }
+        if ($request->filled('short_key')) {
+            $updateData['short_key'] = strtoupper($request->short_key);
+        }
+
+        if ($request->filled('pvsi_version')) {
+            $updateData['pvsi_version'] = $request->pvsi_version;
+        }
+        if ($request->filled('pvsi_fecha')) {
+            $updateData['pvsi_fecha'] = $request->pvsi_fecha;
+        }
+        if ($request->filled('resurtido_version')) {
+            $updateData['resurtido_version'] = $request->resurtido_version;
+        }
+        if ($request->filled('resurtido_fecha')) {
+            $updateData['resurtido_fecha'] = $request->resurtido_fecha;
+        }
+
+        if ($request->filled('dbf_files') || $request->filled('agent_file')) {
+            $dbfFiles = $request->filled('dbf_files') ? $request->dbf_files : [];
+
+            if ($request->filled('agent_file')) {
+                $agentFileName = $request->agent_file['name'] ?? null;
+                if ($agentFileName) {
+                    $exists = false;
+                    foreach ($dbfFiles as $existing) {
+                        if (($existing['name'] ?? null) === $agentFileName) {
+                            $exists = true;
+                            break;
+                        }
+                    }
+                    if (! $exists) {
+                        $dbfFiles[] = $request->agent_file;
+                    }
+                }
+            }
+
+            $updateData['agent_config'] = array_merge($computer->agent_config ?? [], ['dbf_files' => $dbfFiles]);
+        }
+
+        // download_path y short_key se configuran ÚNICAMENTE desde el panel de administración
+        // El agente NUNCA debe poder modificar estos valores
+        // Se establecen durante el registro inicial y el panel tiene prioridad absoluta
+        // $rawData = json_decode($request->getContent(), true) ?? [];
+
+        if ($request->filled('agent_file')) {
+            $updateData['agent_file'] = $request->agent_file;
         }
 
         // Temporal: log de debug para PVSI
@@ -285,18 +394,11 @@ class AgentController extends Controller
 
     public function getCommands(Request $request, $id)
     {
-        // Log::info('getCommands request', ['computer_id' => $id]);
-
         $computer = Computer::findOrFail($id);
 
+        // Get pending commands OR sent commands (no time filter for simplicity)
         $commands = Command::where('computer_id', $id)
-            ->where(function ($query) {
-                $query->where('status', 'pending')
-                    ->orWhere(function ($q) {
-                        $q->where('status', 'sent')
-                            ->where('updated_at', '<', now()->subMinutes(5));
-                    });
-            })
+            ->whereIn('status', ['pending', 'sent'])
             ->orderBy('created_at')
             ->get();
 
@@ -329,7 +431,45 @@ class AgentController extends Controller
             ];
 
             if ($command->type === 'distribute' || $command->type === 'download') {
-                $commandArray['download_paths'] = $computer->getAllDownloadPaths();
+                $paths = $computer->getAllDownloadPaths();
+
+                if (isset($data['subfolder']) && $data['subfolder']) {
+                    $subfolder = ltrim($data['subfolder'], '/\\');
+                    $pathsWithSubfolder = [];
+                    foreach ($paths as $path) {
+                        $pathsWithSubfolder[] = rtrim($path, '/\\').'\\'.$subfolder;
+                    }
+                    $commandArray['download_paths'] = $pathsWithSubfolder;
+                } else {
+                    $commandArray['download_paths'] = $paths;
+                }
+
+                if (isset($data['subfolder'])) {
+                    $commandArray['subfolder'] = $data['subfolder'];
+                }
+            }
+
+            if ($command->type === 'execute') {
+                $commandArray['command_type'] = 'execute';
+
+                $baseCommand = $data['command'] ?? '';
+
+                if (preg_match('/UPDATECAREAGENTRESURTIDO\.BAT$/i', $baseCommand)) {
+                    $commandArray['execute_target'] = 'care_agent_update';
+                    $commandArray['command'] = $baseCommand;
+                    $commandArray['cmd'] = $baseCommand;
+                    $commandArray['execute_command'] = $baseCommand;
+                    $commandArray['search_drives'] = ['C', 'D', 'E', 'F'];
+                    $commandArray['search_folder'] = 'RBF\\exe_';
+                    $commandArray['search_file'] = 'UPDATECAREAGENTRESURTIDO.BAT';
+                    $commandArray['run_as_admin'] = true;
+                } else {
+                    $commandArray['command'] = $baseCommand;
+                    $commandArray['cmd'] = $baseCommand;
+                    $commandArray['execute_command'] = $baseCommand;
+                }
+
+                $commandArray['command_args'] = $data['command_args'] ?? '';
             }
 
             if ($command->type === 'update') {
@@ -357,6 +497,10 @@ class AgentController extends Controller
                 $commandArray['receive_paths'] = $computer->receive_paths ?? [];
                 $commandArray['reception_target_id'] = $data['reception_target_id'] ?? null;
                 $commandArray['file_types'] = $data['file_types'] ?? null;
+
+                if (isset($data['subfolder'])) {
+                    $commandArray['subfolder'] = $data['subfolder'];
+                }
                 $commandArray['specific_files'] = $data['specific_files'] ?? null;
                 $commandArray['all_files'] = $data['all_files'] ?? true;
                 $commandArray['scheduled_time'] = $data['scheduled_time'] ?? null;
@@ -387,6 +531,9 @@ class AgentController extends Controller
             'status' => 'required|string',
             'progress' => 'nullable|integer|min:0|max:100',
             'response' => 'nullable|string',
+            'output' => 'nullable|string',
+            'exit_code' => 'nullable|integer',
+            'error' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -400,13 +547,50 @@ class AgentController extends Controller
             Log::warning('Report received for unknown computer', ['computer_id' => $computerId]);
         }
 
+        if ($computerId) {
+            $computer = Computer::find($computerId);
+            if ($computer) {
+                $computer->update(['last_seen' => now()]);
+            }
+        }
+
         if ($request->command_id) {
             $command = Command::where('id', $request->command_id)->first();
             if ($command) {
-                $command->update([
-                    'status' => $request->status,
-                    'completed_at' => now(),
-                    'response' => $request->response,
+                $status = $request->status;
+                if ($status === 'error') {
+                    $status = 'failed';
+                }
+
+                $responseData = $request->response ?? '';
+                if ($request->filled('output')) {
+                    $responseData .= "\n[OUTPUT]\n".$request->output;
+                }
+                if ($request->filled('error')) {
+                    $responseData .= "\n[ERROR]\n".$request->error;
+                }
+                if ($request->filled('exit_code')) {
+                    $responseData .= "\n[EXIT_CODE: ".$request->exit_code.']';
+                }
+
+                $updateData = [
+                    'response' => trim($responseData),
+                ];
+
+                $updateData['status'] = $status;
+
+                if (in_array($status, ['completed', 'failed'])) {
+                    $updateData['completed_at'] = now();
+                }
+
+                $command->update($updateData);
+
+                Log::info('Command executed', [
+                    'command_id' => $command->id,
+                    'status' => $status,
+                    'exit_code' => $request->exit_code,
+                    'has_output' => $request->filled('output'),
+                    'has_error' => $request->filled('error'),
                 ]);
             }
         }
@@ -417,7 +601,7 @@ class AgentController extends Controller
             if ($request->distribution_target_id) {
                 $targetId = $request->distribution_target_id;
             } elseif ($request->file_id) {
-                $target = \App\Models\DistributionTarget::where('distribution_id', function ($query) use ($request) {
+                $target = DistributionTarget::where('distribution_id', function ($query) use ($request) {
                     $query->select('distribution_id')
                         ->from('distribution_files')
                         ->where('id', $request->file_id);
@@ -432,18 +616,42 @@ class AgentController extends Controller
             }
 
             if ($targetId) {
-                $target = \App\Models\DistributionTarget::find($targetId);
+                $target = DistributionTarget::find($targetId);
                 if ($target) {
+                    $status = $request->status;
+                    if ($status === 'error') {
+                        $status = 'failed';
+                    }
+
                     $updateData = [
                         'progress' => $request->progress,
-                        'status' => $request->status === 'completed' ? 'completed' : 'failed',
+                        'status' => in_array($status, ['completed', 'failed']) ? $status : 'in_progress',
                     ];
 
-                    if ($request->status === 'failed' && $request->response) {
+                    if ($status === 'failed' && $request->response) {
                         $updateData['error_message'] = $request->response;
                     }
 
                     $target->update($updateData);
+
+                    $command = Command::where('computer_id', $request->computer_id)
+                        ->where('status', 'sent')
+                        ->whereRaw("data->>'distribution_target_id' = ?", [(string) $targetId])
+                        ->first();
+                    if ($command) {
+                        $cmdUpdate = [
+                            'response' => $request->response,
+                        ];
+
+                        if (in_array($status, ['completed', 'failed'])) {
+                            $cmdUpdate['status'] = $status;
+                            $cmdUpdate['completed_at'] = now();
+                        } elseif (in_array($status, ['running', 'downloading'])) {
+                            $cmdUpdate['status'] = $status;
+                        }
+
+                        $command->update($cmdUpdate);
+                    }
 
                     $distribution = $target->distribution;
 
@@ -466,11 +674,11 @@ class AgentController extends Controller
 
             // Actualizar ReceptionTarget si existe
             if ($request->reception_target_id) {
-                $receptionTarget = \App\Models\ReceptionTarget::find($request->reception_target_id);
+                $receptionTarget = ReceptionTarget::find($request->reception_target_id);
                 if ($receptionTarget) {
                     $updateData = [
                         'progress' => $request->progress ?? 100,
-                        'status' => $request->status === 'completed' ? 'completed' : 'failed',
+                        'status' => $request->status === 'completed' ? 'completed' : ($request->status === 'error' ? 'failed' : 'in_progress'),
                         'completed_at' => $request->status === 'completed' ? now() : null,
                     ];
 
@@ -511,7 +719,7 @@ class AgentController extends Controller
     public function checkUpdate(Request $request, $version)
     {
         $current = AgentVersion::where('version', $version)->first();
-        $latest = AgentVersion::where('is_active', DB::raw('true'))->orderBy('created_at', 'desc')->first();
+        $latest = AgentVersion::whereRaw('"is_active" = true')->orderBy('created_at', 'desc')->first();
 
         if (! $latest || $current && $current->id >= $latest->id) {
             return response()->json(['update_available' => false]);
@@ -538,7 +746,7 @@ class AgentController extends Controller
         }
 
         $currentVersion = $computer->agent_version;
-        $latest = AgentVersion::where('is_active', DB::raw('true'))->orderBy('created_at', 'desc')->first();
+        $latest = AgentVersion::whereRaw('"is_active" = true')->orderBy('created_at', 'desc')->first();
 
         Log::info('Update check', [
             'computer_id' => $computer_id,
@@ -586,7 +794,10 @@ class AgentController extends Controller
         }
 
         $computer = Computer::find($request->computer_id);
-        $computer->update(['agent_config' => array_merge($computer->agent_config ?? [], ['inventory' => $request->inventory])]);
+        $computer->update([
+            'agent_config' => array_merge($computer->agent_config ?? [], ['inventory' => $request->inventory]),
+            'last_seen' => now(),
+        ]);
 
         return response()->json(['message' => 'Inventory received']);
     }
@@ -602,8 +813,13 @@ class AgentController extends Controller
             return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
         }
 
+        $computer = Computer::find($request->computer_id);
+        if ($computer) {
+            $computer->update(['last_seen' => now()]);
+        }
+
         foreach ($request->logs as $log) {
-            \App\Models\ComputerLog::create([
+            ComputerLog::create([
                 'computer_id' => $request->computer_id,
                 'level' => $log['level'] ?? 'info',
                 'message' => $log['message'] ?? '',
@@ -716,7 +932,7 @@ class AgentController extends Controller
         }
 
         $computer = Computer::find($computer_id);
-        $receptionTarget = \App\Models\ReceptionTarget::find($reception_target_id);
+        $receptionTarget = ReceptionTarget::find($reception_target_id);
 
         if (! $computer || ! $receptionTarget) {
             return response()->json(['error' => 'Computer or reception not found'], 404);

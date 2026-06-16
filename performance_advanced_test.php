@@ -1,13 +1,15 @@
 <?php
+
 /**
  * PRUEBAS DE RENDIMIENTO AVANZADAS
  * Ejecutar con: php performance_advanced_test.php
  */
 
 // Configuración inicial
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 use App\Services\ReportService;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -21,8 +23,8 @@ class PerformanceTester
 
         try {
             // Configurar Laravel
-            $app = require_once __DIR__ . '/bootstrap/app.php';
-            $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+            $app = require_once __DIR__.'/bootstrap/app.php';
+            $kernel = $app->make(Kernel::class);
             $kernel->bootstrap();
 
             echo "✓ Laravel configurado correctamente\n";
@@ -43,8 +45,8 @@ class PerformanceTester
             self::generateReport();
 
         } catch (Exception $e) {
-            echo "\n❌ ERROR CRÍTICO: " . $e->getMessage() . "\n";
-            Log::error('Error en pruebas de rendimiento: ' . $e->getMessage());
+            echo "\n❌ ERROR CRÍTICO: ".$e->getMessage()."\n";
+            Log::error('Error en pruebas de rendimiento: '.$e->getMessage());
         }
     }
 
@@ -57,7 +59,7 @@ class PerformanceTester
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         // Medir tiempo de ejecución con EXPLAIN
@@ -66,7 +68,7 @@ class PerformanceTester
         $queryTime = round((microtime(true) - $start) * 1000, 2);
 
         echo "✓ Consulta ejecutada en {$queryTime}ms\n";
-        echo "✓ Registros obtenidos: " . $resultados->count() . "\n";
+        echo '✓ Registros obtenidos: '.$resultados->count()."\n";
 
         // Verificar si está usando índices (simulado)
         $estimatedTime = self::estimateQueryTime($resultados->count());
@@ -76,7 +78,7 @@ class PerformanceTester
             'actual_time' => $queryTime,
             'estimated_time' => $estimatedTime,
             'records' => $resultados->count(),
-            'efficiency' => round(($estimatedTime / max($queryTime, 1)) * 100, 2) . '%'
+            'efficiency' => round(($estimatedTime / max($queryTime, 1)) * 100, 2).'%',
         ];
     }
 
@@ -89,7 +91,7 @@ class PerformanceTester
             ['fecha_inicio' => '2024-01-01', 'fecha_fin' => '2024-01-07', 'expected' => '1 semana'],
             ['fecha_inicio' => '2024-01-01', 'fecha_fin' => '2024-01-14', 'expected' => '2 semanas'],
             ['fecha_inicio' => '2024-01-01', 'fecha_fin' => '2024-01-31', 'expected' => '1 mes'],
-            ['fecha_inicio' => '2024-01-01', 'fecha_fin' => '2024-03-31', 'expected' => '3 meses']
+            ['fecha_inicio' => '2024-01-01', 'fecha_fin' => '2024-03-31', 'expected' => '3 meses'],
         ];
 
         $largeDatasetResults = [];
@@ -111,7 +113,7 @@ class PerformanceTester
                     'periodo' => $case['expected'],
                     'tiempo' => $time,
                     'registros' => $records,
-                    'velocidad' => round($records / max($time/1000, 0.001), 2) . ' reg/s'
+                    'velocidad' => round($records / max($time / 1000, 0.001), 2).' reg/s',
                 ];
 
                 // Si supera 7k registros y tarda más de 30s, marcar como problema
@@ -120,10 +122,10 @@ class PerformanceTester
                 }
 
             } catch (Exception $e) {
-                echo "❌ ERROR: " . $e->getMessage() . "\n";
+                echo '❌ ERROR: '.$e->getMessage()."\n";
                 $largeDatasetResults[] = [
                     'periodo' => $case['expected'],
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
             }
         }
@@ -140,13 +142,13 @@ class PerformanceTester
             'fecha_fin' => '2024-01-31',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         $memoryBefore = memory_get_usage(true);
         $peakMemory = $memoryBefore;
 
-        echo "Memoria inicial: " . round($memoryBefore / 1024 / 1024, 2) . " MB\n";
+        echo 'Memoria inicial: '.round($memoryBefore / 1024 / 1024, 2)." MB\n";
 
         // Ejecutar múltiples consultas para probar manejo de memoria
         for ($i = 1; $i <= 5; $i++) {
@@ -163,8 +165,8 @@ class PerformanceTester
                 $chunksProcessed++;
             }, 500);
 
-            echo "  Iteración {$i}: {$time}ms, {$chunksProcessed} chunks, " .
-                 round($currentMemory / 1024 / 1024, 2) . " MB\n";
+            echo "  Iteración {$i}: {$time}ms, {$chunksProcessed} chunks, ".
+                 round($currentMemory / 1024 / 1024, 2)." MB\n";
         }
 
         $memoryUsed = $peakMemory - $memoryBefore;
@@ -181,7 +183,7 @@ class PerformanceTester
         self::$results['memory_usage'] = [
             'initial' => round($memoryBefore / 1024 / 1024, 2),
             'peak' => round($peakMemory / 1024 / 1024, 2),
-            'used' => $memoryUsedMB
+            'used' => $memoryUsedMB,
         ];
     }
 
@@ -194,7 +196,7 @@ class PerformanceTester
             'cache' => 'Laravel cache table',
             'canota' => 'Sales data table',
             'venta' => 'Returns data table',
-            'asesores_vvt' => 'Sales advisors table'
+            'asesores_vvt' => 'Sales advisors table',
         ];
 
         $indexStatus = [];
@@ -211,18 +213,18 @@ class PerformanceTester
                     echo "✓ Tabla '{$table}' existe ({$description})\n";
 
                     // Verificar índices (simplificado)
-                    $indexes = DB::select("
+                    $indexes = DB::select('
                         SELECT indexname FROM pg_indexes
                         WHERE tablename = ?
-                    ", [$table]);
+                    ', [$table]);
 
                     $indexStatus[$table] = [
                         'exists' => true,
                         'indexes' => count($indexes),
-                        'index_names' => array_column($indexes, 'indexname')
+                        'index_names' => array_column($indexes, 'indexname'),
                     ];
 
-                    echo "  - Índices encontrados: " . count($indexes) . "\n";
+                    echo '  - Índices encontrados: '.count($indexes)."\n";
                     foreach ($indexes as $index) {
                         echo "    * {$index->indexname}\n";
                     }
@@ -233,7 +235,7 @@ class PerformanceTester
                 }
 
             } catch (Exception $e) {
-                echo "❌ Error verificando tabla '{$table}': " . $e->getMessage() . "\n";
+                echo "❌ Error verificando tabla '{$table}': ".$e->getMessage()."\n";
                 $indexStatus[$table] = ['error' => $e->getMessage()];
             }
         }
@@ -250,7 +252,7 @@ class PerformanceTester
             'fecha_fin' => '2024-01-15',
             'plaza' => '',
             'tienda' => '',
-            'vendedor' => ''
+            'vendedor' => '',
         ];
 
         // Limpiar cache para comparación justa
@@ -285,7 +287,7 @@ class PerformanceTester
         self::$results['cache_performance'] = [
             'sin_cache' => $time1,
             'con_cache' => $time2,
-            'aceleracion' => $aceleracion
+            'aceleracion' => $aceleracion,
         ];
     }
 
@@ -298,9 +300,9 @@ class PerformanceTester
 
     private static function generateReport()
     {
-        echo "\n" . str_repeat("=", 60) . "\n";
+        echo "\n".str_repeat('=', 60)."\n";
         echo "📊 REPORTE DE RENDIMIENTO DETALLADO\n";
-        echo str_repeat("=", 60) . "\n\n";
+        echo str_repeat('=', 60)."\n\n";
 
         // Análisis de Consultas
         if (isset(self::$results['query_analysis'])) {
@@ -333,7 +335,7 @@ class PerformanceTester
             echo "  - Memoria inicial: {$mem['initial']} MB\n";
             echo "  - Pico de memoria: {$mem['peak']} MB\n";
             echo "  - Memoria utilizada: {$mem['used']} MB\n";
-            echo "  - Status: " . ($mem['used'] > 500 ? '❌ ALTO USO' : '✅ ACEPTABLE') . "\n\n";
+            echo '  - Status: '.($mem['used'] > 500 ? '❌ ALTO USO' : '✅ ACEPTABLE')."\n\n";
         }
 
         // Cache
@@ -343,7 +345,7 @@ class PerformanceTester
             echo "  - Sin cache: {$cache['sin_cache']}ms\n";
             echo "  - Con cache: {$cache['con_cache']}ms\n";
             echo "  - Aceleración: {$cache['aceleracion']}x\n";
-            echo "  - Status: " . ($cache['aceleracion'] > 5 ? '✅ EXCELENTE' : ($cache['aceleracion'] > 2 ? '✅ BUENO' : '⚠️  REGULAR')) . "\n\n";
+            echo '  - Status: '.($cache['aceleracion'] > 5 ? '✅ EXCELENTE' : ($cache['aceleracion'] > 2 ? '✅ BUENO' : '⚠️  REGULAR'))."\n\n";
         }
 
         // Base de Datos
@@ -352,11 +354,11 @@ class PerformanceTester
             foreach (self::$results['database_indexes'] as $table => $status) {
                 if (isset($status['error'])) {
                     echo "  ❌ {$table}: ERROR - {$status['error']}\n";
-                } elseif (!$status['exists']) {
+                } elseif (! $status['exists']) {
                     echo "  ❌ {$table}: TABLA NO EXISTE\n";
                 } else {
                     echo "  ✅ {$table}: {$status['indexes']} índices\n";
-                    if (!empty($status['index_names'])) {
+                    if (! empty($status['index_names'])) {
                         foreach ($status['index_names'] as $index) {
                             echo "    - {$index}\n";
                         }
@@ -371,9 +373,9 @@ class PerformanceTester
 
         if (isset(self::$results['large_dataset'])) {
             $slowTests = array_filter(self::$results['large_dataset'],
-                fn($test) => isset($test['registros']) && $test['registros'] >= 7000 && $test['tiempo'] > 30000);
+                fn ($test) => isset($test['registros']) && $test['registros'] >= 7000 && $test['tiempo'] > 30000);
 
-            if (!empty($slowTests)) {
+            if (! empty($slowTests)) {
                 echo "  - Implementar PAGINACIÓN para datasets > 7,000 registros\n";
                 echo "  - Considerar CACHE más agresivo (TTL > 1 hora)\n";
                 echo "  - Optimizar índices en BD para consultas de rango de fechas\n";
@@ -387,18 +389,18 @@ class PerformanceTester
 
         if (isset(self::$results['database_indexes'])) {
             $missingIndexes = array_filter(self::$results['database_indexes'],
-                fn($status) => !isset($status['exists']) || !$status['exists'] ||
+                fn ($status) => ! isset($status['exists']) || ! $status['exists'] ||
                               (isset($status['indexes']) && $status['indexes'] == 0));
 
-            if (!empty($missingIndexes)) {
+            if (! empty($missingIndexes)) {
                 echo "  - CREAR ÍNDICES faltantes en base de datos\n";
                 echo "  - Ejecutar script database_optimization_indexes.sql\n";
             }
         }
 
-        echo "\n" . str_repeat("=", 60) . "\n";
+        echo "\n".str_repeat('=', 60)."\n";
         echo "✅ PRUEBAS COMPLETADAS\n";
-        echo str_repeat("=", 60) . "\n";
+        echo str_repeat('=', 60)."\n";
     }
 }
 

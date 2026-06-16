@@ -1,5 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\AgentController;
+use App\Http\Controllers\Api\ResurtidoAgentController;
+use App\Http\Controllers\Api\ValeController;
+use App\Http\Controllers\MetricsController;
+use App\Models\Computer;
+use Carbon\Carbon;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,21 +27,29 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Agent API routes (without CSRF)
 Route::middleware('api')->group(function () {
-    Route::post('/register', [App\Http\Controllers\Api\AgentController::class, 'register']);
-    Route::post('/heartbeat', [App\Http\Controllers\Api\AgentController::class, 'heartbeat']);
-    Route::get('/commands/{id}', [App\Http\Controllers\Api\AgentController::class, 'getCommands']);
-    Route::post('/report', [App\Http\Controllers\Api\AgentController::class, 'report']);
-    Route::post('/agent/report', [App\Http\Controllers\Api\AgentController::class, 'report']);
-    Route::get('/download/{fileId}', [App\Http\Controllers\Api\AgentController::class, 'download']);
-    Route::get('/update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate']);
-    Route::get('/check-update/{version}', [App\Http\Controllers\Api\AgentController::class, 'checkUpdate']);
-    Route::post('/inventory', [App\Http\Controllers\Api\AgentController::class, 'inventory']);
-    Route::post('/logs', [App\Http\Controllers\Api\AgentController::class, 'logs']);
-    Route::patch('/pvsi-update', [App\Http\Controllers\Api\AgentController::class, 'pvsiUpdate']);
-    Route::get('/computer/{computer_id}/config', [App\Http\Controllers\Api\AgentController::class, 'getComputerConfig']);
+    Route::post('/register', [AgentController::class, 'register']);
+    Route::post('/heartbeat', [AgentController::class, 'heartbeat']);
+    Route::get('/commands/{id}', [AgentController::class, 'getCommands']);
+    Route::post('/report', [AgentController::class, 'report']);
+    Route::post('/agent/report', [AgentController::class, 'report']);
+    Route::get('/download/{fileId}', [AgentController::class, 'download']);
+    Route::get('/update/{version}', [AgentController::class, 'checkUpdate']);
+    Route::get('/check-update/{version}', [AgentController::class, 'checkUpdate']);
+    Route::post('/inventory', [AgentController::class, 'inventory']);
+    Route::post('/logs', [AgentController::class, 'logs']);
+    Route::patch('/pvsi-update', [AgentController::class, 'pvsiUpdate']);
+    Route::get('/computer/{computer_id}/config', [AgentController::class, 'getComputerConfig']);
+
+    // Resurtido Agent API
+    Route::post('/resurtido/register', [ResurtidoAgentController::class, 'register']);
+    Route::post('/resurtido/heartbeat', [ResurtidoAgentController::class, 'heartbeat']);
+    Route::get('/resurtido/check-update', [ResurtidoAgentController::class, 'checkUpdate']);
+    Route::get('/resurtido/commands/{computerId}', [ResurtidoAgentController::class, 'getCommands']);
+    Route::post('/resurtido/report', [ResurtidoAgentController::class, 'report']);
+
     Route::post('/getComputerId', function (Request $request) {
         $mac = $request->input('mac_address');
-        $computer = \App\Models\Computer::where('mac_address', $mac)->first();
+        $computer = Computer::where('mac_address', $mac)->first();
         if ($computer) {
             return response()->json(['computer_id' => $computer->id]);
         }
@@ -42,14 +57,66 @@ Route::middleware('api')->group(function () {
         return response()->json(['error' => 'Not found'], 404);
     });
 
-    Route::get('/metrics', [App\Http\Controllers\MetricsController::class, 'index']);
-    Route::get('/health', [App\Http\Controllers\MetricsController::class, 'health']);
+    Route::get('/metrics', [MetricsController::class, 'index']);
+    Route::get('/health', [MetricsController::class, 'health']);
 
-    Route::get('/vales', [App\Http\Controllers\Api\ValeController::class, 'index']);
-    Route::get('/vales/{id}', [App\Http\Controllers\Api\ValeController::class, 'show']);
-    Route::post('/vales', [App\Http\Controllers\Api\ValeController::class, 'store']);
-    Route::post('/vales/batch', [App\Http\Controllers\Api\ValeController::class, 'storeBatch']);
-    Route::put('/vales/{id}', [App\Http\Controllers\Api\ValeController::class, 'update']);
-    Route::patch('/vales/{id}', [App\Http\Controllers\Api\ValeController::class, 'update']);
-    Route::delete('/vales/{id}', [App\Http\Controllers\Api\ValeController::class, 'destroy']);
+    Route::get('/vales', [ValeController::class, 'index']);
+    Route::get('/vales/{id}', [ValeController::class, 'show']);
+    Route::post('/vales', [ValeController::class, 'store']);
+    Route::post('/vales/batch', [ValeController::class, 'storeBatch']);
+    Route::put('/vales/{id}', [ValeController::class, 'update']);
+    Route::patch('/vales/{id}', [ValeController::class, 'update']);
+    Route::delete('/vales/{id}', [ValeController::class, 'destroy']);
+    Route::post('/vales/reset-sync', [ValeController::class, 'resetSync'])->withoutMiddleware([VerifyCsrfToken::class]);
+
+    // Endpoint para verificar actividad real de equipos (usando logs)
+    Route::get('/computers/online-status', function () {
+        $logPath = storage_path('logs/laravel.log');
+        if (! file_exists($logPath)) {
+            return response()->json(['error' => 'Log file not found'], 404);
+        }
+
+        $logContent = file_get_contents($logPath);
+        $today = now()->format('Y-m-d');
+
+        // Buscar TODAS las líneas con [YYYY-MM-DD HH:MM:SS] y computer_id
+        preg_match_all('/\[('.$today.' \d{2}:\d{2}:\d{2})\].*?"computer_id":"(\d+)"/', $logContent, $matches, PREG_SET_ORDER);
+
+        $computerLastSeen = [];
+        foreach ($matches as $match) {
+            $timestamp = $match[1];
+            $computerId = $match[2];
+            if (! isset($computerLastSeen[$computerId]) || $timestamp > $computerLastSeen[$computerId]) {
+                $computerLastSeen[$computerId] = $timestamp;
+            }
+        }
+
+        $online = [];
+        $now = now();
+        foreach ($computerLastSeen as $id => $ts) {
+            $computer = Computer::find($id);
+            $last = Carbon::createFromTimeString($ts);
+            $minutesAgo = $now->diffInMinutes($last);
+            $online[] = [
+                'computer_id' => (int) $id,
+                'name' => $computer ? $computer->computer_name : 'SIN_NOMBRE',
+                'last_seen' => $ts,
+                'minutes_ago' => $minutesAgo,
+                'is_online' => $minutesAgo < 10,
+                'is_active_today' => $minutesAgo < 1440, // 24 horas
+            ];
+        }
+
+        // Ordenar por más reciente
+        usort($online, function ($a, $b) {
+            return $a['minutes_ago'] <=> $b['minutes_ago'];
+        });
+
+        return response()->json([
+            'total_active_today' => count($computerLastSeen),
+            'online_now' => collect($online)->where('is_online', true)->count(),
+            'active_today' => collect($online)->where('is_active_today', true)->count(),
+            'computers' => $online,
+        ]);
+    });
 });

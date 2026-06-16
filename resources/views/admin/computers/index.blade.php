@@ -1,8 +1,9 @@
 @extends('adminlte::page')
 
-@section('title', 'Computers')
+@section('title', 'Computadoras')
 
 @section('css')
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 @endsection
 
@@ -121,20 +122,48 @@
                 </div>
             </div>
             <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <select id="plaza-filter" class="form-control form-control-sm select2">
+                            <option value="">Todas las Plazas</option>
+                            @foreach($plazas ?? [] as $p)
+                                <option value="{{ $p }}">{{ $p }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="status-filter" class="form-control form-control-sm">
+                            <option value="">Todos los Estados</option>
+<option value="online">En línea</option>
+                             <option value="offline">Fuera de línea</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="group-filter" class="form-control form-control-sm select2">
+                            <option value="">Todos los Grupos</option>
+                            @foreach($groups ?? [] as $g)
+                                <option value="{{ $g->id }}">{{ $g->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" id="search-filter" class="form-control form-control-sm" placeholder="Buscar...">
+                    </div>
+                </div>
                 <div class="table-responsive" style="overflow-x: auto;">
                     <table class="table table-bordered table-striped table-hover table-sm mb-0" id="computers-table" style="min-width: 900px;">
-                        <thead class="bg-dark">
+                         <thead class="bg-dark">
                             <tr>
-                                <th class="text-nowrap text-center">Short Key</th>
-                                <th class="text-nowrap">Nombre</th>
-                                <th class="text-nowrap text-center">Status</th>
-                                <th class="text-nowrap">Grupo</th>
-                                <th class="text-nowrap">Agent</th>
-                                <th class="text-nowrap">PVSI</th>
-                                <th class="text-nowrap">Windows</th>
-                                <th class="text-nowrap text-center">Plaza</th>
-                                <th class="text-nowrap">Última Actividad</th>
-                                <th class="text-nowrap text-center">Acciones</th>
+<th class="text-nowrap text-center">Clave Corta</th>
+                                 <th class="text-nowrap">Nombre</th>
+                                 <th class="text-nowrap text-center">Estado</th>
+                                 <th class="text-nowrap">Agente</th>
+                                 <th class="text-nowrap">PVSI</th>
+                                 <th class="text-nowrap">AgentResurtido</th>
+                                 <th class="text-nowrap">Windows</th>
+                                 <th class="text-nowrap text-center">Plaza</th>
+                                 <th class="text-nowrap">Última Actividad</th>
+                                 <th class="text-nowrap text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -162,7 +191,37 @@
 (function() {
     'use strict';
     
+    window.deleteComputer = function(id, url) {
+        if (!confirm('¿Eliminar esta computadora?')) return;
+        
+        var csrf = $('meta[name="csrf-token"]').attr('content');
+        
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: {
+                _method: 'DELETE',
+                _token: csrf
+            },
+            success: function() {
+                table.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Error al eliminar: ' + xhr.statusText);
+            }
+        });
+    }
+    
     var table;
+    
+    function getFilterValues() {
+        return {
+            plaza: jQuery('#plaza-filter').val() || '',
+            status_type: jQuery('#status-filter').val() || '',
+            group_id: jQuery('#group-filter').val() || '',
+            'search[value]': jQuery('#search-filter').val() || ''
+        };
+    }
     
     function getWindowsIcon(version) {
         if (!version) return '<i class="fab fa-windows text-secondary" title="Windows"></i>';
@@ -186,8 +245,11 @@
             ajax: {
                 url: '{{ route('admin.computers.index') }}',
                 type: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+                data: function(d) {
+                    var filters = getFilterValues();
+                    for (var key in filters) {
+                        d[key] = filters[key];
+                    }
                 },
                 error: function(xhr, error, thrown) {
                     console.log('Ajax Error:', xhr.responseText);
@@ -212,13 +274,12 @@
                     name: 'status',
                     className: 'text-center',
                     render: function(data) {
-                        if (data === 'online') {
-                            return '<span class="text-success" title="Online"><i class="fas fa-circle"></i></span>';
-                        }
-                        return '<span class="text-danger" title="Offline"><i class="fas fa-circle"></i></span>';
+if (data === 'online') {
+                             return '<span class="text-success" title="En línea"><i class="fas fa-circle"></i></span>';
+                         }
+                         return '<span class="text-danger" title="Fuera de línea"><i class="fas fa-circle"></i></span>';
                     }
                 },
-                { data: 'group_name', name: 'group_name', className: 'text-center' },
                 { 
                     data: 'agent_version', 
                     name: 'agent_version', 
@@ -237,6 +298,17 @@
                     render: function(data) {
                         if (data && data !== '-') {
                             return '<span class="info-badge bg-info">' + jQuery('<div>').text(data).html() + '</span>';
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                { 
+                    data: 'resurtido_version', 
+                    name: 'resurtido_version', 
+                    className: 'text-center',
+                    render: function(data) {
+                        if (data && data !== '-') {
+                            return '<span class="info-badge bg-warning">' + jQuery('<div>').text(data).html() + '</span>';
                         }
                         return '<span class="text-muted">-</span>';
                     }
@@ -264,11 +336,12 @@
                 { 
                     data: 'id',
                     orderable: false,
-                    render: function(data) {
+                    render: function(data, type, row) {
                         var showUrl = '{{ url('admin/computers') }}/' + data;
                         var editUrl = showUrl + '/edit';
                         return '<a href="' + showUrl + '" class="btn btn-info btn-sm" title="Ver"><i class="fas fa-eye"></i></a> ' +
-                               '<a href="' + editUrl + '" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a>';
+                               '<a href="' + editUrl + '" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a> ' +
+                               '<button type="button" class="btn btn-danger btn-sm" title="Eliminar" onclick="deleteComputer(' + data + ', \'' + showUrl + '\')"><i class="fas fa-trash"></i></button>';
                     }
                 }
             ],
@@ -298,6 +371,18 @@
     
     jQuery(document).ready(function() {
         initTable();
+        
+        jQuery('#plaza-filter, #status-filter, #group-filter').on('change', function() {
+            table.draw();
+        });
+        
+        var searchTimeout;
+        jQuery('#search-filter').on('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                table.draw();
+            }, 300);
+        });
         
         setTimeout(function() {
             jQuery('.alert').fadeOut('slow');

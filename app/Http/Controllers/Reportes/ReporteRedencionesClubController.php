@@ -6,9 +6,9 @@ use App\Helpers\RoleHelper;
 use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 
 class ReporteRedencionesClubController extends Controller
 {
@@ -17,9 +17,9 @@ class ReporteRedencionesClubController extends Controller
         $userFilter = RoleHelper::getUserFilter();
 
         // Si no tiene acceso permitido, verificar si es admin (acceso completo)
-        if (!$userFilter['allowed']) {
+        if (! $userFilter['allowed']) {
             $user = Auth::user();
-            if (!$user || !$user->hasRole(['super_admin', 'admin'])) {
+            if (! $user || ! $user->hasRole(['super_admin', 'admin'])) {
                 return redirect()->route('home')->with('error', $userFilter['message'] ?? 'No autorizado');
             }
         }
@@ -29,7 +29,7 @@ class ReporteRedencionesClubController extends Controller
 
         // Obtener listas filtradas por asignaciones del usuario
         $listas = RoleHelper::getListasParaFiltros();
-        
+
         $plazas = $listas['plazas'];
         $tiendas = $listas['tiendas'];
 
@@ -41,9 +41,9 @@ class ReporteRedencionesClubController extends Controller
         $userFilter = RoleHelper::getUserFilter();
 
         // Si no tiene acceso permitido, verificar si es admin (acceso completo)
-        if (!$userFilter['allowed']) {
+        if (! $userFilter['allowed']) {
             $user = Auth::user();
-            if (!$user || !$user->hasRole(['super_admin', 'admin'])) {
+            if (! $user || ! $user->hasRole(['super_admin', 'admin'])) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
             // Si es admin, crear filtro de acceso completo
@@ -82,7 +82,7 @@ class ReporteRedencionesClubController extends Controller
             // Verificar si existe la tabla de caché
             $tableExists = DB::getSchemaBuilder()->hasTable('redenciones_club_cache');
 
-            if (!$tableExists) {
+            if (! $tableExists) {
                 // Usar consulta directa si no hay caché
                 return $this->getDirectData($request, $start, $end, $draw, $startIdx, $length, $search, $tiendasPermitidas, $plazasPermitidas);
             }
@@ -90,16 +90,16 @@ class ReporteRedencionesClubController extends Controller
             $query = DB::table('redenciones_club_cache');
 
             // Filtros según el rol del usuario - plazas (solo si tiene asignaciones específicas)
-            if (!empty($plazasPermitidas) && !$accesoCompleto) {
+            if (! empty($plazasPermitidas) && ! $accesoCompleto) {
                 $query->whereIn('cplaza', $plazasPermitidas);
             }
 
             // Filtros según el rol del usuario - tiendas específicas (solo si tiene asignaciones específicas)
-            if (!empty($tiendasPermitidas) && !$accesoCompleto) {
+            if (! empty($tiendasPermitidas) && ! $accesoCompleto) {
                 $query->whereIn('ctienda', $tiendasPermitidas);
             }
 
-            if (!empty($search)) {
+            if (! empty($search)) {
                 $query->where(function ($q) use ($search) {
                     $q->where('cplaza', 'ILIKE', '%'.$search.'%')
                         ->orWhere('ctienda', 'ILIKE', '%'.$search.'%')
@@ -115,7 +115,7 @@ class ReporteRedencionesClubController extends Controller
                 $plazaFilter = $request->input('plaza');
                 if (is_array($plazaFilter) && count($plazaFilter) > 0) {
                     $query->whereIn('cplaza', $plazaFilter);
-                } elseif (!is_array($plazaFilter)) {
+                } elseif (! is_array($plazaFilter)) {
                     $query->where('cplaza', trim($plazaFilter));
                 }
             }
@@ -124,7 +124,7 @@ class ReporteRedencionesClubController extends Controller
                 $tiendaFilter = $request->input('tienda');
                 if (is_array($tiendaFilter) && count($tiendaFilter) > 0) {
                     $query->whereIn('ctienda', $tiendaFilter);
-                } elseif (!is_array($tiendaFilter)) {
+                } elseif (! is_array($tiendaFilter)) {
                     $query->where('ctienda', trim($tiendaFilter));
                 }
             }
@@ -234,7 +234,7 @@ class ReporteRedencionesClubController extends Controller
             'recordsTotal' => (int) $total,
             'recordsFiltered' => (int) $total,
             'data' => $data,
-            'warning' => 'Usando datos en tiempo real. Sincronice para mejor rendimiento.'
+            'warning' => 'Usando datos en tiempo real. Sincronice para mejor rendimiento.',
         ]);
     }
 
@@ -253,7 +253,7 @@ class ReporteRedencionesClubController extends Controller
         $vendedor = $request->input('vendedor', '');
 
         $tableExists = DB::getSchemaBuilder()->hasTable('redenciones_club_cache');
-        
+
         if ($tableExists) {
             $query = DB::table('redenciones_club_cache')
                 ->whereBetween('fecha', [$start, $end]);
@@ -281,14 +281,14 @@ class ReporteRedencionesClubController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ];
 
-        $callback = function () use ($query, $tableExists) {
+        $callback = function () use ($query) {
             $file = fopen('php://output', 'w');
 
             fputcsv($file, [
                 'Plaza', 'Tienda', 'Concepto', 'Fecha', 'Ref Tipo', 'Ref Num',
                 'Importe', 'Ing/Egr', 'Club ID', 'Vendedor', 'Nota Folio', 'Folio R',
                 'Tipo Venta', 'Cliente', 'Status', 'Fecha Nota', 'Producto',
-                'Descripcion', 'Cantidad', 'Precio', 'Subtotal', 'Importe'
+                'Descripcion', 'Cantidad', 'Precio', 'Subtotal', 'Importe',
             ]);
 
             $query->orderBy('fecha')->orderBy('ctienda')->orderBy('ref_num')
@@ -335,9 +335,9 @@ class ReporteRedencionesClubController extends Controller
         $userFilter = RoleHelper::getUserFilter();
 
         // Si no tiene acceso permitido, verificar si es admin (acceso completo)
-        if (!$userFilter['allowed']) {
+        if (! $userFilter['allowed']) {
             $user = Auth::user();
-            if (!$user || !$user->hasRole(['super_admin', 'admin'])) {
+            if (! $user || ! $user->hasRole(['super_admin', 'admin'])) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
         }
@@ -375,16 +375,16 @@ class ReporteRedencionesClubController extends Controller
         try {
             $tableName = 'redenciones_club_cache';
             $append = $request->input('append', false);
-            
+
             // Si no es append, crear o reemplazar tabla
-            if (!$append) {
+            if (! $append) {
                 DB::statement("DROP TABLE IF EXISTS {$tableName}");
             }
-            
+
             // Verificar si la tabla existe
             $tableExists = DB::getSchemaBuilder()->hasTable($tableName);
-            
-            if (!$tableExists) {
+
+            if (! $tableExists) {
                 DB::statement("CREATE TABLE {$tableName} (
                     id BIGSERIAL PRIMARY KEY,
                     cplaza VARCHAR(50),
@@ -416,7 +416,7 @@ class ReporteRedencionesClubController extends Controller
             }
 
             // Crear índices solo si es una tabla nueva
-            if (!$append || !$tableExists) {
+            if (! $append || ! $tableExists) {
                 DB::statement("CREATE INDEX IF NOT EXISTS idx_red_club_fecha ON {$tableName}(fecha)");
                 DB::statement("CREATE INDEX IF NOT EXISTS idx_red_club_plaza ON {$tableName}(cplaza)");
                 DB::statement("CREATE INDEX IF NOT EXISTS idx_red_club_tienda ON {$tableName}(ctienda)");

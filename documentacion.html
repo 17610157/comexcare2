@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMEXCARE - Documentación Técnica del Proyecto</title>
+<style>
+  :root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #1e293b;
+    --bg-code: #0d1117;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent: #38bdf8;
+    --accent-hover: #7dd3fc;
+    --accent-green: #4ade80;
+    --accent-yellow: #fbbf24;
+    --accent-red: #f87171;
+    --accent-purple: #a78bfa;
+    --accent-orange: #fb923c;
+    --border: #334155;
+    --sidebar-width: 280px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    display: flex;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 0;
+  }
+  .sidebar-header {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+  .sidebar-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .sidebar-header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .sidebar nav { padding: 8px 0; }
+  .sidebar nav a {
+    display: block;
+    padding: 8px 20px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  .sidebar nav a:hover, .sidebar nav a.active {
+    color: var(--accent);
+    background: rgba(56,189,248,0.08);
+    border-left-color: var(--accent);
+  }
+  .sidebar nav .section-title {
+    padding: 16px 20px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+  }
+
+  /* Main Content */
+  .main {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    max-width: calc(100% - var(--sidebar-width));
+  }
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+  }
+
+  /* Typography */
+  h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; color: var(--text-primary); letter-spacing: -1px; }
+  h2 {
+    font-size: 24px; font-weight: 700; margin: 48px 0 16px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--border); color: var(--accent); letter-spacing: -0.5px;
+  }
+  h3 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; color: var(--text-primary); }
+  h4 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--text-secondary); }
+  p { margin-bottom: 16px; color: var(--text-secondary); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-card .number {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1.2;
+  }
+  .stat-card .label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+  thead th {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  tbody td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+  tbody tr:hover td { background: rgba(56,189,248,0.04); }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .badge-green { background: rgba(74,222,128,0.15); color: var(--accent-green); }
+  .badge-yellow { background: rgba(251,191,36,0.15); color: var(--accent-yellow); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--accent-red); }
+  .badge-purple { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
+  .badge-orange { background: rgba(251,146,60,0.15); color: var(--accent-orange); }
+
+  /* Code Blocks */
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  pre code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    background: rgba(56,189,248,0.1);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  pre code .keyword { color: #ff79c6; }
+  pre code .string { color: #f1fa8c; }
+  pre code .comment { color: #6272a4; }
+  pre code .function { color: #50fa7b; }
+  pre code .variable { color: #f8f8f2; }
+  pre code .number { color: #bd93f9; }
+  pre code .type { color: #8be9fd; }
+  pre code .operator { color: #ff79c6; }
+
+  /* Lists */
+  ul, ol { margin-bottom: 16px; padding-left: 24px; }
+  li { margin-bottom: 6px; color: var(--text-secondary); }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 60px 0 40px;
+    background: linear-gradient(135deg, rgba(56,189,248,0.06) 0%, rgba(167,139,250,0.06) 100%);
+    border-radius: 16px;
+    margin-bottom: 40px;
+    border: 1px solid var(--border);
+  }
+  .hero h1 { font-size: 42px; margin-bottom: 12px; }
+  .hero .subtitle { font-size: 18px; color: var(--text-secondary); margin-bottom: 8px; }
+  .hero .meta { font-size: 14px; color: var(--text-muted); }
+  .hero .meta span { margin: 0 12px; }
+
+  .method {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: monospace;
+    text-transform: uppercase;
+  }
+  .method-get { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .method-post { background: rgba(74,222,128,0.15); color: var(--accent-green); }
+  .method-put { background: rgba(251,191,36,0.15); color: var(--accent-yellow); }
+  .method-delete { background: rgba(248,113,113,0.15); color: var(--accent-red); }
+  .method-patch { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
+
+  .controller-block {
+    margin-bottom: 16px;
+  }
+  .controller-block .ctrl-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .controller-block .ctrl-header:hover {
+    border-color: var(--accent);
+  }
+  .controller-block .ctrl-header .ctrl-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+  }
+  .controller-block .ctrl-header .ctrl-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .controller-block .ctrl-body {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+  }
+  .ctrl-body table { margin-bottom: 0; }
+
+  .file-path {
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--accent-green);
+    background: rgba(74,222,128,0.08);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; max-width: 100%; }
+    .container { padding: 24px 16px; }
+    .hero h1 { font-size: 28px; }
+  }
+
+  /* Tabs */
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .tab-bar .tab {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-bar .tab:hover, .tab-bar .tab.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(56,189,248,0.08);
+  }
+
+  .route-table td:first-child { white-space: nowrap; }
+
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  .flow-diagram .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .flow-diagram .arrow {
+    color: var(--text-muted);
+    font-size: 18px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>COMEXCARE</h1>
+    <p>Documentación Técnica</p>
+  </div>
+  <nav>
+    <div class="section-title">Inicio</div>
+    <a href="#inicio">Visión General</a>
+    <a href="#arquitectura">Arquitectura</a>
+    <a href="#stack-tecnologico">Stack Tecnológico</a>
+
+    <div class="section-title">Modelos</div>
+    <a href="#modelos">Modelos &amp; DB</a>
+
+    <div class="section-title">Controladores</div>
+    <a href="#controladores-web">Web</a>
+    <a href="#controladores-api">API</a>
+    <a href="#controladores-reportes">Reportes</a>
+    <a href="#controladores-auth">Auth</a>
+
+    <div class="section-title">Rutas</div>
+    <a href="#rutas-web">Web Routes</a>
+    <a href="#rutas-api">API Routes</a>
+
+    <div class="section-title">Servicios &amp; Jobs</div>
+    <a href="#servicios">Servicios</a>
+    <a href="#jobs">Jobs</a>
+    <a href="#commands">Comandos</a>
+    <a href="#exports">Exports / Imports</a>
+
+    <div class="section-title">Vistas</div>
+    <a href="#vistas">Blade Templates</a>
+
+    <div class="section-title">Pruebas</div>
+    <a href="#tests">Tests</a>
+
+    <div class="section-title">Seguridad</div>
+    <a href="#seguridad">Middleware &amp; Auth</a>
+
+    <div class="section-title">Tiempo Real</div>
+    <a href="#tiempo-real">WebSockets &amp; Broadcast</a>
+  </nav>
+</aside>
+
+<!-- Main -->
+<div class="main">
+<div class="container">
+
+<!-- HERO -->
+<section id="inicio">
+  <div class="hero">
+    <h1>📦 COMEXCARE</h1>
+    <div class="subtitle">Sistema de Gestión Distribuida de Equipos y Reportes de Ventas</div>
+    <div class="meta">
+      <span>Laravel 12</span> •
+      <span>PHP 8.3</span> •
+      <span>PostgreSQL</span> •
+      <span>Redis</span> •
+      <span>AdminLTE 3</span>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="stat-card"><div class="number">40+</div><div class="label">Controladores</div></div>
+    <div class="stat-card"><div class="number">18</div><div class="label">Modelos</div></div>
+    <div class="stat-card"><div class="number">65</div><div class="label">Migraciones</div></div>
+    <div class="stat-card"><div class="number">70+</div><div class="label">Vistas Blade</div></div>
+    <div class="stat-card"><div class="number">12</div><div class="label">Comandos Artisan</div></div>
+    <div class="stat-card"><div class="number">26</div><div class="label">Tests</div></div>
+  </div>
+
+  <h3>Descripción del Proyecto</h3>
+  <p>
+    <strong>COMEXCARE</strong> es un sistema empresarial desarrollado para <strong>Comex</strong> (empresa mexicana de recubrimientos)
+    que permite la <strong>gestión remota de equipos de cómputo</strong> (agentes instalados en tiendas a nivel nacional),
+    la <strong>distribución y recepción de archivos</strong> (actualizaciones de agente, archivos PVSI, DBF),
+    y la generación de <strong>reportes de ventas avanzados</strong> con múltiples capas de cache y optimización.
+  </p>
+  <p>
+    El sistema soporta <strong>500+ usuarios concurrentes</strong> con tiempos de respuesta &lt;3s incluso procesando
+    más de 7,000 registros, gracias a un sistema de cache escalonado (Redis + tablas materializadas + pre-agregación).
+  </p>
+</section>
+
+<!-- ARQUITECTURA -->
+<section id="arquitectura">
+  <h2>🏗️ Arquitectura del Sistema</h2>
+
+  <h3>Diagrama de Flujo General</h3>
+  <div class="flow-diagram">
+    <div class="step">🌐 Agentes (PCs tienda)</div>
+    <div class="arrow">→</div>
+    <div class="step">📡 API (Registro/Heartbeat)</div>
+    <div class="arrow">→</div>
+    <div class="step">⚡ Jobs + Redis Queue</div>
+    <div class="arrow">→</div>
+    <div class="step">📊 Reportes Cache</div>
+    <div class="arrow">→</div>
+    <div class="step">🖥️ Dashboard AdminLTE</div>
+  </div>
+
+  <h3>Estructura de Directorios</h3>
+  <pre><code>comexcare/
+├── <span class="keyword">app</span>/
+│   ├── <span class="variable">Channels</span>/          <span class="comment"># Broadcast channel auth (DistributionChannel)</span>
+│   ├── <span class="variable">Console/Commands</span>/  <span class="comment"># 12 comandos Artisan personalizados</span>
+│   ├── <span class="variable">Events</span>/             <span class="comment"># DistributionProgressUpdated</span>
+│   ├── <span class="variable">Exports</span>/            <span class="comment"># 8 clases de exportación Excel</span>
+│   ├── <span class="variable">Helpers</span>/            <span class="comment"># Helper classes utilitarias</span>
+│   ├── <span class="variable">Http</span>/
+│   │   ├── <span class="variable">Controllers</span>/      <span class="comment"># Web + API + Auth + Reportes</span>
+│   │   │   ├── <span class="variable">Api</span>/             <span class="comment"># AgentController, ValeController, ResurtidoAgentController</span>
+│   │   │   ├── <span class="variable">Auth</span>/            <span class="comment"># Login, Register, Password, Verification</span>
+│   │   │   └── <span class="variable">Reportes</span>/        <span class="comment"># CarteraAbonos*, NotasCompletas, ClubComex...</span>
+│   │   └── <span class="variable">Middleware</span>/       <span class="comment"># ApiRateLimiter, AuditMiddleware</span>
+│   ├── <span class="variable">Imports</span>/            <span class="comment"># MetasMensualImport, MetaMensualImport</span>
+│   ├── <span class="variable">Jobs</span>/               <span class="comment"># ProcessDistribution, CarteraAbonosSync, etc.</span>
+│   ├── <span class="variable">Models</span>/             <span class="comment"># 18 modelos Eloquent</span>
+│   ├── <span class="variable">Notifications</span>/     <span class="comment"># AgentOffline, DistributionCompleted, SyncCompleted</span>
+│   ├── <span class="variable">Providers</span>/          <span class="comment"># AppServiceProvider, HorizonServiceProvider</span>
+│   └── <span class="variable">Services</span>/           <span class="comment"># DistributionService, ReportService, CarteraAbonos*</span>
+├── <span class="keyword">bootstrap</span>/           <span class="comment"># app.php (middleware, routing), providers.php</span>
+├── <span class="keyword">config</span>/              <span class="comment"># 19 archivos de configuración</span>
+├── <span class="keyword">database</span>/
+│   ├── <span class="variable">factories</span>/         <span class="comment"># 8 factories</span>
+│   ├── <span class="variable">migrations</span>/        <span class="comment"># 65 migraciones</span>
+│   └── <span class="variable">seeders</span>/           <span class="comment"># 7 seeders</span>
+├── <span class="keyword">resources</span>/
+│   ├── <span class="variable">views</span>/              <span class="comment"># 70+ plantillas Blade</span>
+│   ├── <span class="variable">js</span>/                <span class="comment"># Laravel Echo + Socket.io + Bootstrap JS</span>
+│   └── <span class="variable">sass</span>/              <span class="comment"># SCSS con Bootstrap + custom</span>
+├── <span class="keyword">routes</span>/
+│   ├── <span class="variable">web.php</span>            <span class="comment"># 361 líneas de rutas web</span>
+│   ├── <span class="variable">api.php</span>            <span class="comment"># 122 líneas de rutas API</span>
+│   ├── <span class="variable">channels.php</span>       <span class="comment"># Broadcasting channels</span>
+│   ├── <span class="variable">console.php</span>        <span class="comment"># Tareas programadas</span>
+│   ├── <span class="variable">ai.php</span>             <span class="comment"># Rutas MCP</span>
+│   └── <span class="variable">cartera_abonos_*.php</span> <span class="comment"># 3 route files optimizados</span>
+├── <span class="keyword">tests</span>/                <span class="comment"># Feature (16) + Unit (10)</span>
+└── <span class="variable">websocket-server.js</span>  <span class="comment"># Servidor Node.js WebSocket (puerto 6001)</span></code></pre>
+</section>
+
+<!-- STACK TECNOLÓGICO -->
+<section id="stack-tecnologico">
+  <h2>⚙️ Stack Tecnológico</h2>
+
+  <div class="card-grid">
+    <div class="stat-card"><div class="number" style="color:var(--accent-red)">Laravel 12</div><div class="label">Framework PHP</div></div>
+    <div class="stat-card"><div class="number" style="color:var(--accent-purple)">PHP 8.3</div><div class="label">Lenguaje</div></div>
+    <div class="stat-card"><div class="number" style="color:var(--accent)">PostgreSQL</div><div class="label">Base de Datos</div></div>
+    <div class="stat-card"><div class="number" style="color:var(--accent-red)">Redis</div><div class="label">Cache / Queue</div></div>
+    <div class="stat-card"><div class="number" style="color:var(--accent-yellow)">AdminLTE 3</div><div class="label">Admin Theme</div></div>
+    <div class="stat-card"><div class="number" style="color:var(--accent-green)">Tailwind v4</div><div class="label">CSS Framework</div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Dependencia</th><th>Versión</th><th>Propósito</th></tr></thead>
+    <tbody>
+      <tr><td>laravel/framework</td><td>~12.0</td><td>Framework base</td></tr>
+      <tr><td>spatie/laravel-permission</td><td>—</td><td>Roles &amp; permisos ACL</td></tr>
+      <tr><td>jeroennoten/laravel-adminlte</td><td>—</td><td>Panel administrativo AdminLTE 3</td></tr>
+      <tr><td>barryvdh/laravel-dompdf</td><td>—</td><td>Generación de PDFs</td></tr>
+      <tr><td>maatwebsite/excel</td><td>—</td><td>Import / Export Excel (XLSX, CSV)</td></tr>
+      <tr><td>laravel/horizon</td><td>~5.0</td><td>Monitor de colas Redis</td></tr>
+      <tr><td>laravel/echo</td><td>~2.0</td><td>WebSocket broadcasting (Socket.io)</td></tr>
+      <tr><td>pusher-js</td><td>—</td><td>Cliente WebSocket</td></tr>
+      <tr><td>vite</td><td>~7.0</td><td>Bundler frontend</td></tr>
+      <tr><td>pestphp/pest</td><td>~4.0</td><td>Testing framework</td></tr>
+      <tr><td>tailwindcss</td><td>~4.0</td><td>CSS utility-first</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- MODELOS -->
+<section id="modelos">
+  <h2>🗄️ Modelos y Base de Datos</h2>
+
+  <h3>Core Tables</h3>
+  <table>
+    <thead><tr><th>Tabla</th><th>Modelo</th><th>Propósito</th></tr></thead>
+    <tbody>
+      <tr><td>users</td><td>User</td><td>Usuarios del sistema (name, email, plaza, tienda, activo)</td></tr>
+      <tr><td>computers</td><td>Computer</td><td>Inventario de equipos (40+ cols: nombre, mac, ip, grupo, version_agente, pvsi...)</td></tr>
+      <tr><td>groups</td><td>Group</td><td>Grupos de computadoras</td></tr>
+      <tr><td>group_short_keys</td><td>GroupShortKey</td><td>Short keys por grupo</td></tr>
+      <tr><td>distributions</td><td>Distribution</td><td>Distribuciones de archivos/actualizaciones</td></tr>
+      <tr><td>distribution_files</td><td>DistributionFile</td><td>Archivos en una distribución</td></tr>
+      <tr><td>distribution_targets</td><td>DistributionTarget</td><td>Estado por computadora objetivo</td></tr>
+      <tr><td>receptions</td><td>Reception</td><td>Trabajos de recepción de archivos</td></tr>
+      <tr><td>reception_files</td><td>ReceptionFile</td><td>Archivos a recibir</td></tr>
+      <tr><td>reception_targets</td><td>ReceptionTarget</td><td>Estado por computadora (recepción)</td></tr>
+      <tr><td>commands</td><td>Command</td><td>Comandos enviados a agentes remotos</td></tr>
+      <tr><td>computer_logs</td><td>ComputerLog</td><td>Logs de agentes</td></tr>
+      <tr><td>agent_versions</td><td>AgentVersion</td><td>Versiones del agente de distribución</td></tr>
+      <tr><td>resurtido_agent_versions</td><td>ResurtidoAgentVersion</td><td>Versiones del agente de resurtido</td></tr>
+      <tr><td>vales</td><td>Vale</td><td>Registro de vales/vouchers (25+ campos)</td></tr>
+      <tr><td>metas_mensual</td><td>MetaMensual</td><td>Metas mensuales por plaza/tienda/periodo</td></tr>
+      <tr><td>audit_logs</td><td>AuditLog</td><td>Bitácora de auditoría</td></tr>
+      <tr><td>file_lists</td><td>FileList</td><td>Listas blancas/negras de archivos</td></tr>
+      <tr><td>user_plaza_tiendas</td><td>UserPlazaTienda</td><td>Asignación usuario ↔ tienda</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cache Tables (Optimización de Reportes)</h3>
+  <table>
+    <thead><tr><th>Tabla</th><th>Propósito</th></tr></thead>
+    <tbody>
+      <tr><td>cartera_abonos_cache</td><td>Cache de cartera de abonos</td></tr>
+      <tr><td>vendedores_cache</td><td>Cache de reportes de vendedores</td></tr>
+      <tr><td>metas_cache</td><td>Cache de metas</td></tr>
+      <tr><td>notas_completas_cache</td><td>Cache de notas completas</td></tr>
+      <tr><td>compras_directo_cache</td><td>Cache de compras directo</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Modelo: User (Ejemplo de relaciones)</h3>
+  <pre><code><span class="keyword">class</span> <span class="type">User</span> <span class="keyword">extends</span> Authenticatable
+{
+    <span class="keyword">use</span> HasRoles;
+
+    <span class="keyword">public function</span> <span class="function">userPlazaTiendas</span>(): HasMany
+    {
+        <span class="keyword">return</span> <span class="variable">$this</span>->hasMany(UserPlazaTienda::<span class="keyword">class</span>);
+    }
+
+    <span class="keyword">public function</span> <span class="function">getPlazasAttribute</span>(): Collection
+    {
+        <span class="keyword">return</span> <span class="variable">$this</span>->userPlazaTiendas->pluck(<span class="string">'plaza'</span>)->unique();
+    }
+}</code></pre>
+
+  <h3>Modelo: Computer (Ejemplo de relaciones)</h3>
+  <pre><code><span class="keyword">class</span> <span class="type">Computer</span> <span class="keyword">extends</span> Model
+{
+    <span class="keyword">use</span> SoftDeletes;
+
+    <span class="keyword">public function</span> <span class="function">group</span>(): BelongsTo
+    {
+        <span class="keyword">return</span> <span class="variable">$this</span>->belongsTo(Group::<span class="keyword">class</span>);
+    }
+
+    <span class="keyword">public function</span> <span class="function">distributionTargets</span>(): HasMany
+    {
+        <span class="keyword">return</span> <span class="variable">$this</span>->hasMany(DistributionTarget::<span class="keyword">class</span>);
+    }
+}</code></pre>
+
+  <h3>Migraciones (65 total)</h3>
+  <p>Las migraciones cubren: tablas del sistema (users, sessions, cache), permisos (Spatie),
+  inventario/agentes (computers, groups, commands, agent_versions), distribuciones (distributions,
+  distribution_files, distribution_targets), recepciones (receptions, reception_files, reception_targets),
+  reportes (vales, metas, cache tables), y utilidades (audit_logs, file_lists, user_plaza_tiendas).</p>
+</section>
+
+<!-- CONTROLADORES WEB -->
+<section id="controladores-web">
+  <h2>🎮 Controladores Web</h2>
+
+  <table>
+    <thead><tr><th>Controlador</th><th>Métodos</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">HomeController</span></td><td><span class="badge badge-blue">index()</span> <span class="badge badge-green">stats()</span></td><td>Dashboard con estadísticas del sistema</td></tr>
+      <tr><td><span class="file-path">UserController</span></td><td><span class="badge badge-blue">index, data, store, show, update, destroy</span></td><td>CRUD completo de usuarios</td></tr>
+      <tr><td><span class="file-path">RoleController</span></td><td><span class="badge badge-blue">index, data, store, show, update, destroy, allPermissions</span></td><td>CRUD de roles + permisos asociados</td></tr>
+      <tr><td><span class="file-path">PermissionController</span></td><td><span class="badge badge-blue">index, data, store, update, destroy, sync</span></td><td>CRUD + sincronización de permisos</td></tr>
+      <tr><td><span class="file-path">ComputersController</span></td><td><span class="badge badge-blue">index, show, edit, update, destroy, logs, status, export</span></td><td>Inventario de equipos con exportación</td></tr>
+      <tr><td><span class="file-path">GroupsController</span></td><td><span class="badge badge-blue">index, create, store, show, edit, update, destroy, importExcel, export</span></td><td>Gestión de grupos + import/export Excel</td></tr>
+      <tr><td><span class="file-path">DistributionsController</span></td><td><span class="badge badge-blue">index, create, store, show, update, destroy, stop, start, restart, retryTarget, progress</span></td><td>Distribución de archivos a equipos remotos</td></tr>
+      <tr><td><span class="file-path">ReceptionController</span></td><td><span class="badge badge-blue">index, create, store, show, showComputer, destroy, stop, start, retryTarget</span></td><td>Recepción de archivos desde agentes</td></tr>
+      <tr><td><span class="file-path">AgentVersionsController</span></td><td><span class="badge badge-blue">index, create, store, destroy</span></td><td>Gestión de versiones del agente de distribución</td></tr>
+      <tr><td><span class="file-path">ResurtidoAgentVersionsController</span></td><td><span class="badge badge-blue">index, create, store, destroy, deploy</span></td><td>Gestión + deploy del agente de resurtido</td></tr>
+      <tr><td><span class="file-path">FileReceptionController</span></td><td><span class="badge badge-blue">index, create, store</span></td><td>Subida de archivos para recepción</td></tr>
+      <tr><td><span class="file-path">FileListsController</span></td><td><span class="badge badge-blue">index, store, destroy, validateFiles</span></td><td>Listas blancas/negras de archivos</td></tr>
+      <tr><td><span class="file-path">UserPlazaTiendaController</span></td><td><span class="badge badge-blue">index, edit, update, getTiendas</span></td><td>Asignación de tiendas a usuarios</td></tr>
+      <tr><td><span class="file-path">TiendasController</span></td><td><span class="badge badge-blue">index, data, show, store, update, destroy</span></td><td>Catálogo de tiendas (bi_sys_tiendas)</td></tr>
+      <tr><td><span class="file-path">MetasMensualController</span></td><td><span class="badge badge-blue">index, import, store, update, destroy, generarMetas, generateDias, getDiasPeriodo, performanceTest</span></td><td>Gestión de metas mensuales</td></tr>
+      <tr><td><span class="file-path">CargaMetasController</span></td><td><span class="badge badge-blue">index, upload</span></td><td>Carga de metas vía Excel</td></tr>
+      <tr><td><span class="file-path">MetasPublishController</span></td><td><span class="badge badge-blue">publishMetas</span></td><td>Publicar metas</td></tr>
+      <tr><td><span class="file-path">BotonConsultaController</span></td><td><span class="badge badge-blue">consultarMetas</span></td><td>Consultas personalizadas de metas</td></tr>
+      <tr><td><span class="file-path">MetricsController</span></td><td><span class="badge badge-blue">index, health</span></td><td>Métricas y health check del sistema</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Controladores de Reportes Web</h3>
+  <table>
+    <thead><tr><th>Controlador</th><th>Métodos</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">ReporteVendedoresController</span></td><td><span class="badge badge-blue">index, data, export, exportCsv, exportPdf, sync</span></td><td>Reporte de rendimiento de vendedores</td></tr>
+      <tr><td><span class="file-path">ReporteVendedoresB2bController</span></td><td><span class="badge badge-blue">index, data, export, exportCsv, exportPdf</span></td><td>Reporte B2B de vendedores</td></tr>
+      <tr><td><span class="file-path">ReporteVendedoresMatricialController</span></td><td><span class="badge badge-blue">index, exportExcel, exportPdf, exportCsv</span></td><td>Reporte matricial de vendedores</td></tr>
+      <tr><td><span class="file-path">ReporteMetasVentasController</span></td><td><span class="badge badge-blue">index, export, exportPdf, exportCsv, consultarDatosPersonalizados</span></td><td>Reporte de metas de ventas</td></tr>
+      <tr><td><span class="file-path">ReporteMetasMatricialController</span></td><td><span class="badge badge-blue">index, exportExcel, exportPdf</span></td><td>Reporte matricial de metas</td></tr>
+      <tr><td><span class="file-path">ReporteDesgloseController</span></td><td><span class="badge badge-blue">index</span></td><td>Reporte de desglose</td></tr>
+      <tr><td><span class="file-path">ReporteComprasDirectoController</span></td><td><span class="badge badge-blue">index, data, export, exportExcel, exportCsv, exportPdf, sync</span></td><td>Reporte de compras directo</td></tr>
+      <tr><td><span class="file-path">ReporteDbfFilesController</span></td><td><span class="badge badge-blue">index, data, export</span></td><td>Monitoreo de archivos DBF</td></tr>
+      <tr><td><span class="file-path">ReporteValesController</span></td><td><span class="badge badge-blue">index, data, export</span></td><td>Reporte de vales</td></tr>
+      <tr><td><span class="file-path">ReporteCarteraAbonosController</span></td><td><span class="badge badge-blue">index, data</span></td><td>Reporte de cartera de abonos (legacy)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- CONTROLADORES API -->
+<section id="controladores-api">
+  <h2>🔌 Controladores API</h2>
+
+  <table>
+    <thead><tr><th>Controlador</th><th>Ruta Base</th><th>Métodos</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="file-path">AgentController</span> (996 líneas)</td>
+        <td><code>/api</code></td>
+        <td><span class="badge badge-blue">register, heartbeat, getCommands, report, download, checkUpdate, checkUpdateByComputerId, inventory, uploadReception, logs, pvsiUpdate, getComputerConfig</span></td>
+        <td>Controlador principal de comunicación con agentes remotos. Maneja registro, heartbeat, descarga de comandos, reporte de estado, inventario, subida de recepciones, logs, actualizaciones PVSI</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">ResurtidoAgentController</span></td>
+        <td><code>/api/resurtido</code></td>
+        <td><span class="badge badge-blue">register, heartbeat, checkUpdate, getCommands, report</span></td>
+        <td>API para el agente de resurtido (restocking)</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">ValeController</span> (449 líneas)</td>
+        <td><code>/api/vales</code></td>
+        <td><span class="badge badge-blue">index, show, store, storeBatch, update, destroy, resetSync</span></td>
+        <td>CRUD completo de vales/vouchers con soporte batch</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Ejemplo: AgentController - Método heartbeat</h3>
+  <pre><code><span class="comment">/**
+ * Procesa el heartbeat de un agente.
+ * Actualiza el estado online/offline y la última actividad.
+ */</span>
+<span class="keyword">public function</span> <span class="function">heartbeat</span>(Request <span class="variable">$request</span>): JsonResponse
+{
+    <span class="variable">$computer</span> = Computer::where(<span class="string">'short_key'</span>, <span class="variable">$request</span>->input(<span class="string">'short_key'</span>))
+        ->firstOrFail();
+
+    <span class="variable">$computer</span>->update([
+        <span class="string">'last_heartbeat_at'</span> => now(),
+        <span class="string">'is_online'</span> => <span class="keyword">true</span>,
+        <span class="string">'ip_address'</span> => <span class="variable">$request</span>->ip(),
+    ]);
+
+    <span class="keyword">return</span> response()->json([<span class="string">'status'</span> => <span class="string">'ok'</span>, <span class="string">'time'</span> => now()]);
+}</code></pre>
+
+  <h3>Ejemplo: AgentController - Método register (Código de ejemplo)</h3>
+  <pre><code><span class="keyword">public function</span> <span class="function">register</span>(Request <span class="variable">$request</span>): JsonResponse
+{
+    <span class="variable">$validated</span> = <span class="variable">$request</span>->validate([
+        <span class="string">'computer_name'</span> => <span class="string">'required|string|max:255'</span>,
+        <span class="string">'short_key'</span> => <span class="string">'required|string|max:50|unique:computers,short_key'</span>,
+        <span class="string">'mac_address'</span> => <span class="string">'nullable|string|max:17'</span>,
+        <span class="string">'group_short_key'</span> => <span class="string">'nullable|string|max:50'</span>,
+    ]);
+
+    <span class="variable">$group</span> = <span class="keyword">null</span>;
+    <span class="keyword">if</span> (<span class="variable">$request</span>->filled(<span class="string">'group_short_key'</span>)) {
+        <span class="variable">$group</span> = GroupShortKey::where(<span class="string">'short_key'</span>, <span class="variable">$request</span>->group_short_key)
+            ->first()?->group_id;
+    }
+
+    <span class="variable">$computer</span> = Computer::create([
+        <span class="string">'computer_name'</span> => <span class="variable">$validated</span>[<span class="string">'computer_name'</span>],
+        <span class="string">'short_key'</span> => <span class="variable">$validated</span>[<span class="string">'short_key'</span>],
+        <span class="string">'mac_address'</span> => <span class="variable">$validated</span>[<span class="string">'mac_address'</span>] ?? <span class="keyword">null</span>,
+        <span class="string">'group_id'</span> => <span class="variable">$group</span>,
+        <span class="string">'ip_address'</span> => <span class="variable">$request</span>->ip(),
+        <span class="string">'agent_version'</span> => <span class="variable">$request</span>->input(<span class="string">'agent_version'</span>),
+        <span class="string">'is_online'</span> => <span class="keyword">true</span>,
+        <span class="string">'last_heartbeat_at'</span> => now(),
+    ]);
+
+    <span class="keyword">return</span> response()->json(<span class="variable">$computer</span>, <span class="number">201</span>);
+}</code></pre>
+</section>
+
+<!-- CONTROLADORES REPORTES -->
+<section id="controladores-reportes">
+  <h2>📊 Controladores de Reportes (Reportes/)</h2>
+
+  <table>
+    <thead><tr><th>Controlador</th><th>Métodos</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="file-path">Reportes/CarteraAbonosController</span></td>
+        <td><span class="badge badge-blue">index, data, pdf, exportExcel, exportCsv, sync</span></td>
+        <td>Cartera de abonos (nueva versión)</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">Reportes/CarteraAbonosOptimizedController</span></td>
+        <td><span class="badge badge-blue">index, data, dataStream, stats, invalidateCache, pdf, exportExcel, exportCsv, export</span></td>
+        <td>Versión optimizada con cache inteligente</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">Reportes/CarteraAbonosRealtimeController</span></td>
+        <td><span class="badge badge-blue">index, data, stream, stats, health, forceSync, pdf, exportExcel, exportCsv</span></td>
+        <td>Versión en tiempo real con vistas materializadas</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">Reportes/CarteraAbonosUltraFastController</span></td>
+        <td><span class="badge badge-blue">index, preload, forcePreload, status, health, incrementalUpdate, exportData, search, apiPreload, apiStats, apiHealth, apiExport</span></td>
+        <td>Versión ultra-rápida para 500+ usuarios concurrentes</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">Reportes/NotasCompletasController</span></td>
+        <td><span class="badge badge-blue">index, data, exportExcel, exportCsv, sync</span></td>
+        <td>Reporte de notas completas</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">Reportes/ClubComexController</span></td>
+        <td><span class="badge badge-blue">index, sync, search, exportCsv</span></td>
+        <td>Sincronización y consulta de Club Comex (programa de lealtad)</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">Reportes/ReporteRedencionesClubController</span></td>
+        <td><span class="badge badge-blue">index, data, exportExcel, exportCsv, sync</span></td>
+        <td>Reporte de redenciones del Club Comex</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Ejemplo: ReporteService (Capa de Optimización)</h3>
+  <pre><code><span class="comment">/**
+ * ReportService - Servicio centralizado de reportes.
+ * Procesa consultas SQL optimizadas con cache automático.
+ */</span>
+<span class="keyword">class</span> <span class="type">ReportService</span>
+{
+    <span class="keyword">public function</span> <span class="function">getReporteVendedores</span>(
+        <span class="type">array</span> <span class="variable">$params</span>,
+        <span class="type">bool</span> <span class="variable">$useCache</span> = <span class="keyword">true</span>
+    ): Collection {
+        <span class="variable">$cacheKey</span> = <span class="string">'reporte.vendedores.'</span> . md5(serialize(<span class="variable">$params</span>));
+
+        <span class="keyword">if</span> (<span class="variable">$useCache</span> &amp;&amp; Cache::has(<span class="variable">$cacheKey</span>)) {
+            <span class="keyword">return</span> Cache::get(<span class="variable">$cacheKey</span>);
+        }
+
+        <span class="variable">$query</span> = DB::table(<span class="string">'vendedores_cache'</span>)
+            ->select(
+                <span class="string">'asesor'</span>,
+                <span class="string">'nombre'</span>,
+                DB::raw(<span class="string">'SUM(venta) as total_venta'</span>),
+                DB::raw(<span class="string">'COUNT(DISTINCT nota) as total_notas'</span>)
+            )
+            ->when(<span class="variable">$params</span>[<span class="string">'plaza'</span>] ?? <span class="keyword">null</span>,
+                fn(<span class="variable">$q</span>, <span class="variable">$plaza</span>) => <span class="variable">$q</span>->where(<span class="string">'plaza'</span>, <span class="variable">$plaza</span>))
+            ->groupBy(<span class="string">'asesor'</span>, <span class="string">'nombre'</span>)
+            ->orderByDesc(<span class="string">'total_venta'</span>);
+
+        <span class="variable">$results</span> = <span class="variable">$query</span>->get();
+
+        <span class="keyword">if</span> (<span class="variable">$useCache</span>) {
+            Cache::put(<span class="variable">$cacheKey</span>, <span class="variable">$results</span>, now()->addMinutes(<span class="number">15</span>));
+        }
+
+        <span class="keyword">return</span> <span class="variable">$results</span>;
+    }
+}</code></pre>
+</section>
+
+<!-- CONTROLADORES AUTH -->
+<section id="controladores-auth">
+  <h2>🔐 Controladores de Autenticación</h2>
+
+  <table>
+    <thead><tr><th>Controlador</th><th>Ubicación</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td>LoginController</td><td><span class="file-path">app/Http/Controllers/Auth/LoginController.php</span></td><td>Login/logout con trait AuthenticatesUsers</td></tr>
+      <tr><td>RegisterController</td><td><span class="file-path">app/Http/Controllers/Auth/RegisterController.php</span></td><td>Registro de nuevos usuarios</td></tr>
+      <tr><td>ForgotPasswordController</td><td><span class="file-path">app/Http/Controllers/Auth/ForgotPasswordController.php</span></td><td>Envío de email para reset de password</td></tr>
+      <tr><td>ResetPasswordController</td><td><span class="file-path">app/Http/Controllers/Auth/ResetPasswordController.php</span></td><td>Reseteo de password</td></tr>
+      <tr><td>VerificationController</td><td><span class="file-path">app/Http/Controllers/Auth/VerificationController.php</span></td><td>Verificación de email</td></tr>
+      <tr><td>ConfirmPasswordController</td><td><span class="file-path">app/Http/Controllers/Auth/ConfirmPasswordController.php</span></td><td>Confirmación de password</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- RUTAS WEB -->
+<section id="rutas-web">
+  <h2>🌐 Rutas Web</h2>
+
+  <h3>Rutas de Autenticación</h3>
+  <table class="route-table">
+    <thead><tr><th>Método</th><th>URI</th><th>Controlador</th><th>Nombre</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method method-get">GET</span></td><td>/</td><td>Redirect login/home</td><td>—</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/home</td><td>HomeController@index</td><td>home</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/home/stats</td><td>HomeController@stats</td><td>home.stats</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/login</td><td>Auth\LoginController@showLoginForm</td><td>login</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/login</td><td>Auth\LoginController@login</td><td>—</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/logout</td><td>Auth\LoginController@logout</td><td>logout</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Rutas de Administración (/admin)</h3>
+  <table class="route-table">
+    <thead><tr><th>Grupo</th><th>Rutas</th><th>Controlador</th></tr></thead>
+    <tbody>
+      <tr><td>/admin/usuarios</td><td>GET index, GET data, POST store, GET show/{user}, PUT update, DELETE destroy</td><td>UserController</td></tr>
+      <tr><td>/admin/roles</td><td>GET index, GET data, POST store, GET/PUT/DELETE {role}, GET permissions</td><td>RoleController</td></tr>
+      <tr><td>/admin/permissions</td><td>GET index, POST store, PUT update, DELETE destroy, POST sync</td><td>PermissionController</td></tr>
+      <tr><td>/admin/distributions</td><td>Resource + stop, start, restart, retry-target, progress</td><td>DistributionsController</td></tr>
+      <tr><td>/admin/computers</td><td>Resource (index, show, edit, update, destroy) + logs, status, export</td><td>ComputersController</td></tr>
+      <tr><td>/admin/groups</td><td>Full resource + export, import-excel</td><td>GroupsController</td></tr>
+      <tr><td>/admin/agent-versions</td><td>Resource (solo index, create, store, destroy)</td><td>AgentVersionsController</td></tr>
+      <tr><td>/admin/resurtido-agent-versions</td><td>Resource + deploy</td><td>ResurtidoAgentVersionsController</td></tr>
+      <tr><td>/admin/reception</td><td>Resource + stop, start, retry-target, computer</td><td>ReceptionController</td></tr>
+      <tr><td>/admin/file-receptions</td><td>Resource</td><td>FileReceptionController</td></tr>
+      <tr><td>/admin/file-lists</td><td>Semi-resource + validate</td><td>FileListsController</td></tr>
+      <tr><td>/admin/user-plaza-tienda</td><td>index, edit, update, tiendas</td><td>UserPlazaTiendaController</td></tr>
+      <tr><td>/admin/tiendas</td><td>index, data, show, store, update, destroy</td><td>TiendasController</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Rutas de Reportes (/reportes)</h3>
+  <table class="route-table">
+    <thead><tr><th>URI</th><th>Acciones</th></tr></thead>
+    <tbody>
+      <tr><td>/reportes/vendedores</td><td><span class="badge badge-blue">index</span> <span class="badge badge-green">data</span> <span class="badge badge-yellow">export</span> <span class="badge badge-purple">export-csv</span> <span class="badge badge-orange">export-pdf</span> <span class="badge badge-blue">sync</span></td></tr>
+      <tr><td>/reportes/vendedores-b2b</td><td><span class="badge badge-blue">index</span> <span class="badge badge-green">data</span> <span class="badge badge-yellow">export</span> <span class="badge badge-purple">export-csv</span> <span class="badge badge-orange">export-pdf</span></td></tr>
+      <tr><td>/reportes/vendedores-matricial</td><td><span class="badge badge-blue">index</span> <span class="badge badge-yellow">export-excel</span> <span class="badge badge-orange">export-pdf</span> <span class="badge badge-purple">export-csv</span></td></tr>
+      <tr><td>/reportes/metas-ventas</td><td><span class="badge badge-blue">index</span> <span class="badge badge-yellow">export</span> <span class="badge badge-orange">export-pdf</span> <span class="badge badge-purple">export-csv</span> <span class="badge badge-blue">custom</span></td></tr>
+      <tr><td>/reportes/metas-matricial</td><td><span class="badge badge-blue">index</span> <span class="badge badge-yellow">export-excel</span> <span class="badge badge-orange">export-pdf</span></td></tr>
+      <tr><td>/reportes/desglose</td><td><span class="badge badge-blue">index</span></td></tr>
+      <tr><td>/reportes/cartera-abonos</td><td><span class="badge badge-blue">index</span> <span class="badge badge-green">data</span></td></tr>
+      <tr><td>/reportes/notas-completas</td><td><span class="badge badge-blue">index</span></td></tr>
+      <tr><td>/reportes/club-comex</td><td><span class="badge badge-blue">index</span> <span class="badge badge-blue">sync</span> <span class="badge badge-blue">search</span> <span class="badge badge-purple">export-csv</span></td></tr>
+      <tr><td>/reportes/compras-directo</td><td><span class="badge badge-blue">index</span></td></tr>
+      <tr><td>/reportes/dbf-files</td><td><span class="badge badge-blue">index</span> <span class="badge badge-green">data</span> <span class="badge badge-yellow">export</span></td></tr>
+      <tr><td>/reportes/vales</td><td><span class="badge badge-blue">index</span> <span class="badge badge-green">data</span> <span class="badge badge-yellow">export</span></td></tr>
+      <tr><td>/reportes/redenciones-club</td><td><span class="badge badge-blue">index</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Rutas Optimizadas de Cartera Abonos</h3>
+  <table class="route-table">
+    <thead><tr><th>Prefijo</th><th>Rutas</th></tr></thead>
+    <tbody>
+      <tr><td>/reportes/cartera-abonos-optimized</td><td>index, data, dataStream, stats, invalidateCache, pdf, export-excel, export-csv</td></tr>
+      <tr><td>/reportes/cartera-abonos-realtime</td><td>index, data, stream, stats, health, forceSync, pdf, export-excel, export-csv</td></tr>
+      <tr><td>/reportes/cartera-abonos-ultra-fast</td><td>index, preload, forcePreload, status, health, incrementalUpdate, exportData, search</td></tr>
+      <tr><td>/api/v1/cartera-abonos-ultra-fast</td><td>preload, stats, health, export</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- RUTAS API -->
+<section id="rutas-api">
+  <h2>🔗 Rutas API</h2>
+
+  <h3>Rutas de Agente (sin autenticación, sin CSRF)</h3>
+  <table class="route-table">
+    <thead><tr><th>Método</th><th>URI</th><th>Método del Controlador</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/register</td><td>AgentController@register</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/heartbeat</td><td>AgentController@heartbeat</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/commands/{id}</td><td>AgentController@getCommands</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/report</td><td>AgentController@report</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/download/{fileId}</td><td>AgentController@download</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/update/{version}</td><td>AgentController@checkUpdate</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/inventory</td><td>AgentController@inventory</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/upload-reception</td><td>AgentController@uploadReception</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Rutas API (/api)</h3>
+  <table class="route-table">
+    <thead><tr><th>Método</th><th>URI</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/register</td><td>Registro de agente</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/heartbeat</td><td>Heartbeat de agente</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/report</td><td>Reporte de estado</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/agent/report</td><td>Reporte alternativo</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/inventory</td><td>Inventario de equipo</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/logs</td><td>Logs del agente</td></tr>
+      <tr><td><span class="method method-post">PATCH</span></td><td>/api/pvsi-update</td><td>Actualización PVSI</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/computer/{id}/config</td><td>Configuración de computadora</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/resurtido/*</td><td>Rutas del agente de resurtido (register, heartbeat, check-update, commands, report)</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/vales</td><td>Listar vales</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/vales</td><td>Crear vale</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/vales/batch</td><td>Crear vales en lote</td></tr>
+      <tr><td><span class="method method-post">POST</span></td><td>/api/vales/reset-sync</td><td>Resetear sincronización</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/metrics</td><td>Métricas del sistema</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/health</td><td>Health check</td></tr>
+      <tr><td><span class="method method-get">GET</span></td><td>/api/computers/online-status</td><td>Estado online de computadoras</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- SERVICIOS -->
+<section id="servicios">
+  <h2>🔧 Servicios</h2>
+
+  <table>
+    <thead><tr><th>Servicio</th><th>Ubicación</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="file-path">DistributionService</span></td>
+        <td><code>app/Services/</code></td>
+        <td>Creación y gestión de distribuciones de archivos. Envía comandos de descarga a los agentes objetivo.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">AgentUpdateService</span></td>
+        <td><code>app/Services/</code></td>
+        <td>Gestión de versiones del agente de distribución. Crea versiones y despliega actualizaciones.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">ResurtidoAgentUpdateService</span></td>
+        <td><code>app/Services/</code></td>
+        <td>Gestión de versiones del agente de resurtido.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">CarteraAbonosCacheService</span></td>
+        <td><code>app/Services/</code></td>
+        <td>Servicio de cache optimizado para consultas de cartera de abonos. 318 líneas de lógica de cache.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">CarteraAbonosMaterializedService</span></td>
+        <td><code>app/Services/</code></td>
+        <td>Consultas a través de vistas materializadas PostgreSQL para cartera de abonos.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">CarteraAbonosUltraFastService</span></td>
+        <td><code>app/Services/</code></td>
+        <td>Servicio de pre-carga ultra-rápida para cartera de abonos (soporte 500+ usuarios).</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">DashboardCacheService</span></td>
+        <td><code>app/Services/</code></td>
+        <td>Cacheo del dashboard principal con estadísticas.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">ReportService</span></td>
+        <td><code>app/Services/</code></td>
+        <td>Servicio centralizado de generación de reportes (vendedores, b2b, metas, matricial). 1,026 líneas. Maneja consultas SQL optimizadas con cache Redis.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Ejemplo: ReportService - Método de obtención de datos</h3>
+  <pre><code><span class="comment">// app/Services/ReportService.php (1026 líneas)</span>
+<span class="keyword">public function</span> <span class="function">obtenerReporteVendedores</span>(
+    <span class="type">array</span> <span class="variable">$params</span>,
+    <span class="type">int</span> <span class="variable">$page</span> = <span class="number">1</span>,
+    <span class="type">int</span> <span class="variable">$perPage</span> = <span class="number">50</span>
+): array {
+    <span class="variable">$cacheKey</span> = <span class="string">'reporte:vendedores:'</span> . md5(serialize(<span class="variable">$params</span>));
+
+    <span class="keyword">return</span> Cache::remember(<span class="variable">$cacheKey</span>, <span class="number">3600</span>, <span class="keyword">function</span> () <span class="keyword">use</span> (<span class="variable">$params</span>) {
+        <span class="variable">$query</span> = VendedoresCache::query()
+            ->select([
+                <span class="string">'asesor'</span>, <span class="string">'nombre'</span>,
+                DB::raw(<span class="string">'COALESCE(SUM(monto), 0) as total_venta'</span>),
+                DB::raw(<span class="string">'COUNT(*) as total_notas'</span>),
+            ]);
+
+        <span class="keyword">if</span> (!<span class="keyword">empty</span>(<span class="variable">$params</span>[<span class="string">'plaza'</span>])) {
+            <span class="variable">$query</span>->where(<span class="string">'plaza'</span>, <span class="variable">$params</span>[<span class="string">'plaza'</span>]);
+        }
+        <span class="keyword">if</span> (!<span class="keyword">empty</span>(<span class="variable">$params</span>[<span class="string">'tienda'</span>])) {
+            <span class="variable">$query</span>->where(<span class="string">'tienda'</span>, <span class="variable">$params</span>[<span class="string">'tienda'</span>]);
+        }
+
+        <span class="keyword">return</span> <span class="variable">$query</span>
+            ->groupBy(<span class="string">'asesor'</span>, <span class="string">'nombre'</span>)
+            ->orderByDesc(<span class="string">'total_venta'</span>)
+            ->get();
+    });
+}</code></pre>
+</section>
+
+<!-- JOBS -->
+<section id="jobs">
+  <h2>⚡ Jobs (Colas)</h2>
+
+  <table>
+    <thead><tr><th>Job</th><th>Cola</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="file-path">ProcessDistributionJob</span></td>
+        <td><span class="badge badge-blue">distributions</span></td>
+        <td>Procesa la distribución de archivos a los targets. Timeout: 300s, 3 reintentos.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">CarteraAbonosSyncJob</span></td>
+        <td><span class="badge badge-yellow">default</span></td>
+        <td>Sincronización de cache de cartera de abonos desde tablas externas.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">CarteraAbonosIncrementalUpdateJob</span></td>
+        <td><span class="badge badge-yellow">default</span></td>
+        <td>Actualización incremental del cache de cartera de abonos.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">ProcessScheduledDistributions</span></td>
+        <td><span class="badge badge-blue">distributions</span></td>
+        <td>Procesa distribuciones programadas y recurrentes. Se ejecuta cada minuto.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">ProcessScheduledReceptions</span></td>
+        <td><span class="badge badge-green">receptions</span></td>
+        <td>Procesa recepciones programadas y recurrentes. Se ejecuta cada minuto.</td>
+      </tr>
+      <tr>
+        <td><span class="file-path">RetryDistribution</span></td>
+        <td><span class="badge badge-red">retry</span></td>
+        <td>Reintenta distribuciones fallidas.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Ejemplo: ProcessDistributionJob</h3>
+  <pre><code><span class="keyword">class</span> <span class="type">ProcessDistributionJob</span> <span class="keyword">implements</span> ShouldQueue
+{
+    <span class="keyword">use</span> Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    <span class="keyword">public</span> <span class="variable">$timeout</span> = <span class="number">300</span>;
+    <span class="keyword">public</span> <span class="variable">$tries</span> = <span class="number">3</span>;
+
+    <span class="keyword">public function</span> <span class="function">__construct</span>(
+        <span class="keyword">public</span> Distribution <span class="variable">$distribution</span>
+    ) {}
+
+    <span class="keyword">public function</span> <span class="function">handle</span>(DistributionService <span class="variable">$service</span>): <span class="type">void</span>
+    {
+        <span class="keyword">foreach</span> (<span class="variable">$this</span>->distribution->targets <span class="keyword">as</span> <span class="variable">$target</span>) {
+            <span class="keyword">try</span> {
+                <span class="variable">$service</span>->sendDownloadCommand(<span class="variable">$target</span>);
+                <span class="variable">$target</span>->update([<span class="string">'status'</span> => <span class="string">'sending'</span>]);
+            } <span class="keyword">catch</span> (Exception <span class="variable">$e</span>) {
+                <span class="variable">$target</span>->increment(<span class="string">'attempts'</span>);
+                <span class="variable">$target</span>->update([
+                    <span class="string">'status'</span> => <span class="string">'failed'</span>,
+                    <span class="string">'error_message'</span> => <span class="variable">$e</span>->getMessage(),
+                ]);
+            }
+        }
+    }
+}</code></pre>
+</section>
+
+<!-- COMMANDS -->
+<section id="commands">
+  <h2>⌨️ Comandos Artisan</h2>
+
+  <table>
+    <thead><tr><th>Comando</th><th>Firma</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">CheckComputerStatus</span></td><td><code>computers:check-status {--minutes=5}</code></td><td>Marca computadoras como offline si no hay heartbeat reciente</td></tr>
+      <tr><td><span class="file-path">CarteraAbonosSyncCommand</span></td><td><code>cartera-abonos:sync-cache</code></td><td>Sincroniza el cache de cartera de abonos</td></tr>
+      <tr><td><span class="file-path">DatabaseBackupCommand</span></td><td><code>db:backup</code></td><td>Respaldo de base de datos</td></tr>
+      <tr><td><span class="file-path">RestartDistribution</span></td><td><code>distribution:restart</code></td><td>Reinicia distribuciones</td></tr>
+      <tr><td><span class="file-path">StartQueueWorkers</span></td><td><code>queue:start-workers</code></td><td>Inicia workers de cola</td></tr>
+      <tr><td><span class="file-path">SyncAllCacheTables</span></td><td><code>sync:all-cache</code></td><td>Sincroniza todas las tablas de cache</td></tr>
+      <tr><td><span class="file-path">SyncCacheFull</span></td><td><code>sync:cache-full</code></td><td>Sincronización completa de cache</td></tr>
+      <tr><td><span class="file-path">SyncCacheIncremental</span></td><td><code>sync:cache-incremental</code></td><td>Sincronización incremental de cache</td></tr>
+      <tr><td><span class="file-path">SyncCarteraAbonosCache</span></td><td><code>sync:cartera-abonos-cache</code></td><td>Sincroniza cache de cartera de abonos</td></tr>
+      <tr><td><span class="file-path">SyncClubComex</span></td><td><code>sync:club-comex</code></td><td>Sincroniza datos de Club Comex</td></tr>
+      <tr><td><span class="file-path">SyncComprasDirectoCache</span></td><td><code>sync:compras-directo-cache</code></td><td>Sincroniza cache de compras directo</td></tr>
+      <tr><td><span class="file-path">SyncNotasCompletasCache</span></td><td><code>sync:notas-completas-cache</code></td><td>Sincroniza cache de notas completas</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Tareas Programadas (routes/console.php)</h3>
+  <pre><code><span class="comment">// Ejecución cada minuto</span>
+Schedule::job(<span class="keyword">new</span> ProcessScheduledDistributions)->everyMinute()->onOneServer();
+Schedule::job(<span class="keyword">new</span> ProcessScheduledReceptions)->everyMinute()->onOneServer();
+
+<span class="comment">// Cada 5 minutos</span>
+Schedule::command(<span class="string">'computers:check-status --minutes=5'</span>)->everyFiveMinutes();
+
+<span class="comment">// Dos veces al día (00:00, 11:00) - Sincronización incremental</span>
+Schedule::command(<span class="string">'sync:cache-incremental'</span>)->twiceDaily(<span class="number">0</span>, <span class="number">11</span>);
+
+<span class="comment">// Diario a las 11:00 - Sincronización específica</span>
+Schedule::command(<span class="string">'cartera-abonos:sync-cache --last-days=60'</span>)->dailyAt(<span class="string">'11:00'</span>);
+Schedule::command(<span class="string">'notas-completas:sync-cache --last-days=60'</span>)->dailyAt(<span class="string">'11:00'</span>);
+Schedule::command(<span class="string">'compras-directo:sync-cache --last-days=60'</span>)->dailyAt(<span class="string">'11:00'</span>);</code></pre>
+</section>
+
+<!-- EXPORTS -->
+<section id="exports">
+  <h2>📤 Exports &amp; Imports</h2>
+
+  <h3>Exports (Maatwebsite/Laravel-Excel)</h3>
+  <table>
+    <thead><tr><th>Export</th><th>Tipo</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">Exports/VendedoresExport</span></td><td>FromCollection</td><td>Reporte de vendedores Excel con estilos</td></tr>
+      <tr><td><span class="file-path">Exports/VendedoresB2bExport</span></td><td>FromCollection</td><td>Reporte B2B vendedores Excel</td></tr>
+      <tr><td><span class="file-path">Exports/VendedoresMatricialExport</span></td><td>FromCollection</td><td>Reporte matricial vendedores (279 líneas)</td></tr>
+      <tr><td><span class="file-path">Exports/MetasVentasExport</span></td><td>FromArray</td><td>Reporte de metas de ventas (164 líneas)</td></tr>
+      <tr><td><span class="file-path">Exports/MetasMatricialExport</span></td><td>FromCollection</td><td>Reporte matricial de metas (144 líneas)</td></tr>
+      <tr><td><span class="file-path">Exports/CarteraAbonosExport</span></td><td>FromQuery</td><td>Cartera de abonos Excel</td></tr>
+      <tr><td><span class="file-path">Exports/NotasCompletasExport</span></td><td>FromQuery</td><td>Notas completas Excel</td></tr>
+      <tr><td><span class="file-path">Exports/ComprasDirectoExport</span></td><td>FromCollection</td><td>Compras directo Excel (173 líneas)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Imports</h3>
+  <table>
+    <thead><tr><th>Import</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">Imports/MetasMensualImport</span></td><td>Importación de metas mensuales vía Excel (ToCollection + WithHeadingRow)</td></tr>
+      <tr><td><span class="file-path">Imports/MetaMensualImport</span></td><td>Importación alternativa de metas</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- VISTAS -->
+<section id="vistas">
+  <h2>🖼️ Vistas Blade</h2>
+
+  <h3>Módulo Admin</h3>
+  <table>
+    <thead><tr><th>Directorio</th><th>Templates</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">resources/views/computers/</span></td><td>index.blade.php, show.blade.php, edit.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/groups/</span></td><td>index.blade.php, create.blade.php, show.blade.php, edit.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/distributions/</span></td><td>index.blade.php, create.blade.php, show.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/reception/</span></td><td>index.blade.php, create.blade.php, show.blade.php, computer.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/agent-versions/</span></td><td>index.blade.php, create.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/resurtido-agent-versions/</span></td><td>index.blade.php, create.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/file-receptions/</span></td><td>index.blade.php, create.blade.php, show.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/file-lists/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/roles/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/permissions/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/tiendas/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/user-plaza-tienda/</span></td><td>index.blade.php, edit.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/usuarios/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/metas_mensual/</span></td><td>index.blade.php</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Módulo de Reportes</h3>
+  <table>
+    <thead><tr><th>Directorio</th><th>Templates</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">resources/views/vendedores/</span></td><td>index.blade.php, pdf.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/vendedores_b2b/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/vendedores_matricial/</span></td><td>index.blade.php, export_excel.blade.php, export_pdf.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/metas_ventas/</span></td><td>index.blade.php, pdf.blade.php, metas_ventas_pdf.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/metas_matricial/</span></td><td>index.blade.php, pdf.blade.php, export_excel.blade.php, export_pdf.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/desglose/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/cartera_abonos/</span></td><td>index.blade.php, cartera_abonos.blade.php, cartera_abonos_pdf.blade.php, index_optimized.blade.php, index_realtime.blade.php, index_ultra_fast.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/notas_completas/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/club_comex/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/redenciones_club/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/compras/directo/</span></td><td>index.blade.php, pdf.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/dbf-files/</span></td><td>index.blade.php</td></tr>
+      <tr><td><span class="file-path">resources/views/vales/</span></td><td>index.blade.php</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Layout principal:</strong> <span class="file-path">resources/views/layouts/app.blade.php</span> (AdminLTE 3)</p>
+  <p><strong>Templates de Auth:</strong> login, register, verify, passwords/confirm, passwords/email, passwords/reset</p>
+  <p><strong>Templates de errores:</strong> 401, 402, 403, 404, 419, 429, 500, 503</p>
+</section>
+
+<!-- TESTS -->
+<section id="tests">
+  <h2>🧪 Tests</h2>
+
+  <div class="card-grid">
+    <div class="stat-card"><div class="number" style="color:var(--accent-green)">16</div><div class="label">Feature Tests</div></div>
+    <div class="stat-card"><div class="number" style="color:var(--accent-purple)">10</div><div class="label">Unit Tests</div></div>
+    <div class="stat-card"><div class="number" style="color:var(--accent-yellow)">1</div><div class="label">Trait</div></div>
+  </div>
+
+  <h3>Feature Tests</h3>
+  <table>
+    <thead><tr><th>Archivo</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">tests/Feature/ExampleTest.php</span></td><td>Prueba básica (app returns 302)</td></tr>
+      <tr><td><span class="file-path">tests/Feature/AllReportsTest.php</span></td><td>Integración de todos los reportes</td></tr>
+      <tr><td><span class="file-path">tests/Feature/CarteraAbonos*Test.php</span></td><td>8 archivos: filtros, exportaciones, frontend, interacciones</td></tr>
+      <tr><td><span class="file-path">tests/Feature/MetasModule*Test.php</span></td><td>2 archivos: funcional y general</td></tr>
+      <tr><td><span class="file-path">tests/Feature/ReportesPerformanceTest.php</span></td><td>Rendimiento de reportes</td></tr>
+      <tr><td><span class="file-path">tests/Feature/ReportIntegrationTest.php</span></td><td>Integración de reportes</td></tr>
+      <tr><td><span class="file-path">tests/Feature/Http/Controllers/DistributionsControllerTest.php</span></td><td>Controlador de distribuciones</td></tr>
+      <tr><td><span class="file-path">tests/Feature/Http/Controllers/Api/AgentControllerTest.php</span></td><td>API de agente</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Unit Tests</h3>
+  <table>
+    <thead><tr><th>Directorio</th><th>Archivos</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">tests/Unit/Jobs/</span></td><td>ProcessScheduledDistributionsJobTest, RetryDistributionJobTest</td></tr>
+      <tr><td><span class="file-path">tests/Unit/Middleware/</span></td><td>ApiRateLimiterTest</td></tr>
+      <tr><td><span class="file-path">tests/Unit/Models/</span></td><td>AuditLogTest, DistributionFileTest, DistributionTargetTest, DistributionTest</td></tr>
+      <tr><td><span class="file-path">tests/Unit/Services/</span></td><td>DashboardCacheServiceTest, DistributionServiceTest</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Trait:</strong> <span class="file-path">tests/Traits/RequiresExternalTables.php</span> — Skipea tests si no están disponibles las tablas externas.</p>
+</section>
+
+<!-- SEGURIDAD -->
+<section id="seguridad">
+  <h2>🛡️ Seguridad</h2>
+
+  <h3>Middleware</h3>
+  <table>
+    <thead><tr><th>Middleware</th><th>Alias</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">ApiRateLimiter</span></td><td><code>api.rate_limit</code></td><td>Rate limiting por tipo (agents, heartbeat, commands, download, report, auth)</td></tr>
+      <tr><td><span class="file-path">AuditMiddleware</span></td><td><code>audit</code></td><td>Registra todas las peticiones en audit_logs (DB + archivo)</td></tr>
+      <tr><td><span class="file-path">ReleaseDatabaseConnection</span></td><td>Grupo web</td><td>Libera conexión DB después de cada request</td></tr>
+      <tr><td><span class="file-path">ReporteCacheMiddleware</span></td><td>Rutas de reportes</td><td>Cachea respuestas de reportes con TTL configurable</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Autenticación y Autorización</h3>
+  <ul>
+    <li><strong>Spatie Laravel Permission:</strong> Sistema completo de roles y permisos ACL</li>
+    <li><strong>Gates:</strong> Permisos específicos por ruta (ej. <code>can:ver reporte vendedores</code>)</li>
+    <li><strong>Admin Gate:</strong> Rutas de administración protegidas con gate <code>admin</code></li>
+    <li><strong>Auth:</strong> Scaffolding completo de Laravel UI (login, register, password reset, email verification)</li>
+    <li><strong>Rate Limiting:</strong> Protección contra abuso en endpoints de API de agentes</li>
+    <li><strong>Auditoría:</strong> Registro completo de todas las peticiones HTTP con metadata (usuario, IP, user-agent, duración)</li>
+  </ul>
+
+  <h3>Ejemplo: ApiRateLimiter</h3>
+  <pre><code><span class="keyword">class</span> <span class="type">ApiRateLimiter</span>
+{
+    <span class="keyword">public function</span> <span class="function">handle</span>(Request <span class="variable">$request</span>, Closure <span class="variable">$next</span>, <span class="type">string</span> <span class="variable">$type</span> = <span class="string">'default'</span>): mixed
+    {
+        <span class="variable">$limits</span> = [
+            <span class="string">'agents'</span> => [<span class="string">'limit'</span> => <span class="number">30</span>, <span class="string">'window'</span> => <span class="number">60</span>],
+            <span class="string">'heartbeat'</span> => [<span class="string">'limit'</span> => <span class="number">60</span>, <span class="string">'window'</span> => <span class="number">60</span>],
+            <span class="string">'default'</span> => [<span class="string">'limit'</span> => <span class="number">100</span>, <span class="string">'window'</span> => <span class="number">60</span>],
+        ];
+
+        <span class="variable">$limit</span> = <span class="variable">$limits</span>[<span class="variable">$type</span>] ?? <span class="variable">$limits</span>[<span class="string">'default'</span>];
+
+        <span class="keyword">return</span> RateLimiter::attempt(
+            <span class="string">'api:'</span> . <span class="variable">$type</span> . <span class="string">':'</span> . <span class="variable">$request</span>->ip(),
+            <span class="variable">$limit</span>[<span class="string">'limit'</span>],
+            <span class="keyword">function</span> () <span class="keyword">use</span> (<span class="variable">$next</span>, <span class="variable">$request</span>) {
+                <span class="keyword">return</span> <span class="variable">$next</span>(<span class="variable">$request</span>);
+            },
+            <span class="variable">$limit</span>[<span class="string">'window'</span>]
+        ) ?: response()->json([<span class="string">'error'</span> => <span class="string">'Too many requests'</span>], <span class="number">429</span>);
+    }
+}</code></pre>
+</section>
+
+<!-- TIEMPO REAL -->
+<section id="tiempo-real">
+  <h2>⚡ Tiempo Real (WebSockets)</h2>
+
+  <h3>Arquitectura de Broadcasting</h3>
+  <div class="flow-diagram">
+    <div class="step">📡 Laravel Event</div>
+    <div class="arrow">→</div>
+    <div class="step">📤 Redis Pub/Sub</div>
+    <div class="arrow">→</div>
+    <div class="step">🔌 WebSocket Server (6001)</div>
+    <div class="arrow">→</div>
+    <div class="step">🌐 Laravel Echo (Cliente)</div>
+  </div>
+
+  <table>
+    <thead><tr><th>Componente</th><th>Detalle</th></tr></thead>
+    <tbody>
+      <tr><td><span class="file-path">app/Events/DistributionProgressUpdated.php</span></td><td>Evento de progreso de distribución, broadcast en canales <code>private-distribution.{id}</code> y <code>distributions</code></td></tr>
+      <tr><td><span class="file-path">app/Channels/DistributionChannel.php</span></td><td>Autorización de canales privados de distribución</td></tr>
+      <tr><td><span class="file-path">websocket-server.js</span></td><td>Servidor Node.js WebSocket (ws + Redis pub/sub, puerto 6001)</td></tr>
+      <tr><td><span class="file-path">resources/js/bootstrap.js</span></td><td>Configuración de Laravel Echo con Socket.io</td></tr>
+      <tr><td><span class="file-path">soketi.json</span></td><td>Configuración alternativa con Soketi</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Ejemplo: DistributionProgressUpdated Event</h3>
+  <pre><code><span class="keyword">class</span> <span class="type">DistributionProgressUpdated</span> <span class="keyword">implements</span> ShouldBroadcast
+{
+    <span class="keyword">use</span> Dispatchable, InteractsWithSockets, SerializesModels;
+
+    <span class="keyword">public function</span> <span class="function">__construct</span>(
+        <span class="keyword">public</span> Distribution <span class="variable">$distribution</span>,
+        <span class="keyword">public</span> <span class="type">int</span> <span class="variable">$completed</span>,
+        <span class="keyword">public</span> <span class="type">int</span> <span class="variable">$total</span>
+    ) {}
+
+    <span class="keyword">public function</span> <span class="function">broadcastOn</span>(): array
+    {
+        <span class="keyword">return</span> [
+            <span class="keyword">new</span> PrivateChannel(<span class="string">'distribution.'</span> . <span class="variable">$this</span>->distribution->id),
+            <span class="keyword">new</span> Channel(<span class="string">'distributions'</span>),
+        ];
+    }
+
+    <span class="keyword">public function</span> <span class="function">broadcastWith</span>(): array
+    {
+        <span class="keyword">return</span> [
+            <span class="string">'id'</span> => <span class="variable">$this</span>->distribution->id,
+            <span class="string">'completed'</span> => <span class="variable">$this</span>->completed,
+            <span class="string">'total'</span> => <span class="variable">$this</span>->total,
+            <span class="string">'percentage'</span> => <span class="variable">$this</span>->total > <span class="number">0</span>
+                ? round((<span class="variable">$this</span>->completed / <span class="variable">$this</span>->total) * <span class="number">100</span>, <span class="number">2</span>)
+                : <span class="number">0</span>,
+        ];
+    }
+}</code></pre>
+</section>
+
+<hr style="border-color: var(--border); margin: 60px 0 40px;">
+
+<footer style="text-align: center; padding: 20px 0; color: var(--text-muted); font-size: 13px;">
+  <p><strong>COMEXCARE</strong> — Sistema de Gestión Distribuida de Equipos y Reportes de Ventas</p>
+  <p>Documentación generada automáticamente — Laravel 12 / PHP 8.3 / PostgreSQL / Redis</p>
+</footer>
+
+</div>
+</div>
+
+</body>
+</html>

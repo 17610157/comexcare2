@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('plaza')->nullable();
             $table->string('tienda')->nullable();
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'plaza', 'tienda']);
             $table->index('user_id');
             $table->index('plaza');

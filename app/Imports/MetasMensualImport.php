@@ -31,7 +31,7 @@ class MetasMensualImport implements ToCollection, WithHeadingRow
                 ->where('periodo', $periodo)
                 ->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 DB::table('metas_mensual')->insert([
                     'plaza' => $plaza,
                     'tienda' => $tienda,

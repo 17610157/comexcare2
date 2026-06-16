@@ -1,9 +1,9 @@
 @extends('adminlte::page')
 
-@section('title', 'Edit Group')
+@section('title', 'Editar Grupo')
 
 @section('content_header')
-    <h1>Edit {{ $group->name }}</h1>
+    <h1>Editar {{ $group->name }}</h1>
 @stop
 
 @section('content')
@@ -13,14 +13,14 @@
                 @csrf
                 @method('PUT')
                 <div class="form-group">
-                    <label>Name</label>
+                    <label>Nombre</label>
                     <input type="text" name="name" value="{{ $group->name }}" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label>Description</label>
+                    <label>Descripción</label>
                     <textarea name="description" class="form-control">{{ $group->description }}</textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">Update</button>
+                <button type="submit" class="btn btn-primary">Actualizar</button>
             </form>
         </div>
     </div>

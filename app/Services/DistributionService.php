@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\ProcessDistributionJob;
+use App\Jobs\RetryDistribution;
 use App\Models\Command;
 use App\Models\Computer;
 use App\Models\Distribution;
@@ -19,6 +20,8 @@ class DistributionService
             'type' => $data['type'],
             'distribution_type' => $data['distribution_type'] ?? 'file',
             'subfolder' => $data['subfolder'] ?? null,
+            'command' => $data['command'] ?? null,
+            'command_args' => $data['command_args'] ?? null,
             'schedule' => $data['schedule'] ?? null,
             'description' => $data['description'] ?? null,
             'created_by' => $userId,
@@ -113,7 +116,7 @@ class DistributionService
             'status' => 'pending',
         ]);
 
-        \App\Jobs\RetryDistribution::dispatch($target)->delay($target->next_retry_at);
+        RetryDistribution::dispatch($target)->delay($target->next_retry_at);
     }
 
     public function validateFileSpace(Computer $computer, DistributionFile $file): bool

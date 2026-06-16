@@ -38,7 +38,7 @@ class MetricsController extends Controller
             'system' => [
                 'redis_connected' => $redisConnected,
                 'queue_pending' => $queuePending,
-                'php_fpm_max_children' => 50,
+                'php_fpm_max_children' => 200,
             ],
             'status' => 'ok',
         ]);
