@@ -38,16 +38,7 @@ class ComputersController extends Controller
             }
 
             if ($request->filled('status_type')) {
-                $statusType = $request->status_type;
-                $fiveMinAgo = now()->subMinutes(5);
-                if ($statusType === 'online') {
-                    $query->where('last_seen', '>=', $fiveMinAgo);
-                } elseif ($statusType === 'offline') {
-                    $query->where(function ($q) use ($fiveMinAgo) {
-                        $q->whereNull('last_seen')
-                            ->orWhere('last_seen', '<', $fiveMinAgo);
-                    });
-                }
+                $query->where('status', $request->status_type);
             } elseif ($request->filled('status')) {
                 $query->where('status', $request->status);
             }
@@ -90,7 +81,7 @@ class ComputersController extends Controller
                 });
                 $plaza = $computer->plaza ?? '';
 
-                $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
+                $status = $computer->status;
 
                 return [
                     'id' => $computer->id,
@@ -309,7 +300,7 @@ class ComputersController extends Controller
             }
 
             $plaza = $computer->plaza ?? '';
-            $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
+            $status = $computer->status;
 
             $csvData[] = [
                 $computer->short_key ?? '',

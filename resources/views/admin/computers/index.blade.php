@@ -387,6 +387,12 @@ if (data === 'online') {
         setTimeout(function() {
             jQuery('.alert').fadeOut('slow');
         }, 5000);
+
+        setInterval(function() {
+            if (table) {
+                table.ajax.reload(null, false);
+            }
+        }, 300000);
     });
 })();
 </script>

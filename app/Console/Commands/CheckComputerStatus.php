@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 class CheckComputerStatus extends Command
 {
-    protected $signature = 'computers:check-status {--minutes=30 : Minutes without heartbeat to consider offline}';
+    protected $signature = 'computers:check-status {--minutes=5 : Minutes without heartbeat to consider offline}';
 
     protected $description = 'Mark computers as offline if no heartbeat received in specified minutes';
 

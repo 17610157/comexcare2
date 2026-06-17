@@ -356,9 +356,8 @@
                             <table class="table table-sm table-striped">
                                 <thead>
                                     <tr>
-<th>Computadora</th>
-<th>CLAVECORTA</th>
-<th>PLAZA</th>
+                                         <th>CLAVECORTA</th>
+                                         <th>PLAZA</th>
                                          <th>Estado</th>
                                          <th>Progreso</th>
                                          <th>Intentos</th>
@@ -373,7 +372,9 @@
                                                 <td>{{ $target->computer->short_key ?? '-' }}</td>
                                                 <td>{{ $target->computer->plaza ?? '-' }}</td>
                                             <td>
-                                                @if($target->status === 'completed')
+                                                @if($target->computer?->status === 'offline')
+                                                    <span class="badge badge-secondary">Equipo Apagado</span>
+                                                @elseif($target->status === 'completed')
 <span class="badge badge-success">Completado</span>
                                                 @elseif($target->status === 'in_progress')
 <span class="badge badge-primary">En Progreso</span>
@@ -392,7 +393,9 @@
                                             </td>
                                             <td>{{ $target->attempts ?? 0 }}</td>
                                             <td>
-                                                @if($target->error_message)
+                                                @if($target->computer?->status === 'offline')
+                                                    <span class="text-muted">Equipo Apagado</span>
+                                                @elseif($target->error_message)
                                                     <span class="text-danger" title="{{ $target->error_message }}">
                                                         <i class="fas fa-exclamation-circle"></i> {{ Str::limit($target->error_message, 30) }}
                                                     </span>
@@ -880,6 +883,71 @@ $(document).ready(function() {
         }
     });
 
+    let validatedFiles = [];
+    let hasBlockedFiles = false;
+
+    function validateSelectedFiles(fileInput, callback) {
+        const files = fileInput.files;
+        if (!files.length) {
+            validatedFiles = [];
+            hasBlockedFiles = false;
+            if (callback) callback(true);
+            return;
+        }
+
+        const fileNames = [];
+        for (let i = 0; i < files.length; i++) {
+            fileNames.push(files[i].name);
+        }
+
+        $.ajax({
+            url: '{{ route("admin.file-lists.validate") }}',
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            data: {
+                files: fileNames
+            },
+            success: function(data) {
+                hasBlockedFiles = false;
+
+                if (data.blacklisted && data.blacklisted.length > 0) {
+                    hasBlockedFiles = true;
+                    let list = data.blacklisted.map(function(f) {
+                        return '<li>' + f + '</li>';
+                    }).join('');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Archivos en Blacklist',
+                        html: '<div class="text-left">Los siguientes archivos <strong>no pueden ser enviados</strong> porque están en la lista negra:</div>' +
+                              '<ul class="text-left mt-2" style="color:#dc3545;font-weight:bold;">' + list + '</ul>',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+
+                if (data.not_whitelisted && data.not_whitelisted.length > 0) {
+                    hasBlockedFiles = true;
+                    let list = data.not_whitelisted.map(function(f) {
+                        return '<li>' + f + '</li>';
+                    }).join('');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivos no permitidos',
+                        html: '<div class="text-left">Los siguientes archivos <strong>no están en la whitelist</strong> y no pueden ser enviados:</div>' +
+                              '<ul class="text-left mt-2" style="color:#856404;font-weight:bold;">' + list + '</ul>',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+
+                if (callback) callback(!hasBlockedFiles);
+            },
+            error: function() {
+                if (callback) callback(true);
+            }
+        });
+    }
+
     // File input change
     $('#fileInput').change(function() {
         const files = this.files;
@@ -889,6 +957,7 @@ $(document).ready(function() {
         }
         html += '</ul>';
         $('#fileList').html(html);
+        validateSelectedFiles(this);
     });
 
     // Edit File input change
@@ -901,6 +970,7 @@ $(document).ready(function() {
             }
             html += '</ul>';
             $('#editFileList').html(html);
+            validateSelectedFiles(this);
         }
     });
 
@@ -970,6 +1040,16 @@ $(document).ready(function() {
     // Form submit
     $('#createDistributionForm').submit(function(e) {
         e.preventDefault();
+
+        if (hasBlockedFiles) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Archivos bloqueados',
+                text: 'Elimina los archivos bloqueados antes de crear la distribución.',
+                confirmButtonText: 'Entendido'
+            });
+            return;
+        }
 
         const formData = new FormData(this);
         const submitBtn = $('#submitBtn');

@@ -11,7 +11,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('queue:work --stop-when-empty')->everyMinute();
-Schedule::command('computers:check-status --minutes=30')->everyFiveMinutes();
+Schedule::command('computers:check-status --minutes=5')->everyFiveMinutes();
 Schedule::job(new ProcessScheduledDistributions)->everyMinute();
 Schedule::job(new ProcessScheduledReceptions)->everyMinute();
 

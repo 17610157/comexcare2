@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Computer;
 use App\Models\Distribution;
 use App\Models\DistributionTarget;
+use App\Models\FileList;
 use App\Models\Group;
 use App\Services\DistributionService;
 use Illuminate\Http\Request;
@@ -55,6 +56,44 @@ class DistributionsController extends Controller
             'frequency_interval' => 'nullable|integer',
             'week_days' => 'nullable|array',
         ]);
+
+        if ($request->hasFile('files')) {
+            $fileNames = [];
+            foreach ($request->file('files') as $file) {
+                $fileNames[] = $file->getClientOriginalName();
+            }
+
+            $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
+            $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
+
+            $blocked = [];
+            foreach ($fileNames as $fileName) {
+                if ($this->matchesFileList($fileName, $blacklistRules)) {
+                    $blocked[] = $fileName;
+                }
+            }
+
+            if (! empty($blocked)) {
+                return response()->json([
+                    'message' => 'Los siguientes archivos están en la blacklist y no pueden ser enviados: '.implode(', ', $blocked),
+                ], 422);
+            }
+
+            if (! empty($whitelistRules)) {
+                $notAllowed = [];
+                foreach ($fileNames as $fileName) {
+                    if (! $this->matchesFileList($fileName, $whitelistRules)) {
+                        $notAllowed[] = $fileName;
+                    }
+                }
+
+                if (! empty($notAllowed)) {
+                    return response()->json([
+                        'message' => 'Los siguientes archivos no están en la whitelist y no pueden ser enviados: '.implode(', ', $notAllowed),
+                    ], 422);
+                }
+            }
+        }
 
         $distribution = $service->createDistribution($request->all(), Auth::id());
 
@@ -252,6 +291,21 @@ class DistributionsController extends Controller
                 'error' => 'Error al reiniciar distribución: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    private function matchesFileList(string $fileName, array $rules): bool
+    {
+        foreach ($rules as $rule) {
+            if (str_starts_with($rule, '.')) {
+                if (str_ends_with($fileName, $rule)) {
+                    return true;
+                }
+            } elseif ($fileName === $rule) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function progress($id)

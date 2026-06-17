@@ -114,30 +114,55 @@ class AgentController extends Controller
                 $existingWithMac->update($updateData);
                 $computer = $existingWithMac->fresh();
             } else {
-                $createData = [
-                    'computer_name' => $data['computer_name'],
-                    'mac_address' => $data['mac_address'],
-                    'ip_address' => $request->ip(),
-                    'agent_version' => $data['agent_version'],
-                    'status' => 'online',
-                    'last_seen' => now(),
-                    'system_info' => $data['system_info'] ?? null,
-                    'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
-                ];
+                $existingByShortKey = null;
                 if (! empty($data['short_key'])) {
-                    $createData['short_key'] = strtoupper($data['short_key']);
-                }
-                if ($groupId) {
-                    $createData['group_id'] = $groupId;
+                    $existingByShortKey = Computer::withTrashed()->where('short_key', strtoupper($data['short_key']))->first();
                 }
 
-                if (! empty($data['computer_id'])) {
-                    $createData['id'] = $data['computer_id'];
-                    $computerId = DB::table('computers')->insertGetId($createData);
-                    DB::statement("SELECT setval('computers_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM computers), false)");
-                    $computer = Computer::find($computerId);
+                if ($existingByShortKey) {
+                    $existingByShortKey->restore();
+                    $updateData = [
+                        'computer_name' => $data['computer_name'],
+                        'mac_address' => $data['mac_address'],
+                        'ip_address' => $request->ip(),
+                        'agent_version' => $data['agent_version'],
+                        'status' => 'online',
+                        'last_seen' => now(),
+                        'system_info' => $data['system_info'] ?? null,
+                        'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
+                        'deleted_at' => null,
+                    ];
+                    if ($groupId && ! $existingByShortKey->group_id) {
+                        $updateData['group_id'] = $groupId;
+                    }
+                    $existingByShortKey->update($updateData);
+                    $computer = $existingByShortKey->fresh();
                 } else {
-                    $computer = Computer::create($createData);
+                    $createData = [
+                        'computer_name' => $data['computer_name'],
+                        'mac_address' => $data['mac_address'],
+                        'ip_address' => $request->ip(),
+                        'agent_version' => $data['agent_version'],
+                        'status' => 'online',
+                        'last_seen' => now(),
+                        'system_info' => $data['system_info'] ?? null,
+                        'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
+                    ];
+                    if (! empty($data['short_key'])) {
+                        $createData['short_key'] = strtoupper($data['short_key']);
+                    }
+                    if ($groupId) {
+                        $createData['group_id'] = $groupId;
+                    }
+
+                    if (! empty($data['computer_id'])) {
+                        $createData['id'] = $data['computer_id'];
+                        $computerId = DB::table('computers')->insertGetId($createData);
+                        DB::statement("SELECT setval('computers_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM computers), false)");
+                        $computer = Computer::find($computerId);
+                    } else {
+                        $computer = Computer::create($createData);
+                    }
                 }
             }
 
@@ -395,6 +420,7 @@ class AgentController extends Controller
     public function getCommands(Request $request, $id)
     {
         $computer = Computer::findOrFail($id);
+        $computer->update(['last_seen' => now(), 'status' => 'online']);
 
         // Get pending commands OR sent commands (no time filter for simplicity)
         $commands = Command::where('computer_id', $id)
@@ -550,7 +576,7 @@ class AgentController extends Controller
         if ($computerId) {
             $computer = Computer::find($computerId);
             if ($computer) {
-                $computer->update(['last_seen' => now()]);
+                $computer->update(['last_seen' => now(), 'status' => 'online']);
             }
         }
 
@@ -745,6 +771,8 @@ class AgentController extends Controller
             return response()->json(['error' => 'Computer not found'], 404);
         }
 
+        $computer->update(['last_seen' => now(), 'status' => 'online']);
+
         $currentVersion = $computer->agent_version;
         $latest = AgentVersion::whereRaw('"is_active" = true')->orderBy('created_at', 'desc')->first();
 
@@ -815,7 +843,7 @@ class AgentController extends Controller
 
         $computer = Computer::find($request->computer_id);
         if ($computer) {
-            $computer->update(['last_seen' => now()]);
+            $computer->update(['last_seen' => now(), 'status' => 'online']);
         }
 
         foreach ($request->logs as $log) {
@@ -879,6 +907,8 @@ class AgentController extends Controller
         if (! $computer) {
             return response()->json(['error' => 'Computer not found'], 404);
         }
+
+        $computer->update(['last_seen' => now(), 'status' => 'online']);
 
         return response()->json([
             'computer_id' => $computer->id,
