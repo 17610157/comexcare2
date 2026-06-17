@@ -5,142 +5,90 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>COMEXCARE - Manual de Usuario</title>
 <style>
-  :root {
-    --primary: #1a56db;
-    --primary-light: #3b82f6;
-    --bg: #f8fafc;
-    --card: #ffffff;
-    --text: #1e293b;
-    --text-muted: #64748b;
-    --border: #e2e8f0;
-    --accent: #0ea5e9;
-  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    background: #f8fafc;
+    color: #1e293b;
     line-height: 1.6;
   }
 
   .topbar {
     position: fixed; top: 0; left: 0; right: 0;
-    background: var(--primary);
+    background: #1a56db;
     color: white;
     padding: 12px 24px;
     z-index: 100;
     display: flex;
     align-items: center;
-    gap: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
   .topbar h1 { font-size: 20px; font-weight: 700; }
   .topbar .sub { font-size: 13px; opacity: 0.8; margin-left: auto; }
 
-  .sidebar {
-    position: fixed;
-    top: 56px; left: 0; bottom: 0;
-    width: 260px;
-    background: var(--card);
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-    z-index: 90;
-    padding: 16px 0;
-  }
-  .sidebar a {
-    display: block;
-    padding: 8px 20px;
-    color: var(--text);
-    text-decoration: none;
-    font-size: 14px;
-    border-left: 3px solid transparent;
-    transition: all 0.2s;
-  }
-  .sidebar a:hover, .sidebar a.active {
-    color: var(--primary);
-    background: #f0f7ff;
-    border-left-color: var(--primary);
-  }
-  .sidebar .cat {
-    padding: 16px 20px 4px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-  }
-
   .main {
-    margin-left: 260px;
-    margin-top: 56px;
-    padding: 40px;
-    max-width: 1000px;
+    max-width: 960px;
+    margin: 56px auto 0;
+    padding: 40px 24px 80px;
   }
 
   h2 {
-    font-size: 28px;
-    font-weight: 700;
+    font-size: 28px; font-weight: 700;
     margin: 48px 0 8px;
-    color: var(--primary);
+    color: #1a56db;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
   }
   h2:first-of-type { margin-top: 0; }
-  h3 {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 32px 0 12px;
-    color: var(--text);
-  }
-  h4 {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 24px 0 8px;
-    color: var(--text);
-  }
+  h3 { font-size: 20px; font-weight: 600; margin: 32px 0 12px; color: #1e293b; }
+  h4 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; }
   p { margin-bottom: 16px; color: #475569; }
   ul, ol { margin-bottom: 16px; padding-left: 24px; }
-  li { margin-bottom: 6px; }
-
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-  }
+  li { margin-bottom: 6px; color: #475569; }
+  strong { color: #1e293b; }
 
   .screenshot {
     margin: 16px 0 24px;
-    border: 1px solid var(--border);
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   }
-  .screenshot img {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
+  .screenshot img { width: 100%; height: auto; display: block; }
   .screenshot .caption {
     padding: 10px 16px;
     background: #f1f5f9;
     font-size: 13px;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border);
+    color: #64748b;
+    border-top: 1px solid #e2e8f0;
   }
 
   .steps {
     counter-reset: step;
     margin-bottom: 24px;
+    list-style: none;
+    padding: 0;
   }
   .steps li {
     counter-increment: step;
-    margin-bottom: 12px;
-    padding-left: 8px;
+    margin-bottom: 16px;
+    padding: 16px 20px 16px 56px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    position: relative;
+    font-size: 14px;
   }
-  .steps li::marker {
-    font-weight: 700;
-    color: var(--primary);
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: 16px; top: 14px;
+    width: 28px; height: 28px;
+    background: #1a56db;
+    color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
   }
 
   .info {
@@ -151,7 +99,27 @@
     margin-bottom: 20px;
     font-size: 14px;
   }
-  .info strong { color: var(--primary); }
+  .info strong { color: #1a56db; }
+
+  .alert {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  .alert strong { color: #92400e; }
+
+  .success {
+    background: #d1fae5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  .success strong { color: #065f46; }
 
   .grid-2 {
     display: grid;
@@ -164,35 +132,31 @@
     display: inline-block;
     padding: 2px 10px;
     border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 12px; font-weight: 600;
   }
   .badge-blue { background: #dbeafe; color: #1d4ed8; }
   .badge-green { background: #dcfce7; color: #16a34a; }
   .badge-yellow { background: #fef3c7; color: #d97706; }
+  .badge-red { background: #fee2e2; color: #dc2626; }
 
-  .toc { margin-bottom: 32px; }
-  .toc a {
+  .btn-demo {
     display: inline-block;
-    padding: 6px 16px;
-    margin: 4px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    color: var(--primary);
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 13px; font-weight: 600;
     text-decoration: none;
-    font-size: 13px;
-    transition: all 0.2s;
+    margin: 4px;
   }
-  .toc a:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-  }
+  .btn-primary { background: #1a56db; color: white; }
+  .btn-success { background: #16a34a; color: white; }
+  .btn-danger { background: #dc2626; color: white; }
+  .btn-warning { background: #d97706; color: white; }
+  .btn-outline { background: white; color: #1e293b; border: 1px solid #cbd5e1; }
+
+  .divider { border: none; border-top: 2px solid #e2e8f0; margin: 60px 0; }
 
   @media (max-width: 768px) {
-    .sidebar { display: none; }
-    .main { margin-left: 0; padding: 20px; }
+    .main { padding: 20px 16px; }
     .grid-2 { grid-template-columns: 1fr; }
   }
 </style>
@@ -200,461 +164,420 @@
 <body>
 
 <div class="topbar">
-  <h1>📦 COMEXCARE</h1>
-  <span class="sub">Manual de Usuario</span>
+  <h1>📦 COMEXCARE — Manual de Usuario</h1>
+  <span class="sub">Guía rápida del sistema</span>
 </div>
-
-<nav class="sidebar">
-  <div class="cat">Introducción</div>
-  <a href="#inicio">Inicio / Login</a>
-  <a href="#dashboard">Dashboard</a>
-
-  <div class="cat">Administración</div>
-  <a href="#usuarios">Usuarios</a>
-  <a href="#roles">Roles y Permisos</a>
-  <a href="#tiendas">Tiendas</a>
-  <a href="#user-tiendas">Asignación Tiendas</a>
-
-  <div class="cat">Equipos y Grupos</div>
-  <a href="#computadoras">Computadoras</a>
-  <a href="#grupos">Grupos</a>
-
-  <div class="cat">Distribución</div>
-  <a href="#distribuciones">Distribuir Archivos</a>
-  <a href="#recepciones">Recibir Archivos</a>
-  <a href="#versiones-agente">Versiones de Agente</a>
-  <a href="#listas-archivos">Listas de Archivos</a>
-
-  <div class="cat">Metas</div>
-  <a href="#metas-mensuales">Metas Mensuales</a>
-
-  <div class="cat">Reportes</div>
-  <a href="#rpt-vendedores">Vendedores</a>
-  <a href="#rpt-metas">Metas de Ventas</a>
-  <a href="#rpt-cartera">Cartera de Abonos</a>
-  <a href="#rpt-notas">Notas Completas</a>
-  <a href="#rpt-compras">Compras Directo</a>
-  <a href="#rpt-dbf">Archivos DBF</a>
-  <a href="#rpt-vales">Vales</a>
-  <a href="#rpt-club">Club Comex</a>
-</nav>
 
 <div class="main">
 
-<!-- INTRO -->
-<section id="inicio">
-  <h2>🔐 Inicio de Sesión</h2>
-  <p>Para acceder al sistema, abre tu navegador y ve a la dirección del servidor. Se mostrará la pantalla de inicio de sesión.</p>
+<!-- ==================== INICIO / LOGIN ==================== -->
+<h2>🔐 Inicio de Sesión</h2>
+<p>Para acceder al sistema abre tu navegador y ve a la dirección del servidor COMEXCARE.</p>
 
+<div class="screenshot">
+  <img src="screenshots/01-login.png" alt="Pantalla de inicio de sesión">
+  <div class="caption">Pantalla de inicio de sesión</div>
+</div>
+
+<h3>Proceso de inicio de sesión</h3>
+<ol class="steps">
+  <li><strong>Ingresa tu correo</strong> — La dirección de correo electrónico que te proporcionó el administrador</li>
+  <li><strong>Ingresa tu contraseña</strong> — Tu contraseña personal (solicita un cambio al administrador si la olvidaste)</li>
+  <li><strong>Haz clic en "Iniciar sesión"</strong> — El botón azul al final del formulario</li>
+</ol>
+
+<div class="info">
+  <strong>✅ Nota:</strong> Si ves la pantalla del dashboard después de iniciar sesión, el acceso fue exitoso.
+</div>
+
+<div class="alert">
+  <strong>⚠️ Error común:</strong> Si aparece "Credenciales incorrectas", verifica que tu correo y contraseña estén escritos correctamente, incluyendo mayúsculas/minúsculas.
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<h2>📊 Dashboard</h2>
+<p>Pantalla principal que se muestra después de iniciar sesión. Contiene un resumen del estado general del sistema.</p>
+
+<div class="screenshot">
+  <img src="screenshots/02-dashboard.png" alt="Dashboard principal">
+  <div class="caption">Dashboard con tarjetas de estadísticas</div>
+</div>
+
+<h3>¿Qué información muestra?</h3>
+<ul>
+  <li><strong>Computadoras en línea</strong> — Número de equipos activos en este momento</li>
+  <li><strong>Computadoras fuera de línea</strong> — Equipos que no han reportado actividad reciente</li>
+  <li><strong>Distribuciones activas</strong> — Transferencias de archivos actualmente en progreso</li>
+  <li><strong>Alertas del sistema</strong> — Notificaciones sobre equipos o procesos que requieren atención</li>
+</ul>
+
+<h3>Botones y acciones disponibles</h3>
+<ul>
+  <li><span class="badge badge-blue">⚡ Acceso rápido</span> — Tarjetas con atajos a las secciones más usadas</li>
+  <li><span class="badge badge-green">🔄 Actualizar</span> — Recargar los datos del dashboard</li>
+</ul>
+
+<!-- ==================== USUARIOS ==================== -->
+<h2>👥 Usuarios</h2>
+<p>Módulo para administrar las cuentas de usuario del sistema. Acceso: menú <strong>Administración → Usuarios</strong>.</p>
+
+<div class="screenshot">
+  <img src="screenshots/03-usuarios.png" alt="Gestión de usuarios">
+  <div class="caption">Lista de usuarios del sistema con tabla de datos</div>
+</div>
+
+<h3>Proceso: Crear un nuevo usuario</h3>
+<ol class="steps">
+  <li><strong>Haz clic en "Nuevo"</strong> — Botón ubicado en la parte superior derecha de la tabla</li>
+  <li><strong>Completa el formulario</strong> — Ingresa nombre, correo electrónico y contraseña</li>
+  <li><strong>Asigna un rol</strong> — Selecciona el nivel de permisos (Administrador, Supervisor, Consultor, etc.)</li>
+  <li><strong>Guarda</strong> — Haz clic en "Guardar" para crear el usuario</li>
+</ol>
+
+<div class="alert">
+  <strong>⚠️ Importante:</strong> La contraseña debe cumplir con los requisitos de seguridad mínimos (8 caracteres, mayúsculas, números).
+</div>
+
+<h3>Acciones disponibles en la tabla</h3>
+<ul>
+  <li><span class="badge badge-blue">✏️ Editar</span> — Modificar datos del usuario</li>
+  <li><span class="badge badge-red">🗑️ Eliminar</span> — Dar de baja un usuario (confirmación requerida)</li>
+  <li><span class="badge badge-yellow">🔒 Cambiar rol</span> — Modificar los permisos asignados</li>
+  <li>✅ <strong>Activar/Desactivar</strong> — Habilitar o deshabilitar temporalmente una cuenta</li>
+</ul>
+
+<div class="screenshot">
+  <img src="screenshots/04-roles.png" alt="Roles del sistema">
+  <div class="caption">Gestión de roles — sección Roles</div>
+</div>
+
+<h3>Roles y permisos</h3>
+<p>Los <strong>roles</strong> agrupan permisos. Puedes crear roles personalizados y asignar permisos específicos a cada uno.</p>
+
+<div class="info">
+  <strong>💡 Recomendación:</strong> Crea roles por perfil (Ej: "Ventas", "Almacén", "Dirección") y asigna solo los permisos necesarios para cada área.
+</div>
+
+<div class="screenshot">
+  <img src="screenshots/05-permisos.png" alt="Permisos del sistema">
+  <div class="caption">Lista de permisos disponibles para asignar a roles</div>
+</div>
+
+<h3>Proceso: Asignar permisos a un rol</h3>
+<ol class="steps">
+  <li><strong>Ve a la sección Roles</strong> — Menú Administración → Roles</li>
+  <li><strong>Selecciona un rol</strong> — Haz clic en el rol que deseas modificar</li>
+  <li><strong>Marca los permisos</strong> — Activa o desactiva los permisos según necesites</li>
+  <li><strong>Guarda los cambios</strong> — Confirma la asignación</li>
+</ol>
+
+<!-- ==================== COMPUTADORAS ==================== -->
+<h2>💻 Computadoras</h2>
+<p>Inventario de todos los equipos registrados con el agente COMEXCARE instalado. Acceso: <strong>Administración → Computadoras</strong>.</p>
+
+<div class="screenshot">
+  <img src="screenshots/06-computadoras.png" alt="Inventario de computadoras">
+  <div class="caption">Lista de computadoras con información del sistema y estado</div>
+</div>
+
+<h3>Información disponible por equipo</h3>
+<ul>
+  <li><strong>Nombre del equipo</strong> y <strong>Short Key</strong> — Identificadores únicos</li>
+  <li><span class="badge badge-green">🟢 En línea</span> / <span class="badge badge-red">🔴 Fuera de línea</span> — Estado actual del agente</li>
+  <li><strong>IP</strong> y <strong>MAC</strong> — Direcciones de red</li>
+  <li><strong>Versión del agente</strong> — Software instalado</li>
+  <li><strong>Grupo</strong> — Grupo al que pertenece</li>
+  <li><strong>Windows</strong> — Versión del sistema operativo</li>
+  <li><strong>BitLocker</strong> — Estado del cifrado de disco</li>
+  <li><strong>Último heartbeat</strong> — Fecha y hora de la última conexión</li>
+</ul>
+
+<h3>Acciones disponibles</h3>
+<ul>
+  <li><span class="badge badge-blue">👁️ Ver detalle</span> — Información completa del equipo</li>
+  <li><span class="badge badge-yellow">📋 Ver logs</span> — Historial de actividad del agente</li>
+  <li><span class="badge badge-green">📥 Exportar</span> — Descargar inventario a Excel</li>
+</ul>
+
+<div class="screenshot">
+  <img src="screenshots/36-computadora-detalle.png" alt="Detalle de computadora">
+  <div class="caption">Vista detallada de una computadora con toda su información</div>
+</div>
+
+<h3>Proceso: Ver detalle de una computadora</h3>
+<ol class="steps">
+  <li><strong>Localiza el equipo</strong> — Usa el buscador o los filtros de la tabla para encontrar la computadora</li>
+  <li><strong>Haz clic en el nombre</strong> — Se abrirá la vista de detalle con toda la información del equipo</li>
+  <li><strong>Revisa los datos</strong> — Desde aquí puedes ver logs, estado y editar la configuración</li>
+</ol>
+
+<div class="alert">
+  <strong>⚠️ Offline:</strong> Si un equipo aparece como "Fuera de línea", puede deberse a que el agente no se ha conectado en los últimos 5 minutos. Verifica la conexión de red del equipo remoto.
+</div>
+
+<!-- ==================== GRUPOS ==================== -->
+<h2>📂 Grupos</h2>
+<p>Organiza las computadoras en grupos para facilitar las distribuciones masivas. Acceso: <strong>Administración → Grupos</strong>.</p>
+
+<div class="screenshot">
+  <img src="screenshots/07-grupos.png" alt="Grupos de computadoras">
+  <div class="caption">Lista de grupos con cantidad de equipos asignados</div>
+</div>
+
+<h3>Proceso: Crear un grupo</h3>
+<ol class="steps">
+  <li><strong>Haz clic en "Nuevo grupo"</strong> — Botón en la parte superior</li>
+  <li><strong>Asigna un nombre</strong> — El nombre debe ser descriptivo (Ej: "Tiendas Monterrey", "Sucursales Norte")</li>
+  <li><strong>Configura la Short Key</strong> — Clave única que los agentes usarán para registrarse automáticamente en este grupo</li>
+  <li><strong>Agrega una descripción</strong> — Opcional pero recomendada</li>
+  <li><strong>Guarda</strong> — El grupo quedará disponible para asignar computadoras</li>
+</ol>
+
+<div class="screenshot">
+  <img src="screenshots/30-grupo-crear.png" alt="Formulario crear grupo">
+  <div class="caption">Formulario para crear un nuevo grupo de computadoras</div>
+</div>
+
+<h3>Proceso: Asignar computadoras a un grupo</h3>
+<ol class="steps">
+  <li><strong>Ve al detalle del grupo</strong> — Haz clic en el nombre del grupo</li>
+  <li><strong>Selecciona "Editar"</strong> — Para modificar los equipos asignados</li>
+  <li><strong>Agrega o quita equipos</strong> — Marca o desmarca las computadoras que pertenecen al grupo</li>
+  <li><strong>Guarda</strong> — Los cambios se aplican inmediatamente</li>
+</ol>
+
+<!-- ==================== DISTRIBUCIONES ==================== -->
+<h2>📤 Distribuir Archivos</h2>
+<p>Envía archivos (actualizaciones, binarios, documentos) a una o varias computadoras remotas. Acceso: <strong>Administración → Distribuciones</strong>.</p>
+
+<div class="screenshot">
+  <img src="screenshots/08-distribuciones.png" alt="Lista de distribuciones">
+  <div class="caption">Lista de distribuciones con estado y progreso de envío</div>
+</div>
+
+<h3>Proceso: Crear una nueva distribución</h3>
+<ol class="steps">
+  <li><strong>Haz clic en "Nueva distribución"</strong> — Botón en la esquina superior derecha</li>
+  <li><strong>Completa el formulario:</strong>
+    <ul>
+      <li><strong>Nombre</strong> — Identifica la distribución (Ej: "Actualización agente v2.1")</li>
+      <li><strong>Tipo</strong> — Archivos, Actualización, Comando, o PVSI</li>
+      <li><strong>Subcarpeta</strong> — Carpeta de destino en el equipo remoto</li>
+      <li><strong>Archivos</strong> — Selecciona los archivos a distribuir</li>
+    </ul>
+  </li>
+  <li><strong>Selecciona destino:</strong> Elige computadoras específicas o grupos completos</li>
+  <li><strong>Configura la programación:</strong>
+    <ul>
+      <li><strong>Inmediata</strong> — Se envía al guardar</li>
+      <li><strong>Programada</strong> — Se enviará en una fecha/hora específica</li>
+      <li><strong>Recurrente</strong> — Se repite en intervalo configurable</li>
+    </ul>
+  </li>
+  <li><strong>Guarda</strong> — La distribución se procesará según la programación indicada</li>
+</ol>
+
+<div class="screenshot">
+  <img src="screenshots/31-distribucion-crear.png" alt="Formulario nueva distribución">
+  <div class="caption">Formulario de creación de distribución con opciones de archivos y destino</div>
+</div>
+
+<h3>Estados de una distribución</h3>
+<ul>
+  <li><span class="badge badge-yellow">⏳ Pendiente</span> — Esperando ser procesada</li>
+  <li><span class="badge badge-blue">🔄 En progreso</span> — Archivos en transferencia a los destinos</li>
+  <li><span class="badge badge-green">✅ Completada</span> — Todos los destinos recibieron los archivos</li>
+  <li><span class="badge badge-red">❌ Fallida</span> — Error en uno o más destinos</li>
+  <li><span class="badge badge-blue">⏹️ Detenida</span> — Pausada manualmente</li>
+</ul>
+
+<h3>Acciones en tiempo real</h3>
+<ul>
+  <li><span class="badge badge-yellow">⏸️ Detener</span> — Pausa temporalmente la distribución</li>
+  <li><span class="badge badge-green">▶️ Iniciar</span> — Reanuda una distribución detenida</li>
+  <li><span class="badge badge-blue">🔄 Reiniciar</span> — Vuelve a intentar desde cero</li>
+  <li><span class="badge badge-green">📊 Progreso</span> — Ver el avance en tiempo real por cada computadora destino</li>
+</ul>
+
+<div class="screenshot">
+  <img src="screenshots/37-distribucion-detalle.png" alt="Detalle de distribución">
+  <div class="caption">Vista de detalle de una distribución con el progreso por equipo</div>
+</div>
+
+<!-- ==================== RECEPCIONES ==================== -->
+<h2>📥 Recibir Archivos</h2>
+<p>Recolecta archivos desde las computadoras remotas (reportes de ventas, DBF, logs, etc.). Acceso: <strong>Administración → Recepciones</strong>.</p>
+
+<div class="screenshot">
+  <img src="screenshots/09-recepciones.png" alt="Lista de recepciones">
+  <div class="caption">Lista de recepciones de archivos programadas</div>
+</div>
+
+<h3>Proceso: Crear una recepción</h3>
+<ol class="steps">
+  <li><strong>Haz clic en "Nueva recepción"</strong></li>
+  <li><strong>Configura los parámetros:</strong>
+    <ul>
+      <li><strong>Nombre</strong> — Identifica la recepción</li>
+      <li><strong>Tipo de archivo</strong> — Extensiones o máscaras de archivos a recolectar</li>
+      <li><strong>Archivos específicos</strong> — Nombres exactos de archivos a recibir</li>
+      <li><strong>Grupo / Computadoras</strong> — Origen de los archivos</li>
+    </ul>
+  </li>
+  <li><strong>Programa la recepción:</strong> Inmediata, programada o recurrente</li>
+  <li><strong>Guarda</strong> — Los archivos comenzarán a recolectarse según la programación</li>
+</ol>
+
+<div class="screenshot">
+  <img src="screenshots/34-recepcion-crear.png" alt="Formulario nueva recepción">
+  <div class="caption">Formulario para crear una nueva recepción de archivos</div>
+</div>
+
+<h3>Estados de recepción</h3>
+<ul>
+  <li><span class="badge badge-yellow">⏳ Pendiente</span> — Esperando la recolección</li>
+  <li><span class="badge badge-blue">🔄 En progreso</span> — Recibiendo archivos de los orígenes</li>
+  <li><span class="badge badge-green">✅ Completada</span> — Archivos recibidos exitosamente</li>
+  <li><span class="badge badge-red">❌ Error</span> — Problema al recibir archivos de algún origen</li>
+</ul>
+
+<!-- ==================== VERSIONES DE AGENTE ==================== -->
+<h2>🔄 Versiones de Agente</h2>
+<p>Gestiona las versiones del software agente instalado en las computadoras remotas. Acceso: <strong>Administración → Versiones de Agente</strong>.</p>
+
+<div class="grid-2">
   <div class="screenshot">
-    <img src="screenshots/01-login.png" alt="Pantalla de inicio de sesión">
-    <div class="caption">Pantalla de inicio de sesión de COMEXCARE</div>
+    <img src="screenshots/10-versiones-agente.png" alt="Versiones agente distribución">
+    <div class="caption">Versiones del agente de distribución</div>
   </div>
-
-  <div class="steps">
-    <ol>
-      <li>Ingresa tu <strong>correo electrónico</strong> (el que te proporcionó el administrador)</li>
-      <li>Ingresa tu <strong>contraseña</strong></li>
-      <li>Haz clic en el botón <strong>"Iniciar sesión"</strong></li>
-    </ol>
-  </div>
-
-  <div class="info">
-    <strong>🔒 Nota:</strong> Si olvidaste tu contraseña, contacta al administrador del sistema para restablecerla.
-  </div>
-</section>
-
-<!-- DASHBOARD -->
-<section id="dashboard">
-  <h2>📊 Dashboard</h2>
-  <p>Después de iniciar sesión, verás el panel principal con un resumen general del sistema.</p>
-
   <div class="screenshot">
-    <img src="screenshots/02-dashboard.png" alt="Dashboard principal">
-    <div class="caption">Dashboard principal con estadísticas del sistema</div>
+    <img src="screenshots/11-versiones-resurtido.png" alt="Versiones agente resurtido">
+    <div class="caption">Versiones del agente de resurtido</div>
   </div>
-
-  <p>El dashboard muestra información clave como:</p>
-  <ul>
-    <li><strong>Computadoras en línea / fuera de línea</strong> — Estado actual de los agentes</li>
-    <li><strong>Distribuciones activas</strong> — Transferencias de archivos en progreso</li>
-    <li><strong>Recepciones pendientes</strong> — Archivos por recibir desde las tiendas</li>
-    <li><strong>Alertas recientes</strong> — Notificaciones importantes del sistema</li>
-  </ul>
-</section>
-
-<!-- USUARIOS -->
-<section id="usuarios">
-  <h2>👥 Gestión de Usuarios</h2>
-  <p>Desde aquí puedes administrar todos los usuarios del sistema.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/03-usuarios.png" alt="Gestión de usuarios">
-    <div class="caption">Lista de usuarios del sistema con opciones de edición</div>
-  </div>
-
-  <h4>¿Qué puedes hacer?</h4>
-  <ul>
-    <li><strong>Crear</strong> nuevos usuarios con correo y contraseña</li>
-    <li><strong>Editar</strong> información de usuarios existentes</li>
-    <li><strong>Activar / desactivar</strong> cuentas de usuario</li>
-    <li><strong>Asignar roles</strong> (Admin, Supervisor, Consultor, etc.)</li>
-    <li><strong>Filtrar</strong> por nombre, correo o rol</li>
-  </ul>
-</section>
-
-<!-- ROLES -->
-<section id="roles">
-  <h2>🔑 Roles y Permisos</h2>
-  <p>Controla qué puede hacer cada usuario mediante roles y permisos.</p>
-
-  <div class="grid-2">
-    <div class="screenshot">
-      <img src="screenshots/04-roles.png" alt="Roles">
-      <div class="caption">Roles del sistema</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/05-permisos.png" alt="Permisos">
-      <div class="caption">Permisos ACL detallados</div>
-    </div>
-  </div>
-
-  <p>El sistema usa <strong>permisos detallados</strong> (ACL) para controlar el acceso a cada funcionalidad:</p>
-  <ul>
-    <li><strong>Roles:</strong> Admin, Supervisor, Operador, Consultor, etc.</li>
-    <li><strong>Permisos:</strong> Ver reportes, administrar equipos, gestionar usuarios, etc.</li>
-    <li>Cada rol puede tener múltiples permisos asignados</li>
-  </ul>
-</section>
-
-<!-- TIENDAS -->
-<section id="tiendas">
-  <h2>🏪 Catálogo de Tiendas</h2>
-  <p>Gestiona el catálogo de tiendas (sucursales) donde están instalados los agentes.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/13-tiendas.png" alt="Catálogo de tiendas">
-    <div class="caption">Catálogo de tiendas con datos de plaza, zona y tipo</div>
-  </div>
-
-  <p>Cada tienda tiene:</p>
-  <ul>
-    <li><strong>Clave de tienda</strong> — Identificador único</li>
-    <li><strong>Nombre</strong> — Nombre comercial de la sucursal</li>
-    <li><strong>Plaza</strong> — Región o ciudad donde se ubica</li>
-    <li><strong>Zona</strong> — Agrupación geográfica</li>
-    <li><strong>Tipo</strong> — Clasificación de la tienda</li>
-  </ul>
-</section>
-
-<!-- ASIGNACIÓN TIENDAS -->
-<section id="user-tiendas">
-  <h2>📌 Asignación de Tiendas a Usuarios</h2>
-  <p>Permite restringir qué tiendas puede ver cada usuario en los reportes.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/14-asignacion-tiendas.png" alt="Asignación tiendas">
-    <div class="caption">Asignación de plazas y tiendas a usuarios</div>
-  </div>
-
-  <p>Un usuario con asignación de tiendas solo verá datos de las plazas/tiendas que tenga asignadas.</p>
-</section>
-
-<!-- COMPUTADORAS -->
-<section id="computadoras">
-  <h2>💻 Inventario de Computadoras</h2>
-  <p>Lista completa de todos los equipos registrados en el sistema (agentes instalados en tiendas).</p>
-
-  <div class="screenshot">
-    <img src="screenshots/06-computadoras.png" alt="Inventario de computadoras">
-    <div class="caption">Inventario de equipos con estado en línea y detalles del sistema</div>
-  </div>
-
-  <p>Cada computadora muestra:</p>
-  <ul>
-    <li><strong>Nombre del equipo</strong> y <strong>Short Key</strong> (identificador único)</li>
-    <li><strong>Dirección IP</strong> y <strong>MAC address</strong></li>
-    <li><strong>Estado:</strong> <span class="badge badge-green">En línea</span> / <span class="badge badge-yellow">Fuera de línea</span></li>
-    <li><strong>Versión del agente</strong> instalada</li>
-    <li><strong>Grupo</strong> al que pertenece</li>
-    <li><strong>Sistema operativo</strong> (versión de Windows)</li>
-    <li><strong>Estado de BitLocker</strong></li>
-    <li><strong>Último heartbeat</strong> — última conexión reportada</li>
-  </ul>
-
-  <div class="info">
-    <strong>💡 Tip:</strong> Puedes exportar el inventario a Excel para llevar un registro externo.
-  </div>
-</section>
-
-<!-- GRUPOS -->
-<section id="grupos">
-  <h2>📂 Grupos de Computadoras</h2>
-  <p>Organiza las computadoras en grupos para facilitar las distribuciones y la administración.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/07-grupos.png" alt="Grupos de computadoras">
-    <div class="caption">Grupos de equipos para organizar las distribuciones</div>
-  </div>
-
-  <p>Los grupos permiten:</p>
-  <ul>
-    <li>Enviar distribuciones a un conjunto de equipos a la vez</li>
-    <li>Organizar por región, tipo de tienda, o cualquier criterio</li>
-    <li>Cada grupo tiene una <strong>Short Key</strong> que los agentes usan para registrarse automáticamente</li>
-  </ul>
-</section>
-
-<!-- DISTRIBUCIONES -->
-<section id="distribuciones">
-  <h2>📤 Distribuir Archivos a Agentes</h2>
-  <p>El módulo de distribuciones permite enviar archivos (actualizaciones, binarios, configuraciones) a una o varias computadoras remotas.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/08-distribuciones.png" alt="Distribuciones">
-    <div class="caption">Lista de distribuciones con estado y progreso</div>
-  </div>
-
-  <h4>¿Cómo crear una distribución?</h4>
-  <ol class="steps">
-    <li>Haz clic en <strong>"Nueva distribución"</strong></li>
-    <li>Asigna un <strong>nombre descriptivo</strong></li>
-    <li>Selecciona el <strong>tipo</strong> (Archivos, Actualización, Comando, PVSI)</li>
-    <li>Elige los <strong>archivos</strong> a distribuir</li>
-    <li>Selecciona las <strong>computadoras destino</strong> (o grupos completos)</li>
-    <li>Configura la <strong>programación</strong> (inmediata, programada, recurrente)</li>
-    <li>Haz clic en <strong>"Guardar"</strong></li>
-  </ol>
-
-  <p>Puedes monitorear el progreso en tiempo real:</p>
-  <ul>
-    <li><span class="badge badge-blue">Pendiente</span> — Esperando ser procesada</li>
-    <li><span class="badge badge-yellow">En progreso</span> — Transfiriendo archivos</li>
-    <li><span class="badge badge-green">Completada</span> — Todos los destinos recibieron los archivos</li>
-  </ul>
-</section>
-
-<!-- RECEPCIONES -->
-<section id="recepciones">
-  <h2>📥 Recibir Archivos desde Agentes</h2>
-  <p>Las recepciones permiten recolectar archivos desde las computadoras remotas (reportes de ventas, DBF, logs, etc.).</p>
-
-  <div class="screenshot">
-    <img src="screenshots/09-recepciones.png" alt="Recepciones">
-    <div class="caption">Lista de recepciones de archivos desde agentes</div>
-  </div>
-
-  <ol class="steps">
-    <li>Crear una nueva recepción especificando qué archivos recolectar</li>
-    <li>Seleccionar las computadoras origen</li>
-    <li>Configurar la programación (diaria, semanal, etc.)</li>
-    <li>Los archivos recibidos quedan disponibles en el servidor</li>
-  </ol>
-</section>
-
-<!-- VERSIONES DE AGENTE -->
-<section id="versiones-agente">
-  <h2>🔄 Versiones de Agente</h2>
-  <p>Gestiona las versiones del software agente instalado en las computadoras remotas.</p>
-
-  <div class="grid-2">
-    <div class="screenshot">
-      <img src="screenshots/10-versiones-agente.png" alt="Versiones de agente distribución">
-      <div class="caption">Versiones del agente de distribución</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/11-versiones-resurtido.png" alt="Versiones de agente resurtido">
-      <div class="caption">Versiones del agente de resurtido</div>
-    </div>
-  </div>
-
-  <p>Hay dos tipos de agente:</p>
-  <ul>
-    <li><strong>Agente de Distribución</strong> — Maneja la transferencia de archivos y actualizaciones</li>
-    <li><strong>Agente de Resurtido</strong> — Maneja la sincronización de datos de resurtido/stock</li>
-  </ul>
-
-  <p>Cada versión incluye: número de versión, canal (stable/beta), archivo binario, checksum y changelog.</p>
-</section>
-
-<!-- LISTAS DE ARCHIVOS -->
-<section id="listas-archivos">
-  <h2>📋 Listas Blancas / Negras de Archivos</h2>
-  <p>Controla qué archivos están permitidos o bloqueados en el sistema de distribución.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/12-listas-archivos.png" alt="Listas de archivos">
-    <div class="caption">Listas blancas y negras para control de archivos</div>
-  </div>
-
-  <ul>
-    <li><strong>Whitelist (Lista blanca):</strong> Solo los archivos en esta lista pueden ser distribuidos</li>
-    <li><strong>Blacklist (Lista negra):</strong> Los archivos en esta lista son bloqueados</li>
-  </ul>
-</section>
-
-<!-- METAS MENSUALES -->
-<section id="metas-mensuales">
-  <h2>🎯 Metas Mensuales</h2>
-  <p>Gestiona las metas de ventas asignadas a cada tienda por período.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/15-metas-mensuales.png" alt="Metas mensuales">
-    <div class="caption">Gestión de metas mensuales por tienda y período</div>
-  </div>
-
-  <h4>Funcionalidades:</h4>
-  <ul>
-    <li><strong>Importar</strong> metas desde archivo Excel</li>
-    <li><strong>Crear</strong> metas manualmente por tienda y período</li>
-    <li><strong>Generar</strong> metas automáticas basadas en períodos anteriores</li>
-    <li><strong>Distribuir</strong> metas en días hábiles del período</li>
-  </ul>
-</section>
-
-<!-- REPORTE VENDEDORES -->
-<section id="rpt-vendedores">
-  <h2>📈 Reporte de Vendedores</h2>
-  <p>Consulta el rendimiento de todos los vendedores por plaza, tienda y período.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/16-reporte-vendedores.png" alt="Reporte de vendedores">
-    <div class="caption">Reporte de rendimiento de vendedores</div>
-  </div>
-
-  <h4>Opciones de filtro:</h4>
-  <ul>
-    <li><strong>Plaza</strong> — Región específica</li>
-    <li><strong>Tienda</strong> — Sucursal particular</li>
-    <li><strong>Período</strong> — Rango de fechas</li>
-    <li><strong>Vendedor</strong> — Asesor específico</li>
-  </ul>
-
-  <h4>Exportación:</h4>
-  <ul>
-    <li>📊 <strong>Excel</strong> — Descargar en formato XLSX</li>
-    <li>📄 <strong>PDF</strong> — Descargar para impresión</li>
-    <li>📃 <strong>CSV</strong> — Datos en texto plano</li>
-  </ul>
-</section>
-
-<!-- REPORTE METAS -->
-<section id="rpt-metas">
-  <h2>🎯 Reporte de Metas de Ventas</h2>
-  <p>Compara las ventas reales contra las metas asignadas a cada tienda y vendedor.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/18-reporte-metas.png" alt="Reporte de metas de ventas">
-    <div class="caption">Reporte de cumplimiento de metas de ventas</div>
-  </div>
-
-  <p>El reporte muestra:</p>
-  <ul>
-    <li><strong>Meta asignada</strong> para el período</li>
-    <li><strong>Venta real</strong> registrada</li>
-    <li><strong>Porcentaje de cumplimiento</strong></li>
-    <li><strong>Variación</strong> contra el período anterior</li>
-    <li><strong>Acumulado</strong> del año</li>
-  </ul>
-</section>
-
-<!-- CARTERA ABONOS -->
-<section id="rpt-cartera">
-  <h2>💰 Cartera de Abonos</h2>
-  <p>Consulta el estado de la cartera de abonos (cuentas por cobrar) de los clientes.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/19-cartera-abonos.png" alt="Cartera de abonos">
-    <div class="caption">Reporte de cartera de abonos con filtros avanzados</div>
-  </div>
-
-  <p>El sistema cuenta con <strong>3 versiones optimizadas</strong> del reporte de cartera de abonos:</p>
-  <ul>
-    <li><strong>Optimizado:</strong> Versión mejorada con caché inteligente</li>
-    <li><strong>Tiempo Real:</strong> Con vistas materializadas para consultas rápidas</li>
-    <li><strong>Ultra Fast:</strong> Versión pre-cargada para 500+ usuarios concurrentes</li>
-  </ul>
-</section>
-
-<!-- NOTAS COMPLETAS -->
-<section id="rpt-notas">
-  <h2>📝 Notas Completas</h2>
-  <p>Reporte detallado de todas las notas de venta registradas en el sistema.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/notas-completas.png" alt="Notas completas">
-    <div class="caption">Reporte de notas completas con filtros por período</div>
-  </div>
-
-  <p>Incluye información detallada de cada nota: fecha, cliente, importe, vendedor, tienda y plaza.</p>
-</section>
-
-<!-- COMPRAS DIRECTO -->
-<section id="rpt-compras">
-  <h2>🛒 Compras Directo</h2>
-  <p>Reporte de compras realizadas directamente por los clientes en tienda.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/compras-directo.png" alt="Compras directo">
-    <div class="caption">Reporte de compras directo por tienda y período</div>
-  </div>
-
-  <p>Muestra el detalle de cada transacción de compra directa con opciones de exportación a Excel, CSV y PDF.</p>
-</section>
-
-<!-- DBF FILES -->
-<section id="rpt-dbf">
-  <h2>🗄️ Archivos DBF</h2>
-  <p>Monitoreo de archivos DBF generados por los sistemas de las tiendas.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/22-dbf-files.png" alt="Archivos DBF">
-    <div class="caption">Monitoreo de archivos DBF recibidos desde las tiendas</div>
-  </div>
-
-  <p>Este reporte permite:</p>
-  <ul>
-    <li>Ver qué archivos DBF se han recibido</li>
-    <li>Monitorear la frecuencia de recepción por tienda</li>
-    <li>Detectar tiendas que no están enviando sus archivos</li>
-  </ul>
-</section>
-
-<!-- VALES -->
-<section id="rpt-vales">
-  <h2>🎫 Vales / Vouchers</h2>
-  <p>Reporte de vales (vouchers) emitidos y canjeados en las tiendas.</p>
-
-  <div class="screenshot">
-    <img src="screenshots/23-vales.png" alt="Vales">
-    <div class="caption">Reporte de vales con detalle por tienda y período</div>
-  </div>
-
-  <p>Incluye: tipo de movimiento, número de vale, fecha, cliente, importe total, tienda y estado.</p>
-</section>
-
-<!-- CLUB COMEX -->
-<section id="rpt-club">
-  <h2>🏆 Club Comex y Redenciones</h2>
-  <p>Sincronización y consulta del programa de lealtad Club Comex.</p>
-
-  <div class="grid-2">
-    <div class="screenshot">
-      <img src="screenshots/24-club-comex.png" alt="Club Comex">
-      <div class="caption">Sincronización de Club Comex</div>
-    </div>
-    <div class="screenshot">
-      <img src="screenshots/redenciones-club.png" alt="Redenciones">
-      <div class="caption">Reporte de redenciones del club</div>
-    </div>
-  </div>
-
-  <p>Gestiona: puntos acumulados por clientes, redenciones realizadas, sincronización con el sistema central.</p>
-</section>
-
-<hr style="border: none; border-top: 1px solid var(--border); margin: 60px 0;">
-
-<footer style="text-align: center; padding: 20px 0; color: var(--text-muted); font-size: 13px;">
+</div>
+
+<h3>Tipos de agente</h3>
+<ul>
+  <li><strong>Agente de distribución</strong> — Maneja la transferencia de archivos y actualizaciones a las tiendas</li>
+  <li><strong>Agente de resurtido</strong> — Maneja la sincronización de datos de resurtido y stock</li>
+</ul>
+
+<h3>Proceso: Subir una nueva versión de agente</h3>
+<ol class="steps">
+  <li><strong>Haz clic en "Nueva versión"</strong> — Botón en la parte superior</li>
+  <li><strong>Completa los datos:</strong>
+    <ul>
+      <li><strong>Versión</strong> — Número de versión (Ej: 2.1.0)</li>
+      <li><strong>Canal</strong> — Stable o Beta</li>
+      <li><strong>Archivo binario</strong> — Selecciona el archivo del agente (.exe, .zip, etc.)</li>
+      <li><strong>Changelog</strong> — Notas de la versión (qué cambios incluye)</li>
+    </ul>
+  </li>
+  <li><strong>Guarda</strong> — La versión queda disponible para ser distribuida a los equipos</li>
+</ol>
+
+<div class="screenshot">
+  <img src="screenshots/32-version-agente-crear.png" alt="Formulario subir versión de agente">
+  <div class="caption">Formulario para subir una nueva versión del agente de distribución</div>
+</div>
+
+<div class="info">
+  <strong>💡 Importante:</strong> Después de subir una nueva versión, debes crear una distribución para enviarla a las computadoras destino. Las versiones no se actualizan automáticamente.
+</div>
+
+<!-- ==================== LISTAS DE ARCHIVOS ==================== -->
+<h2>📋 Listas de Archivos</h2>
+<p>Controla qué archivos están permitidos o bloqueados en el sistema de distribución. Acceso: <strong>Administración → Listas de Archivos</strong>.</p>
+
+<div class="screenshot">
+  <img src="screenshots/12-listas-archivos.png" alt="Listas de archivos">
+  <div class="caption">Gestión de listas blancas y negras de archivos</div>
+</div>
+
+<h3>Tipos de lista</h3>
+<ul>
+  <li><strong>📗 Lista blanca (Whitelist)</strong> — Solo los archivos registrados aquí pueden ser distribuidos. Todo lo demás será bloqueado.</li>
+  <li><strong>📕 Lista negra (Blacklist)</strong> — Los archivos registrados aquí serán bloqueados. Todo lo demás está permitido.</li>
+</ul>
+
+<h3>Proceso: Agregar un archivo a la lista</h3>
+<ol class="steps">
+  <li><strong>Selecciona el tipo de lista</strong> — Blanca o negra según tu necesidad</li>
+  <li><strong>Ingresa el nombre del archivo</strong> — Puedes usar el nombre exacto o máscaras (Ej: *.exe, reporte_*.csv)</li>
+  <li><strong>Agrega una descripción</strong> — Explica por qué se permite/bloquea este archivo</li>
+  <li><strong>Guarda</strong> — La regla se aplica inmediatamente a todas las distribuciones</li>
+</ol>
+
+<div class="alert">
+  <strong>⚠️ Las listas afectan todas las distribuciones activas y futuras.</strong> Revisa cuidadosamente antes de agregar reglas para evitar bloquear archivos necesarios.
+</div>
+
+<!-- ==================== DBF FILES ==================== -->
+<h2>🗄️ Archivos DBF</h2>
+<p>Monitoreo de archivos DBF generados por el sistema de las tiendas. Estos archivos contienen datos de ventas, inventarios y movimientos. Acceso: <strong>Reportes → Archivos DBF</strong>.</p>
+
+<div class="screenshot">
+  <img src="screenshots/22-dbf-files.png" alt="Archivos DBF">
+  <div class="caption">Monitoreo de archivos DBF recibidos desde las tiendas</div>
+</div>
+
+<h3>¿Qué información muestra?</h3>
+<ul>
+  <li><strong>Tienda</strong> — Sucursal que generó el archivo</li>
+  <li><strong>Plaza</strong> — Región de la tienda</li>
+  <li><strong>Nombre del archivo</strong> — Identificador del DBF recibido</li>
+  <li><strong>Fecha de recepción</strong> — Cuándo se recibió el archivo</li>
+  <li><strong>Tamaño</strong> — Peso del archivo en KB</li>
+  <li><strong>Estado</strong> — Procesado, pendiente o con error</li>
+</ul>
+
+<h3>Proceso: Monitorear archivos DBF</h3>
+<ol class="steps">
+  <li><strong>Filtra por tienda o período</strong> — Usa los filtros de la parte superior</li>
+  <li><strong>Revisa el estado</strong> — Identifica tiendas que no han enviado sus archivos</li>
+  <li><strong>Exporta los datos</strong> — Descarga el listado a Excel si necesitas un reporte externo</li>
+</ol>
+
+<div class="alert">
+  <strong>⚠️ Archivos faltantes:</strong> Si una tienda no ha enviado sus archivos DBF en las últimas 24 horas, puede indicar un problema con el agente en esa ubicación.
+</div>
+
+<!-- ==================== VALES ==================== -->
+<h2>🎫 Vales</h2>
+<p>Reporte de vales (vouchers) emitidos y canjeados en las tiendas. Acceso: <strong>Reportes → Vales</strong>.</p>
+
+<div class="screenshot">
+  <img src="screenshots/23-vales.png" alt="Vales">
+  <div class="caption">Reporte de vales con detalle por tienda y período</div>
+</div>
+
+<h3>Información disponible</h3>
+<ul>
+  <li><strong>Tipo de movimiento</strong> — Emisión, canje, cancelación, etc.</li>
+  <li><strong>Número de vale</strong> — Identificador único del vale</li>
+  <li><strong>Fecha</strong> — Cuándo se realizó la operación</li>
+  <li><strong>Cliente</strong> — Nombre o código del cliente</li>
+  <li><strong>Importe total</strong> — Monto del vale</li>
+  <li><strong>Tienda</strong> — Sucursal donde se realizó la operación</li>
+  <li><strong>Plaza</strong> — Región de la tienda</li>
+  <li><strong>Estado</strong> — Vigente, canjeado, cancelado</li>
+</ul>
+
+<h3>Proceso: Consultar vales</h3>
+<ol class="steps">
+  <li><strong>Selecciona el período</strong> — Define el rango de fechas a consultar</li>
+  <li><strong>Filtra por tienda o plaza</strong> — Si necesitas datos de una región específica</li>
+  <li><strong>Revisa los resultados</strong> — Los datos se muestran en una tabla interactiva con paginación</li>
+  <li><strong>Exporta si es necesario</strong> — Descarga el reporte en Excel o PDF</li>
+</ol>
+
+<div class="info">
+  <strong>💡 Tip:</strong> Puedes hacer clic en los encabezados de columna para ordenar los datos por cualquier campo (fecha, importe, tienda, etc.).
+</div>
+
+<hr class="divider">
+
+<footer style="text-align: center; padding: 20px 0; color: #64748b; font-size: 13px;">
   <p><strong>COMEXCARE</strong> — Sistema de Gestión Distribuida de Equipos y Reportes de Ventas</p>
   <p>Documentación generada el junio 2026</p>
 </footer>
