@@ -42,6 +42,7 @@ class RoleSeeder extends Seeder
             'groups.ver', 'groups.crear', 'groups.editar', 'groups.eliminar',
             'agent-versions.ver', 'agent-versions.crear', 'agent-versions.eliminar',
             'dbf-files.ver',
+            'file-lists.ver', 'file-lists.crear', 'file-lists.editar', 'file-lists.eliminar',
         ];
 
         $userPlazaPermissions = ['user-plaza-tienda.ver', 'user-plaza-tienda.editar'];

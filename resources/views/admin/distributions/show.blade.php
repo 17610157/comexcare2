@@ -46,7 +46,13 @@
                     @foreach($distribution->targets as $target)
                         <tr>
                             <td>{{ $target->computer->computer_name }}</td>
-                            <td>{{ $target->status }}</td>
+                            <td>
+                                @if($target->computer?->status === 'offline')
+                                    Equipo Apagado
+                                @else
+                                    {{ $target->status }}
+                                @endif
+                            </td>
                             <td>{{ $target->progress }}%</td>
                         </tr>
                     @endforeach

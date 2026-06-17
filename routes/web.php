@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ComputersController;
 use App\Http\Controllers\DistributionsController;
+use App\Http\Controllers\FileListsController;
 use App\Http\Controllers\FileReceptionController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\HomeController;
@@ -38,6 +39,7 @@ Route::get('/', function () {
 });
 
 Route::get('/home', [HomeController::class, 'index'])->middleware('auth')->name('home');
+Route::get('/home/stats', [HomeController::class, 'stats'])->middleware('auth')->name('home.stats');
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
@@ -273,6 +275,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     // File Reception (Subida de archivos)
     Route::resource('file-receptions', FileReceptionController::class);
 
+    Route::resource('file-lists', FileListsController::class)->except(['create', 'show', 'edit']);
+    Route::post('file-lists/validate', [FileListsController::class, 'validateFiles'])->name('file-lists.validate');
+
     // User Plaza Tienda - Solo super_admin
     Route::middleware('can:admin.usuarios.ver')->group(function () {
         Route::get('user-plaza-tienda', [UserPlazaTiendaController::class, 'index'])->name('user-plaza-tienda.index');
@@ -328,16 +333,16 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Agent API routes (no auth, no CSRF for agents)
-Route::get('/api/register', [AgentController::class, 'register'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::post('/api/heartbeat', [AgentController::class, 'heartbeat'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::get('/api/commands/{id}', [AgentController::class, 'getCommands'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::post('/api/report', [AgentController::class, 'report'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::get('/api/download/{fileId}', [AgentController::class, 'download'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::get('/api/update/{version}', [AgentController::class, 'checkUpdate'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::get('/api/check-update/{version}', [AgentController::class, 'checkUpdate'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::get('/api/computer/{computer_id}/update', [AgentController::class, 'checkUpdateByComputerId'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::post('/api/inventory', [AgentController::class, 'inventory'])->withoutMiddleware([VerifyCsrfToken::class]);
-Route::post('/api/upload-reception', [AgentController::class, 'uploadReception'])->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/register', [AgentController::class, 'register'])->middleware('api.rate_limit:api_agents')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::post('/api/heartbeat', [AgentController::class, 'heartbeat'])->middleware('api.rate_limit:api_heartbeat')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/commands/{id}', [AgentController::class, 'getCommands'])->middleware('api.rate_limit:api_commands')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::post('/api/report', [AgentController::class, 'report'])->middleware('api.rate_limit:api_report')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/download/{fileId}', [AgentController::class, 'download'])->middleware('api.rate_limit:api_download')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/update/{version}', [AgentController::class, 'checkUpdate'])->middleware('api.rate_limit:api_agents')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/check-update/{version}', [AgentController::class, 'checkUpdate'])->middleware('api.rate_limit:api_agents')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::get('/api/computer/{computer_id}/update', [AgentController::class, 'checkUpdateByComputerId'])->middleware('api.rate_limit:api_agents')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::post('/api/inventory', [AgentController::class, 'inventory'])->middleware('api.rate_limit:api_agents')->withoutMiddleware([VerifyCsrfToken::class]);
+Route::post('/api/upload-reception', [AgentController::class, 'uploadReception'])->middleware('api.rate_limit:api_agents')->withoutMiddleware([VerifyCsrfToken::class]);
 
 // Serve agent updates directly without middleware
 Route::get('/agent-updates/{path}', function (string $path) {

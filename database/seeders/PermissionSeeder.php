@@ -224,6 +224,12 @@ class PermissionSeeder extends Seeder
             'agent-versions.crear',
             'agent-versions.eliminar',
 
+            // File Lists
+            'file-lists.ver',
+            'file-lists.crear',
+            'file-lists.editar',
+            'file-lists.eliminar',
+
             // DBF Files
             'dbf-files.ver',
 

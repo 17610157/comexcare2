@@ -89,6 +89,37 @@ class AgentControllerTest extends TestCase
         $this->assertEquals('Validation failed', $responseData['error']);
     }
 
+    public function test_register_finds_by_short_key_when_mac_changes()
+    {
+        $computer = Computer::factory()->create([
+            'mac_address' => '00:11:22:33:44:55',
+            'short_key' => 'TEST1',
+            'computer_name' => 'Original Computer',
+        ]);
+
+        $data = [
+            'computer_name' => 'Reinstalled Computer',
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'short_key' => 'test1',
+            'agent_version' => '2.0.0',
+            'system_info' => ['os' => 'Windows 11'],
+        ];
+
+        $response = $this->postJson('/api/register', $data);
+
+        $response->assertStatus(200)
+            ->assertJson(['message' => 'Registered successfully']);
+
+        $computer->refresh();
+        $this->assertEquals('Reinstalled Computer', $computer->computer_name);
+        $this->assertEquals('AA:BB:CC:DD:EE:FF', $computer->mac_address);
+        $this->assertEquals('TEST1', $computer->short_key);
+        $this->assertEquals('2.0.0', $computer->agent_version);
+        $this->assertEquals('online', $computer->status);
+
+        $this->assertEquals(1, Computer::where('short_key', 'TEST1')->count());
+    }
+
     public function test_register_handles_invalid_json()
     {
         $response = $this->call(

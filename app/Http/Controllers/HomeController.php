@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Computer;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class HomeController extends Controller
 {
@@ -13,19 +14,58 @@ class HomeController extends Controller
         $this->middleware('auth');
     }
 
-    public function index(Request $request)
+    public function index(): View
     {
+        return view('home', $this->buildDashboardData(now()->subMinutes(5)));
+    }
+
+    public function stats(): JsonResponse
+    {
+        $threshold = now()->subMinutes(5);
+
         $totalComputers = Computer::count();
-        $fiveMinutesAgo = now()->subMinutes(5);
-        $onlineComputers = Computer::where('last_seen', '>=', $fiveMinutesAgo)->count();
-        $offlineComputers = Computer::where(function ($q) use ($fiveMinutesAgo) {
-            $q->where('last_seen', '<', $fiveMinutesAgo)->orWhereNull('last_seen');
+        $onlineComputers = Computer::where('last_seen', '>=', $threshold)->count();
+        $offlineComputers = Computer::where(function ($q) use ($threshold) {
+            $q->where('last_seen', '<', $threshold)->orWhereNull('last_seen');
         })->count();
 
         $plazaSummary = Computer::whereNotNull('plaza')
             ->select('plaza')
             ->selectRaw('count(*) as total')
-            ->selectRaw('SUM(CASE WHEN last_seen >= ? THEN 1 ELSE 0 END) as online', [$fiveMinutesAgo])
+            ->selectRaw('SUM(CASE WHEN last_seen >= ? THEN 1 ELSE 0 END) as online', [$threshold])
+            ->groupBy('plaza')
+            ->orderByDesc('total')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'plaza' => $p->plaza,
+                    'total' => $p->total,
+                    'online' => $p->online,
+                    'offline' => $p->total - $p->online,
+                    'percentage' => $p->total > 0 ? round(($p->online / $p->total) * 100, 1) : 0,
+                ];
+            });
+
+        return response()->json([
+            'total_computers' => $totalComputers,
+            'online_computers' => $onlineComputers,
+            'offline_computers' => $offlineComputers,
+            'plaza_summary' => $plazaSummary,
+        ]);
+    }
+
+    private function buildDashboardData(\DateTimeImmutable|string $threshold): array
+    {
+        $totalComputers = Computer::count();
+        $onlineComputers = Computer::where('last_seen', '>=', $threshold)->count();
+        $offlineComputers = Computer::where(function ($q) use ($threshold) {
+            $q->where('last_seen', '<', $threshold)->orWhereNull('last_seen');
+        })->count();
+
+        $plazaSummary = Computer::whereNotNull('plaza')
+            ->select('plaza')
+            ->selectRaw('count(*) as total')
+            ->selectRaw('SUM(CASE WHEN last_seen >= ? THEN 1 ELSE 0 END) as online', [$threshold])
             ->groupBy('plaza')
             ->orderByDesc('total')
             ->get();
@@ -64,7 +104,7 @@ class HomeController extends Controller
             $pvsiLookup[$row->plaza][$row->pvsi_version] = $row->total;
         }
 
-        return view('home', compact(
+        return compact(
             'totalComputers',
             'onlineComputers',
             'offlineComputers',
@@ -73,6 +113,6 @@ class HomeController extends Controller
             'allPvsiVersions',
             'agentLookup',
             'pvsiLookup'
-        ));
+        );
     }
 }

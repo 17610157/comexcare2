@@ -149,3 +149,49 @@
     </div>
 </div>
 @stop
+
+@push('js')
+<script>
+(function() {
+    'use strict';
+
+    function updateDashboard() {
+        fetch('{{ route('home.stats') }}')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var onlineEl = document.querySelector('.small-box.bg-success h3');
+                var offlineEl = document.querySelector('.small-box.bg-danger h3');
+                var totalEl = document.querySelector('.small-box.bg-primary h3');
+
+                if (onlineEl) onlineEl.textContent = data.online_computers;
+                if (offlineEl) offlineEl.textContent = data.offline_computers;
+                if (totalEl) totalEl.textContent = data.total_computers;
+
+                var tbody = document.querySelector('.table-bordered tbody');
+                if (tbody && data.plaza_summary && data.plaza_summary.length) {
+                    var rows = tbody.querySelectorAll('tr');
+                    data.plaza_summary.forEach(function(plaza, i) {
+                        if (rows[i] && !rows[i].querySelector('td[colspan]')) {
+                            var cells = rows[i].querySelectorAll('td');
+                            if (cells.length >= 5) {
+                                cells[1].textContent = plaza.total;
+                                cells[2].innerHTML = '<strong class="text-success">' + plaza.online + '</strong>';
+                                cells[3].innerHTML = '<strong class="text-danger">' + plaza.offline + '</strong>';
+                                var pctEl = cells[4].querySelector('.progress-bar');
+                                if (pctEl) {
+                                    var pct = plaza.percentage;
+                                    pctEl.style.width = pct + '%';
+                                    pctEl.textContent = pct + '%';
+                                }
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(function() {});
+    }
+
+    setInterval(updateDashboard, 300000);
+})();
+</script>
+@endpush
