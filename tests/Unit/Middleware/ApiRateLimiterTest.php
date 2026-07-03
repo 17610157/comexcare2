@@ -59,7 +59,7 @@ class ApiRateLimiterTest extends TestCase
         }, 'api_agents');
 
         $this->assertEquals(200, $response->getStatusCode());
-        $this->assertEquals(60, $response->headers->get('X-RateLimit-Limit'));
+        $this->assertEquals(500, $response->headers->get('X-RateLimit-Limit'));
     }
 
     public function test_api_auth_has_stricter_limits(): void

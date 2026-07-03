@@ -301,7 +301,7 @@ class DistributionsControllerTest extends TestCase
         $response->assertRedirect(route('admin.distributions.index'));
         $response->assertSessionHas('success', 'Distribution deleted');
 
-        $this->assertDatabaseMissing('distributions', ['id' => $distribution->id]);
+        $this->assertSoftDeleted('distributions', ['id' => $distribution->id]);
     }
 
     public function test_store_creates_recurring_distribution()

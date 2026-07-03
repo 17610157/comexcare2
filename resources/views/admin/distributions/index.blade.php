@@ -25,9 +25,11 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createDistributionModal">
-                        <i class="fas fa-plus"></i> Crear Distribución
-                    </button>
+                    @can('distribution.crear')
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createDistributionModal">
+                            <i class="fas fa-plus"></i> Crear Distribución
+                        </button>
+                    @endcan
                 </div>
                 <div class="card-body">
                     <table id="distributionsTable" class="table table-bordered table-striped">
@@ -91,31 +93,37 @@
                                     </td>
                                     <td>{{ $distribution->created_at->diffForHumans() }}</td>
                                     <td>
-                                        <button type="button" class="btn btn-info btn-sm" data-toggle="modal" 
-                                                data-target="#viewDistributionModal{{ $distribution->id }}">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        @if($distribution->type === 'recurring')
-                                            @if($distribution->status === 'stopped')
-                                                <button type="button" class="btn btn-success btn-sm" 
-                                                        onclick="startDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
-                                                    <i class="fas fa-play"></i>
-                                                </button>
-                                            @else
-                                                <button type="button" class="btn btn-secondary btn-sm" 
-                                                        onclick="stopDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
-                                                    <i class="fas fa-stop"></i>
-                                                </button>
+                                        @can('distribution.ver')
+                                            <button type="button" class="btn btn-info btn-sm" data-toggle="modal" 
+                                                    data-target="#viewDistributionModal{{ $distribution->id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        @endcan
+                                        @can('distribution.editar')
+                                            @if($distribution->type === 'recurring')
+                                                @if($distribution->status === 'stopped')
+                                                    <button type="button" class="btn btn-success btn-sm" 
+                                                            onclick="startDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
+                                                        <i class="fas fa-play"></i>
+                                                    </button>
+                                                @else
+                                                    <button type="button" class="btn btn-secondary btn-sm" 
+                                                            onclick="stopDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
+                                                        <i class="fas fa-stop"></i>
+                                                    </button>
+                                                @endif
                                             @endif
-                                        @endif
-                                        <button type="button" class="btn btn-warning btn-sm" 
-                                                onclick="editDistribution({{ $distribution->id }}, '{{ $distribution->name }}', '{{ $distribution->type }}', '{{ $distribution->distribution_type ?? 'file' }}', '{{ $distribution->subfolder ?? '' }}', '{{ $distribution->description ?? '' }}', '{{ $distribution->scheduled_at ?? '' }}', '{{ json_encode($distribution->files->pluck('file_name')->toArray()) }}', {{ $distribution->targets->count() }}, '{{ json_encode($distribution->targets->pluck('computer_id')->toArray()) }}', '{{ $distribution->command ?? '' }}', '{{ $distribution->command_args ?? '' }}')">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-danger btn-sm" 
-                                                onclick="deleteDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                            <button type="button" class="btn btn-warning btn-sm" 
+                                                    onclick="editDistribution({{ $distribution->id }}, '{{ $distribution->name }}', '{{ $distribution->type }}', '{{ $distribution->distribution_type ?? 'file' }}', '{{ $distribution->subfolder ?? '' }}', '{{ $distribution->description ?? '' }}', '{{ $distribution->scheduled_at ?? '' }}', '{{ json_encode($distribution->files->pluck('file_name')->toArray()) }}', {{ $distribution->targets->count() }}, '{{ json_encode($distribution->targets->pluck('computer_id')->toArray()) }}', '{{ $distribution->command ?? '' }}', '{{ $distribution->command_args ?? '' }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        @endcan
+                                        @can('distribution.eliminar')
+                                            <button type="button" class="btn btn-danger btn-sm" 
+                                                    onclick="deleteDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        @endcan
                                     </td>
                                 </tr>
                             @endforeach
@@ -405,14 +413,16 @@
                                             </td>
                                             <td>{{ $target->updated_at ? $target->updated_at->diffForHumans() : 'N/A' }}</td>
                                             <td>
-                                                @if(in_array($target->status, ['failed', 'pending']))
-                                                    <form action="{{ route('admin.distributions.retry-target', $target) }}" method="POST" style="display:inline;">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-primary" title="Reenviar">
-                                                            <i class="fas fa-redo"></i>
-                                                        </button>
-                                                    </form>
-                                                @endif
+                                                @can('distribution.editar')
+                                                    @if(in_array($target->status, ['failed', 'pending']))
+                                                        <form action="{{ route('admin.distributions.retry-target', $target) }}" method="POST" style="display:inline;">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-sm btn-primary" title="Reenviar">
+                                                                <i class="fas fa-redo"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                @endcan
                                             </td>
                                         </tr>
                                     @endforeach
@@ -423,9 +433,11 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-<button type="button" class="btn btn-primary" onclick="refreshDistribution({{ $distribution->id }})">
-                         <i class="fas fa-sync"></i> Actualizar
-                     </button>
+                    @can('distribution.ver')
+                        <button type="button" class="btn btn-primary" onclick="refreshDistribution({{ $distribution->id }})">
+                             <i class="fas fa-sync"></i> Actualizar
+                         </button>
+                     @endcan
                 </div>
             </div>
         </div>
@@ -546,13 +558,15 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                         <button type="button" class="btn btn-info" id="editRestartBtn" onclick="restartDistribution()">
-                             <i class="fas fa-redo"></i> Reutilizar y Reiniciar
-                         </button>
-                         <button type="submit" class="btn btn-warning" id="editSubmitBtn">
-                             <i class="fas fa-save"></i> Guardar Cambios
-                         </button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                         @can('distribution.editar')
+                             <button type="button" class="btn btn-info" id="editRestartBtn" onclick="restartDistribution()">
+                                 <i class="fas fa-redo"></i> Reutilizar y Reiniciar
+                             </button>
+                             <button type="submit" class="btn btn-warning" id="editSubmitBtn">
+                                 <i class="fas fa-save"></i> Guardar Cambios
+                             </button>
+                         @endcan
                     </div>
                 </form>
             </div>
@@ -943,7 +957,8 @@ $(document).ready(function() {
                 if (callback) callback(!hasBlockedFiles);
             },
             error: function() {
-                if (callback) callback(true);
+                hasBlockedFiles = true;
+                if (callback) callback(false);
             }
         });
     }
@@ -1294,6 +1309,16 @@ function restartDistribution() {
     const id = $('#editId').val();
     if (!id) return;
 
+    if (hasBlockedFiles) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Archivos bloqueados',
+            text: 'Elimina los archivos bloqueados antes de reutilizar la distribución.',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
     Swal.fire({
         title: '¿Reutilizar distribución?',
         text: 'Esto reiniciará la distribución desde 0, borrando el progreso anterior.',
@@ -1305,14 +1330,14 @@ function restartDistribution() {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            const formData = $('#editDistributionForm').serializeArray().filter(function(field) {
-                return field.name !== '_method';
-            });
-            formData.push({ name: '_token', value: $('meta[name="csrf-token"]').attr('content') });
+            const formData = new FormData($('#editDistributionForm')[0]);
+            formData.delete('_method');
             $.ajax({
                 url: '/admin/distributions/' + id + '/restart',
                 type: 'POST',
-                data: $.param(formData),
+                data: formData,
+                processData: false,
+                contentType: false,
                 success: function() {
                     Swal.fire({
                         icon: 'success',
@@ -1342,7 +1367,17 @@ function restartDistribution() {
 
 $('#editDistributionForm').submit(function(e) {
     e.preventDefault();
-    
+
+    if (hasBlockedFiles) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Archivos bloqueados',
+            text: 'Elimina los archivos bloqueados antes de guardar los cambios.',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
     const formData = new FormData(this);
     const id = $('#editId').val();
     const submitBtn = $('#editSubmitBtn');

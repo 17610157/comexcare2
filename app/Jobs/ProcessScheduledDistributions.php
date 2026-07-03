@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Command;
 use App\Models\Distribution;
 use App\Services\DistributionService;
 use Carbon\Carbon;
@@ -66,6 +67,26 @@ class ProcessScheduledDistributions implements ShouldQueue
             }
 
             if ($shouldRun) {
+                // Evitar ejecutar si aun hay comandos pendientes de la ejecucion anterior
+                $targetIds = $distribution->targets()->pluck('id');
+                $hasActiveCommands = false;
+                foreach ($targetIds as $tid) {
+                    if (Command::where(function ($q) {
+                        $q->where('status', 'pending')
+                            ->orWhere('status', 'sent');
+                    })
+                        ->whereRaw("data->>'distribution_target_id' = ?", [(string) $tid])
+                        ->exists()
+                    ) {
+                        $hasActiveCommands = true;
+                        break;
+                    }
+                }
+
+                if ($hasActiveCommands) {
+                    continue;
+                }
+
                 $service = new DistributionService;
                 $service->startDistribution($distribution);
                 $distribution->update(['last_run_at' => $now]);

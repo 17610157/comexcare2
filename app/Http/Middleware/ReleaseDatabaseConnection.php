@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 
 class ReleaseDatabaseConnection
@@ -12,9 +13,11 @@ class ReleaseDatabaseConnection
     {
         $response = $next($request);
 
-        try {
-            DB::disconnect();
-        } catch (\Exception $e) {
+        if (! App::environment('testing')) {
+            try {
+                DB::disconnect();
+            } catch (\Exception $e) {
+            }
         }
 
         return $response;

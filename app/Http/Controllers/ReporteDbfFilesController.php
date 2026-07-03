@@ -24,7 +24,11 @@ class ReporteDbfFilesController extends Controller
 
         $archivos = $this->getUniqueFiles();
 
-        return view('reportes.dbf-files.index', compact('plazas', 'groups', 'archivos'));
+        return response()
+            ->view('reportes.dbf-files.index', compact('plazas', 'groups', 'archivos'))
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     private function getUniqueFiles()
@@ -174,7 +178,7 @@ class ReporteDbfFilesController extends Controller
                 'recordsTotal' => (int) $total,
                 'recordsFiltered' => (int) $total,
                 'data' => $data,
-            ]);
+            ])->header('Cache-Control', 'no-cache, no-store, must-revalidate');
         } catch (\Exception $e) {
             Log::error('DbfFiles data error: '.$e->getMessage());
 
@@ -233,6 +237,7 @@ class ReporteDbfFilesController extends Controller
             $headers = [
                 'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => 'attachment; filename="'.$filename.'.csv"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
             ];
 
             $callback = function () use ($computersData) {
@@ -243,6 +248,7 @@ class ReporteDbfFilesController extends Controller
                 fputcsv($output, [
                     'Computadora', 'ShortKey', 'Plaza', 'Grupo', 'Estado', 'Última Conexión',
                     'Archivo DBF', 'Ruta', 'Tamaño (KB)', 'Última Modificación',
+                    'SHA-256', 'MD5',
                 ]);
 
                 foreach ($computersData as $computer) {
@@ -257,6 +263,8 @@ class ReporteDbfFilesController extends Controller
                             $computer['status'],
                             $computer['last_seen'],
                             'Sin archivos',
+                            '',
+                            '',
                             '',
                             '',
                             '',
@@ -281,6 +289,8 @@ class ReporteDbfFilesController extends Controller
                                 $dbfFile['path'] ?? '',
                                 $sizeKb,
                                 $modified,
+                                $dbfFile['checksum'] ?? '',
+                                $dbfFile['hash_md5'] ?? '',
                             ]);
                         }
                     }
@@ -296,5 +306,100 @@ class ReporteDbfFilesController extends Controller
             return redirect()->route('reportes.dbf-files')
                 ->with('error', 'Error al exportar: '.$e->getMessage());
         }
+    }
+
+    public function api(Request $request)
+    {
+        $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
+        $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
+        $archivo = $request->query('archivo') ?? $request->input('archivo', '');
+        $format = $request->query('format', 'json');
+
+        $query = Computer::with('group');
+
+        if (is_array($plazaInput) && count($plazaInput) > 0) {
+            $query->whereIn('plaza', $plazaInput);
+        }
+
+        if (is_array($groupInput) && count($groupInput) > 0) {
+            $query->whereIn('group_id', $groupInput);
+        }
+
+        if (! empty($archivo)) {
+            $query->where('agent_config', 'ILIKE', '%'.$archivo.'%');
+        }
+
+        $computers = $query->orderBy('computer_name')->get();
+
+        $rows = [];
+        foreach ($computers as $computer) {
+            $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
+            $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
+
+            foreach ($dbfFiles as $dbfFile) {
+                $rows[] = [
+                    'computadora' => $computer->computer_name,
+                    'short_key' => $computer->short_key ?? '',
+                    'plaza' => $computer->plaza ?? 'N/A',
+                    'grupo' => $computer->group->name ?? 'N/A',
+                    'estado' => $status,
+                    'ultima_conexion' => $computer->last_seen ? $computer->last_seen->format('Y-m-d H:i:s') : 'Never',
+                    'archivo' => $dbfFile['name'] ?? 'N/A',
+                    'ruta' => $dbfFile['path'] ?? '',
+                    'tamano_kb' => isset($dbfFile['size']) ? round($dbfFile['size'] / 1024, 2) : null,
+                    'ultima_modificacion' => $this->formatAgentModifiedTime($dbfFile['modified'] ?? ''),
+                    'sha256' => $dbfFile['checksum'] ?? '',
+                    'md5' => $dbfFile['hash_md5'] ?? '',
+                ];
+            }
+        }
+
+        if ($format === 'csv') {
+            $filename = 'Reporte_DBF_Files_API_'.date('Ymd_His').'.csv';
+
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            ];
+
+            $callback = function () use ($rows) {
+                $output = fopen('php://output', 'w');
+                fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+                fputcsv($output, [
+                    'Computadora', 'ShortKey', 'Plaza', 'Grupo', 'Estado', 'UltimaConexion',
+                    'Archivo', 'Ruta', 'TamanoKB', 'UltimaModificacion',
+                    'SHA256', 'MD5',
+                ]);
+
+                foreach ($rows as $row) {
+                    fputcsv($output, [
+                        $row['computadora'],
+                        $row['short_key'],
+                        $row['plaza'],
+                        $row['grupo'],
+                        $row['estado'],
+                        $row['ultima_conexion'],
+                        $row['archivo'],
+                        $row['ruta'],
+                        $row['tamano_kb'],
+                        $row['ultima_modificacion'],
+                        $row['sha256'],
+                        $row['md5'],
+                    ]);
+                }
+
+                fclose($output);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+
+        return response()->json([
+            'data' => $rows,
+            'total' => count($rows),
+            'total_computadoras' => $computers->count(),
+        ]);
     }
 }

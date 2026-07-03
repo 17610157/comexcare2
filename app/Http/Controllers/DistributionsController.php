@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
+use App\Models\Command;
 use App\Models\Computer;
 use App\Models\Distribution;
+use App\Models\DistributionFile;
 use App\Models\DistributionTarget;
 use App\Models\FileList;
 use App\Models\Group;
@@ -12,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class DistributionsController extends Controller
 {
@@ -79,19 +83,17 @@ class DistributionsController extends Controller
                 ], 422);
             }
 
-            if (! empty($whitelistRules)) {
-                $notAllowed = [];
-                foreach ($fileNames as $fileName) {
-                    if (! $this->matchesFileList($fileName, $whitelistRules)) {
-                        $notAllowed[] = $fileName;
-                    }
+            $notAllowed = [];
+            foreach ($fileNames as $fileName) {
+                if (! $this->matchesFileList($fileName, $whitelistRules)) {
+                    $notAllowed[] = $fileName;
                 }
+            }
 
-                if (! empty($notAllowed)) {
-                    return response()->json([
-                        'message' => 'Los siguientes archivos no están en la whitelist y no pueden ser enviados: '.implode(', ', $notAllowed),
-                    ], 422);
-                }
+            if (! empty($notAllowed)) {
+                return response()->json([
+                    'message' => 'Los siguientes archivos no están en la whitelist y no pueden ser enviados: '.implode(', ', $notAllowed),
+                ], 422);
             }
         }
 
@@ -120,6 +122,23 @@ class DistributionsController extends Controller
 
     public function destroy(Distribution $distribution)
     {
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'delete',
+            'endpoint' => request()->fullUrl(),
+            'method' => 'DELETE',
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'request_data' => [
+                'distribution_id' => $distribution->id,
+                'distribution_name' => $distribution->name,
+                'distribution_type' => $distribution->type,
+            ],
+            'response_code' => 200,
+            'duration_ms' => 0,
+            'created_at' => now(),
+        ]);
+
         $distribution->delete();
 
         if (request()->expectsJson()) {
@@ -189,7 +208,19 @@ class DistributionsController extends Controller
             'recurrence' => 'nullable',
             'frequency_interval' => 'nullable|integer',
             'week_days' => 'nullable|array',
+            'files' => 'nullable|array',
+            'files.*' => 'file|max:204800',
         ]);
+
+        try {
+            $this->handleFileUploads($request, $distribution);
+        } catch (\RuntimeException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return redirect()->back()->with('error', $e->getMessage())->withInput();
+        }
 
         $distribution->update([
             'name' => $request->name,
@@ -221,6 +252,8 @@ class DistributionsController extends Controller
         try {
             DB::beginTransaction();
 
+            $this->handleFileUploads($request, $distribution);
+
             $distribution->update([
                 'name' => $request->name,
                 'type' => $request->type,
@@ -229,14 +262,12 @@ class DistributionsController extends Controller
                 'command' => $request->command,
                 'command_args' => $request->command_args,
                 'description' => $request->description,
-                'scheduled_at' => $request->scheduled_at,
+                'scheduled_at' => $request->scheduled_at ?? $distribution->scheduled_at,
                 'scheduled_time' => $request->scheduled_time,
                 'recurrence' => $request->recurrence,
                 'frequency_interval' => $request->frequency_interval,
                 'week_days' => $request->week_days,
             ]);
-
-            $distribution->targets()->delete();
 
             $targetType = $request->input('target_type', 'all');
             $groupIds = $request->input('group_ids', []);
@@ -255,6 +286,19 @@ class DistributionsController extends Controller
             }
 
             $computerList = $computers->get();
+            $computerIds = $computerList->pluck('id')->toArray();
+
+            // Cancelar comandos previos pendientes/envidos para estas computadoras
+            Command::whereIn('computer_id', $computerIds)
+                ->where('status', 'pending')
+                ->orWhere(function ($query) use ($computerIds) {
+                    $query->whereIn('computer_id', $computerIds)
+                        ->where('status', 'sent');
+                })
+                ->update(['status' => 'cancelled', 'response' => 'Cancelled by distribution restart']);
+
+            // Eliminar targets anteriores y recrearlos
+            $distribution->targets()->delete();
 
             foreach ($computerList as $computer) {
                 DistributionTarget::create([
@@ -265,7 +309,6 @@ class DistributionsController extends Controller
 
             $distribution->update([
                 'status' => 'pending',
-                'scheduled_at' => now(),
             ]);
 
             if ($distribution->type === 'immediate') {
@@ -290,6 +333,64 @@ class DistributionsController extends Controller
             return response()->json([
                 'error' => 'Error al reiniciar distribución: '.$e->getMessage(),
             ], 500);
+        }
+    }
+
+    private function handleFileUploads(Request $request, Distribution $distribution): void
+    {
+        if (! $request->hasFile('files')) {
+            return;
+        }
+
+        // Validar archivos contra file lists
+        $fileNames = [];
+        foreach ($request->file('files') as $file) {
+            $fileNames[] = $file->getClientOriginalName();
+        }
+
+        $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
+        $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
+
+        $blocked = [];
+        foreach ($fileNames as $fileName) {
+            if ($this->matchesFileList($fileName, $blacklistRules)) {
+                $blocked[] = $fileName;
+            }
+        }
+
+        if (! empty($blocked)) {
+            throw new \RuntimeException('Los siguientes archivos están en la blacklist: '.implode(', ', $blocked));
+        }
+
+        $notAllowed = [];
+        foreach ($fileNames as $fileName) {
+            if (! $this->matchesFileList($fileName, $whitelistRules)) {
+                $notAllowed[] = $fileName;
+            }
+        }
+
+        if (! empty($notAllowed)) {
+            throw new \RuntimeException('Los siguientes archivos no están en la whitelist: '.implode(', ', $notAllowed));
+        }
+
+        // Eliminar archivos viejos de la distribucion
+        foreach ($distribution->files as $oldFile) {
+            if (Storage::disk('public')->exists($oldFile->file_path)) {
+                Storage::disk('public')->delete($oldFile->file_path);
+            }
+            $oldFile->delete();
+        }
+
+        // Guardar archivos nuevos
+        foreach ($request->file('files') as $file) {
+            $path = $file->store('distributions', 'public');
+            DistributionFile::create([
+                'distribution_id' => $distribution->id,
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'checksum' => hash_file('sha256', Storage::disk('public')->path($path)),
+                'file_size' => $file->getSize(),
+            ]);
         }
     }
 

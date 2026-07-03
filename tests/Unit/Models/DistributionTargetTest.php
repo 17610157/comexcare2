@@ -157,7 +157,7 @@ class DistributionTargetTest extends TestCase
         }
     }
 
-    public function test_delete_distribution_cascade_to_targets()
+    public function test_delete_distribution_soft_deletes_targets_persist()
     {
         $distribution = Distribution::factory()->create();
         $targets = DistributionTarget::factory()->count(3)->create(['distribution_id' => $distribution->id]);
@@ -166,8 +166,8 @@ class DistributionTargetTest extends TestCase
 
         $distribution->delete();
 
-        $this->assertDatabaseCount('distribution_targets', 0);
-        $this->assertDatabaseMissing('distribution_targets', ['distribution_id' => $distribution->id]);
+        $this->assertSoftDeleted('distributions', ['id' => $distribution->id]);
+        $this->assertDatabaseCount('distribution_targets', 3);
     }
 
     public function test_delete_computer_cascade_to_targets()

@@ -62,7 +62,7 @@ class UserController extends Controller
                 'password.required' => 'La contraseña es requerida.',
             ]);
 
-            $validated['activo'] = $request->has('activo');
+            $validated['activo'] = $request->has('activo') ? 1 : 0;
             $validated['plaza'] = $request->filled('plaza') ? $validated['plaza'] : null;
             $validated['tienda'] = $request->filled('tienda') ? $validated['tienda'] : null;
             $rolName = $validated['rol'];
@@ -107,7 +107,7 @@ class UserController extends Controller
             $user->email = $validated['email'];
             $user->plaza = $request->filled('plaza') ? $validated['plaza'] : null;
             $user->tienda = $request->filled('tienda') ? $validated['tienda'] : null;
-            $user->activo = $request->has('activo');
+            $user->activo = $request->has('activo') ? 1 : 0;
 
             if ($request->filled('password')) {
                 $user->password = $validated['password'];

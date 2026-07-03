@@ -116,6 +116,9 @@
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-desktop mr-2"></i>Gestión de Computadoras</h3>
                 <div class="card-tools">
+                    <button id="fix-duplicates-btn" class="btn btn-warning btn-sm mr-1">
+                        <i class="fas fa-broom"></i> Limpiar Duplicados
+                    </button>
                     <a href="{{ route('admin.computers.export') }}" class="btn btn-success btn-sm">
                         <i class="fas fa-file-csv"></i> Exportar Todo
                     </a>
@@ -393,6 +396,49 @@ if (data === 'online') {
                 table.ajax.reload(null, false);
             }
         }, 300000);
+
+        jQuery('#fix-duplicates-btn').on('click', function() {
+            var btn = jQuery(this);
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+
+            jQuery.ajax({
+                url: '{{ route('admin.computers.fix-duplicates') }}',
+                type: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': jQuery('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    if (response.processed > 0) {
+                        var details = response.details.map(function(d) {
+                            return '<tr><td>' + d.computer_name + '</td><td>' + d.short_key + '</td><td>' + d.online_id + '</td><td>' + d.offline_id + '</td></tr>';
+                        }).join('');
+                        Swal.fire({
+                            title: 'Duplicados limpiados',
+                            html: '<p>' + response.message + '</p>' +
+                                  '<table class="table table-sm table-bordered"><thead><tr><th>Equipo</th><th>Short Key</th><th>Online ID</th><th>Offline ID</th></tr></thead><tbody>' + details + '</tbody></table>',
+                            icon: 'success'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Sin duplicados',
+                            text: response.message,
+                            icon: 'info'
+                        });
+                    }
+                    table.ajax.reload(null, false);
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: xhr.responseJSON?.message || 'Error al procesar duplicados',
+                        icon: 'error'
+                    });
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="fas fa-broom"></i> Limpiar Duplicados');
+                }
+            });
+        });
     });
 })();
 </script>

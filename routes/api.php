@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AgentController;
+use App\Http\Controllers\Api\AgentDefaultsController;
 use App\Http\Controllers\Api\ResurtidoAgentController;
 use App\Http\Controllers\Api\ValeController;
 use App\Http\Controllers\MetricsController;
@@ -23,6 +24,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+// Test route outside middleware group
+Route::get('/test-outside', function () {
+    return response()->json(['ok' => true]);
 });
 
 // Agent API routes (without CSRF)
@@ -59,6 +65,11 @@ Route::middleware('api')->group(function () {
 
     Route::get('/metrics', [MetricsController::class, 'index']);
     Route::get('/health', [MetricsController::class, 'health']);
+
+    // Agent Defaults API
+    Route::get('/agent-defaults/config/{computerId}', [AgentDefaultsController::class, 'config']);
+    Route::get('/agent-defaults/download/{fileId}', [AgentDefaultsController::class, 'download']);
+    Route::post('/agent-defaults/sync-status', [AgentDefaultsController::class, 'syncStatus']);
 
     Route::get('/vales', [ValeController::class, 'index']);
     Route::get('/vales/{id}', [ValeController::class, 'show']);
@@ -119,4 +130,5 @@ Route::middleware('api')->group(function () {
             'computers' => $online,
         ]);
     });
+
 });

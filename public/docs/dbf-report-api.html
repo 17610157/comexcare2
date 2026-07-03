@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Reporte DBF - Documentación</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;color:#1a202c;line-height:1.6}
+header{background:#1a56db;color:#fff;padding:32px 0;text-align:center}
+header h1{font-size:1.8rem;font-weight:700}
+header p{font-size:1rem;opacity:.9;margin-top:4px}
+nav{background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 0;position:sticky;top:0;z-index:10}
+nav ul{list-style:none;display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+nav a{color:#4a5568;text-decoration:none;font-weight:500;font-size:.9rem;padding:4px 0;border-bottom:2px solid transparent}
+nav a:hover{color:#1a56db;border-color:#1a56db}
+.container{max-width:960px;margin:0 auto;padding:32px 20px}
+section{margin-bottom:40px}
+h2{font-size:1.4rem;color:#1a56db;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e2e8f0}
+h3{font-size:1.1rem;color:#2d3748;margin:20px 0 8px}
+p{color:#4a5568;margin-bottom:12px}
+.endpoint{background:#1a202c;color:#e2e8f0;padding:16px 20px;border-radius:8px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.9rem;margin:12px 0;overflow-x:auto}
+.endpoint .method{color:#48bb78;font-weight:700}
+.endpoint .url{color:#63b3ed}
+.endpoint .comment{color:#a0aec0;font-style:italic}
+code{background:#edf2f7;color:#2d3748;padding:2px 6px;border-radius:4px;font-size:.85rem}
+pre{background:#1a202c;color:#e2e8f0;padding:16px 20px;border-radius:8px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.85rem;overflow-x:auto;margin:12px 0;line-height:1.5}
+pre .key{color:#63b3ed}
+pre .string{color:#9ae6b4}
+pre .number{color:#fbd38d}
+pre .null{color:#a0aec0;font-style:italic}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9rem}
+th{background:#edf2f7;color:#2d3748;font-weight:600;text-align:left;padding:10px 14px;border:1px solid #e2e8f0}
+td{padding:10px 14px;border:1px solid #e2e8f0;color:#4a5568}
+tr:nth-child(even) td{background:#f7fafc}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+.badge-get{background:#c6f6d5;color:#22543d}
+.badge-param{background:#bee3f8;color:#2a4365}
+.alert{padding:14px 18px;border-radius:8px;margin:12px 0;font-size:.9rem}
+.alert-info{background:#bee3f8;border-left:4px solid #3182ce;color:#2a4365}
+.alert-warn{background:#fefcbf;border-left:4px solid #d69e2e;color:#744210}
+hr{border:none;border-top:1px solid #e2e8f0;margin:32px 0}
+.toc{margin:16px 0}
+.toc li{margin-bottom:4px}
+.toc a{color:#3182ce;text-decoration:none}
+.toc a:hover{text-decoration:underline}
+footer{text-align:center;padding:24px;color:#718096;font-size:.85rem;border-top:1px solid #e2e8f0;margin-top:40px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📄 API Reporte DBF — Documentación</h1>
+  <p>Endpoint público para consulta y exportación de archivos DBF por computadora</p>
+</header>
+
+<nav>
+  <ul>
+    <li><a href="#intro">Introducción</a></li>
+    <li><a href="#endpoint-api">API JSON/CSV</a></li>
+    <li><a href="#endpoint-export">Export Web</a></li>
+    <li><a href="#campos">Campos de respuesta</a></li>
+    <li><a href="#ejemplos">Ejemplos completos</a></li>
+    <li><a href="#errors">Errores</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+
+<section id="intro">
+  <h2>Introducción</h2>
+  <p>El sistema expone <strong>dos endpoints</strong> para consultar el reporte de archivos DBF por computadora. Ambos endpoints devuelven la misma información, incluyendo los hash <strong>SHA-256</strong> y <strong>MD5</strong> de cada archivo.</p>
+
+  <div class="alert alert-info">
+    <strong>📌 Nota:</strong> El endpoint <code>/api/dbf-report</code> es de acceso público. El endpoint <code>/reportes/dbf-files/export</code> requiere sesión iniciada y permiso <code>dbf-files.ver</code>.
+  </div>
+
+  <table>
+    <tr><th>Endpoint</th><th>Uso</th><th>Autenticación</th></tr>
+    <tr><td><code>/api/dbf-report</code></td><td>API pública para consumo externo (JSON o CSV)</td><td>❌ No requiere</td></tr>
+    <tr><td><code>/reportes/dbf-files/export</code></td><td>Exportación desde la interfaz web (CSV)</td><td>✅ Requiere sesión</td></tr>
+  </table>
+</section>
+
+<hr>
+
+<section id="endpoint-api">
+  <h2>Endpoint 1: API Pública <code>/api/dbf-report</code></h2>
+  <p>Endpoint diseñado para consumo por otros sistemas. Devuelve el listado completo de computadoras con sus archivos DBF, incluyendo hashes SHA-256 y MD5.</p>
+
+  <div class="endpoint">
+    <span class="method">GET</span> <span class="url">/api/dbf-report</span>
+  </div>
+
+  <h3>Parámetros de filtrado</h3>
+  <table>
+    <tr><th>Parámetro</th><th>Tipo</th><th>Requerido</th><th>Descripción</th></tr>
+    <tr>
+      <td><code>format</code></td>
+      <td><code>json</code> | <code>csv</code></td>
+      <td>No</td>
+      <td>Formato de la respuesta. Por defecto: <code>json</code></td>
+    </tr>
+    <tr>
+      <td><code>plaza[]</code></td>
+      <td><code>string[]</code></td>
+      <td>No</td>
+      <td>Filtrar por plaza(s). Se puede repetir el parámetro para múltiples valores.<br>Ej: <code>?plaza[]=BAJAC&amp;plaza[]=XALAPA</code></td>
+    </tr>
+    <tr>
+      <td><code>group_id[]</code></td>
+      <td><code>int[]</code></td>
+      <td>No</td>
+      <td>Filtrar por ID(s) de grupo. Se puede repetir el parámetro.</td>
+    </tr>
+    <tr>
+      <td><code>archivo</code></td>
+      <td><code>string</code></td>
+      <td>No</td>
+      <td>Filtrar por nombre de archivo (búsqueda parcial).<br>Ej: <code>?archivo=CABLISTA</code></td>
+    </tr>
+  </table>
+
+  <h3>Formato JSON</h3>
+  <p>Cuando <code>format=json</code> (valor por defecto), la respuesta tiene la siguiente estructura:</p>
+
+<pre>{
+  <span class="key">"data"</span>: [
+    {
+      <span class="key">"computadora"</span>:     <span class="string">"00099-PVSI"</span>,
+      <span class="key">"short_key"</span>:        <span class="string">"00099"</span>,
+      <span class="key">"plaza"</span>:            <span class="string">"BAJAC"</span>,
+      <span class="key">"grupo"</span>:            <span class="string">"BAJA CALIFORNIA"</span>,
+      <span class="key">"estado"</span>:           <span class="string">"online"</span>,
+      <span class="key">"ultima_conexion"</span>:  <span class="string">"2026-07-01 08:53:00"</span>,
+      <span class="key">"archivo"</span>:          <span class="string">"CABLISTA.DBF"</span>,
+      <span class="key">"ruta"</span>:             <span class="string">"D:\\PVSI\\CABLISTA.DBF"</span>,
+      <span class="key">"tamano_kb"</span>:        <span class="number">1.91</span>,
+      <span class="key">"ultima_modificacion"</span>: <span class="string">"2026-06-30 9:31:57 PM"</span>,
+      <span class="key">"sha256"</span>:           <span class="string">"f0d30e8ee0b0cd49a49df5651a3376b8ee9d8a02ebad41ebfe73cdab2979329a"</span>,
+      <span class="key">"md5"</span>:              <span class="string">"714DBE"</span>
+    }
+  ],
+  <span class="key">"total"</span>:              <span class="number">9455</span>,
+  <span class="key">"total_computadoras"</span>: <span class="number">395</span>
+}</pre>
+
+  <h3>Formato CSV</h3>
+  <p>Cuando <code>format=csv</code>, se descarga un archivo CSV con los encabezados:</p>
+
+<pre>Computadora,ShortKey,Plaza,Grupo,Estado,UltimaConexion,Archivo,Ruta,TamanoKB,UltimaModificacion,SHA256,MD5
+00099-PVSI,00099,BAJAC,"BAJA CALIFORNIA",online,"2026-07-01 08:53:00",CABLISTA.DBF,"D:\PVSI\CABLISTA.DBF",1.91,"2026-06-30 9:31:57 PM",f0d30e8ee0b0cd49a49df5651a3376b8ee9d8a02ebad41ebfe73cdab2979329a,714DBE</pre>
+
+  <div class="alert alert-info">
+    <strong>💡 El CSV incluye BOM (Byte Order Mark)</strong> para que Excel reconozca automáticamente UTF-8. Los campos con comas van entre comillas dobles.
+  </div>
+</section>
+
+<hr>
+
+<section id="endpoint-export">
+  <h2>Endpoint 2: Exportación Web <code>/reportes/dbf-files/export</code></h2>
+  <p>Endpoint usado desde la interfaz web del reporte. Genera el mismo CSV pero requiere autenticación. Se accede típicamente desde el botón "Exportar" en la página del reporte.</p>
+
+  <div class="endpoint">
+    <span class="method">GET</span> <span class="url">/reportes/dbf-files/export</span>
+    <br><span class="comment">// Requiere sesión iniciada y permiso 'dbf-files.ver'</span>
+  </div>
+
+  <h3>Parámetros de filtrado</h3>
+  <p>Los mismos filtros que están seleccionados en la interfaz web se envían automáticamente al hacer clic en "Exportar":</p>
+
+  <table>
+    <tr><th>Parámetro</th><th>Tipo</th><th>Descripción</th></tr>
+    <tr><td><code>plaza[]</code></td><td><code>string[]</code></td><td>Filtrar por plaza(s)</td></tr>
+    <tr><td><code>group_id[]</code></td><td><code>int[]</code></td><td>Filtrar por ID(s) de grupo</td></tr>
+    <tr><td><code>archivo</code></td><td><code>string</code></td><td>Filtrar por nombre de archivo</td></tr>
+    <tr><td><code>_t</code></td><td><code>int</code></td><td>Timestamp (cache buster, se genera automáticamente)</td></tr>
+  </table>
+
+  <h3>Encabezados del CSV</h3>
+  <p>El CSV generado tiene los siguientes encabezados:</p>
+
+  <div class="endpoint" style="font-size:.8rem;word-break:break-all">
+    Computadora | ShortKey | Plaza | Grupo | Estado | Última Conexión | Archivo DBF | Ruta | Tamaño (KB) | Última Modificación | SHA-256 | MD5
+  </div>
+
+  <div class="alert alert-warn">
+    <strong>⚠️ Atención:</strong> Este endpoint redirige al login si no hay sesión activa. Para consumo desde otros sistemas, usa el endpoint <code>/api/dbf-report</code> que es público.
+  </div>
+</section>
+
+<hr>
+
+<section id="campos">
+  <h2>Campos de respuesta</h2>
+
+  <table>
+    <tr><th>Campo JSON</th><th>Header CSV (API)</th><th>Header CSV (Export)</th><th>Descripción</th></tr>
+    <tr><td><code>computadora</code></td><td><code>Computadora</code></td><td><code>Computadora</code></td><td>Nombre de la computadora</td></tr>
+    <tr><td><code>short_key</code></td><td><code>ShortKey</code></td><td><code>ShortKey</code></td><td>Clave corta de la computadora</td></tr>
+    <tr><td><code>plaza</code></td><td><code>Plaza</code></td><td><code>Plaza</code></td><td>Plaza (sucursal) asignada</td></tr>
+    <tr><td><code>grupo</code></td><td><code>Grupo</code></td><td><code>Grupo</code></td><td>Nombre del grupo</td></tr>
+    <tr><td><code>estado</code></td><td><code>Estado</code></td><td><code>Estado</code></td><td><code>online</code> si se conectó en los últimos 5 minutos, <code>offline</code> si no</td></tr>
+    <tr><td><code>ultima_conexion</code></td><td><code>UltimaConexion</code></td><td><code>Última Conexión</code></td><td>Fecha/hora del último heartbeat</td></tr>
+    <tr><td><code>archivo</code></td><td><code>Archivo</code></td><td><code>Archivo DBF</code></td><td>Nombre del archivo DBF o ejecutable</td></tr>
+    <tr><td><code>ruta</code></td><td><code>Ruta</code></td><td><code>Ruta</code></td><td>Ruta completa del archivo en la computadora</td></tr>
+    <tr><td><code>tamano_kb</code></td><td><code>TamanoKB</code></td><td><code>Tamaño (KB)</code></td><td>Tamaño del archivo en kilobytes</td></tr>
+    <tr><td><code>ultima_modificacion</code></td><td><code>UltimaModificacion</code></td><td><code>Última Modificación</code></td><td>Fecha de última modificación del archivo</td></tr>
+    <tr><td><code>sha256</code></td><td><code>SHA256</code></td><td><code>SHA-256</code></td><td>Hash SHA-256 del archivo (hex)</td></tr>
+    <tr><td><code>md5</code></td><td><code>MD5</code></td><td><code>MD5</code></td><td>Hash MD5 del archivo (hex)</td></tr>
+  </table>
+</section>
+
+<hr>
+
+<section id="ejemplos">
+  <h2>Ejemplos completos</h2>
+
+  <h3>🔹 Obtener todos los registros en JSON</h3>
+  <div class="endpoint">
+    curl <span class="url">"http://212.227.6.127:8000/api/dbf-report?format=json"</span>
+  </div>
+
+  <h3>🔹 Filtrar por plaza</h3>
+  <div class="endpoint">
+    curl <span class="url">"http://212.227.6.127:8000/api/dbf-report?format=json&amp;plaza[]=BAJAC&amp;plaza[]=XALAPA"</span>
+  </div>
+
+  <h3>🔹 Filtrar por grupo</h3>
+  <div class="endpoint">
+    curl <span class="url">"http://212.227.6.127:8000/api/dbf-report?format=json&amp;group_id[]=1&amp;group_id[]=5"</span>
+  </div>
+
+  <h3>🔹 Filtrar por nombre de archivo</h3>
+  <div class="endpoint">
+    curl <span class="url">"http://212.227.6.127:8000/api/dbf-report?format=json&amp;archivo=CABLISTA"</span>
+  </div>
+
+  <h3>🔹 Combinar filtros</h3>
+  <div class="endpoint">
+    curl <span class="url">"http://212.227.6.127:8000/api/dbf-report?format=json&amp;plaza[]=BAJAC&amp;archivo=POS32"</span>
+  </div>
+
+  <h3>🔹 Exportar a CSV (API pública)</h3>
+  <div class="endpoint">
+    curl <span class="url">"http://212.227.6.127:8000/api/dbf-report?format=csv&amp;plaza[]=BAJAC"</span> -o reporte.csv
+  </div>
+
+  <h3>🔹 Procesar con Python</h3>
+<pre><span class="key">import</span> requests, json
+
+r = requests.get(<span class="string">"http://212.227.6.127:8000/api/dbf-report?format=json&amp;archivo=CABLISTA"</span>)
+data = r.json()
+
+<span class="key">for</span> row in data[<span class="string">"data"</span>]:
+    print(f<span class="string">"{row['computadora']}: {row['sha256']}"</span>)
+
+print(f<span class="string">"Total archivos: {data['total']}"</span>)</pre>
+
+  <h3>🔹 Procesar con PHP</h3>
+<pre>$response = file_get_contents(<span class="string">'http://212.227.6.127:8000/api/dbf-report?format=json'</span>);
+$data = json_decode($response, true);
+
+<span class="key">foreach</span> ($data[<span class="string">'data'</span>] as $row) {
+    echo $row[<span class="string">'computadora'</span>] . <span class="string">': '</span> . $row[<span class="string">'sha256'</span>] . <span class="string">"\n"</span>;
+}
+
+echo <span class="string">"Total: {$data['total']}\n"</span>;</pre>
+
+  <h3>🔹 Consumir desde JavaScript (fetch)</h3>
+<pre><span class="key">const</span> url = <span class="string">'http://212.227.6.127:8000/api/dbf-report?format=json&plaza[]=BAJAC'</span>;
+
+<span class="key">const</span> res = await fetch(url);
+<span class="key">const</span> json = await res.json();
+
+json.data.forEach(row => {
+    console.log(row.computadora, row.sha256);
+});
+
+console.log(`Total: ${json.total}`);</pre>
+</section>
+
+<hr>
+
+<section id="errors">
+  <h2>Manejo de errores</h2>
+
+  <table>
+    <tr><th>Código</th><th>Significado</th><th>Causa común</th></tr>
+    <tr><td><code>200</code></td><td>OK</td><td>Petición exitosa</td></tr>
+    <tr><td><code>302</code></td><td>Redirect</td><td>El endpoint <code>/reportes/dbf-files/export</code> redirige al login si no hay sesión</td></tr>
+    <tr><td><code>403</code></td><td>Forbidden</td><td>No tienes permiso para acceder al reporte</td></tr>
+    <tr><td><code>404</code></td><td>Not Found</td><td>La URL no existe. Verifica la ruta.</td></tr>
+    <tr><td><code>500</code></td><td>Internal Error</td><td>Error del servidor. Revisa los logs.</td></tr>
+  </table>
+
+  <p>En caso de error interno, el endpoint <code>/api/dbf-report</code> responderá con código HTTP 500 y un cuerpo JSON:</p>
+
+<pre>{
+  <span class="key">"error"</span>: <span class="string">"Mensaje del error"</span>
+}</pre>
+
+  <div class="alert alert-info">
+    <strong>📌 Nota:</strong> Si el filtro no encuentra resultados, se devuelve un arreglo <code>data</code> vacío con <code>total: 0</code>, no es un error.
+  </div>
+</section>
+
+</div>
+
+<footer>
+  Documentación generada para Comexcare &bull; Reporte DBF Files API
+</footer>
+
+</body>
+</html>

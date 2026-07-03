@@ -356,6 +356,12 @@ return [
             'can' => 'distribution.ver',
         ],
         [
+            'text' => 'Archivos Predeterminados',
+            'url' => 'admin/agent-defaults',
+            'icon' => 'fas fa-file-archive',
+            'can' => 'agent-defaults.ver',
+        ],
+        [
             'text' => 'Listas de Archivos',
             'url' => 'admin/file-lists',
             'icon' => 'fas fa-list',
@@ -406,13 +412,13 @@ return [
                     'text' => 'Reporte Vendedores B2B/VDT',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/vendedores-b2b',
-                    'can' => 'reportes.vendedores.ver',
+                    'can' => 'reportes.vendedores_b2b.ver',
                 ],
                 [
                     'text' => 'Reporte Vendedores Matriz',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/vendedores-matricial',
-                    'can' => 'reportes.vendedores.matricial.ver',
+                    'can' => 'reportes.vendedores_matricial.ver',
                 ],
                 [
                     'text' => 'Metas',
@@ -474,6 +480,12 @@ return [
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/dbf-files',
                     'can' => 'dbf-files.ver',
+                ],
+                [
+                    'text' => 'Reporte Distribuciones',
+                    'icon' => 'fas fa-upload',
+                    'url' => 'reportes/distribuciones',
+                    'can' => 'reportes.distribuciones.ver',
                 ],
             ],
         ],

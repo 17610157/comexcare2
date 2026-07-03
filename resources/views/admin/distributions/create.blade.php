@@ -135,7 +135,8 @@
 
                 <div class="form-group">
                     <label>Archivos a distribuir *</label>
-                    <input type="file" name="files[]" class="form-control" multiple required>
+                    <input type="file" name="files[]" class="form-control" multiple required id="createFileInput">
+                    <div id="createFileList" class="mt-2"></div>
                 </div>
 
                 <div class="row">
@@ -191,7 +192,93 @@
 @stop
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <script>
+let createFilesBlocked = false;
+
+function createValidateSelectedFiles(fileInput) {
+    const files = fileInput.files;
+    if (!files.length) {
+        createFilesBlocked = false;
+        return;
+    }
+
+    const fileNames = [];
+    for (let i = 0; i < files.length; i++) {
+        fileNames.push(files[i].name);
+    }
+
+    let html = '<ul class="list-group" style="max-height: 150px; overflow-y: auto;">';
+    for (let i = 0; i < files.length; i++) {
+        html += '<li class="list-group-item py-1">' + files[i].name + ' (' + (files[i].size / 1024).toFixed(2) + ' KB)</li>';
+    }
+    html += '</ul>';
+    document.getElementById('createFileList').innerHTML = html;
+
+    $.ajax({
+        url: '{{ route("admin.file-lists.validate") }}',
+        type: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        data: { files: fileNames },
+        success: function(data) {
+            createFilesBlocked = false;
+
+            if (data.blacklisted && data.blacklisted.length > 0) {
+                createFilesBlocked = true;
+                let list = data.blacklisted.map(function(f) { return '<li>' + f + '</li>'; }).join('');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Archivos en Blacklist',
+                    html: '<div class="text-left">Los siguientes archivos <strong>no pueden ser enviados</strong> porque están en la lista negra:</div>' +
+                          '<ul class="text-left mt-2" style="color:#dc3545;font-weight:bold;">' + list + '</ul>',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+
+            if (data.not_whitelisted && data.not_whitelisted.length > 0) {
+                createFilesBlocked = true;
+                let list = data.not_whitelisted.map(function(f) { return '<li>' + f + '</li>'; }).join('');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Archivos no permitidos',
+                    html: '<div class="text-left">Los siguientes archivos <strong>no están en la whitelist</strong> y no pueden ser enviados:</div>' +
+                          '<ul class="text-left mt-2" style="color:#856404;font-weight:bold;">' + list + '</ul>',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        },
+        error: function() {
+            createFilesBlocked = true;
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('createFileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            createValidateSelectedFiles(this);
+        });
+    }
+
+    const form = document.getElementById('distributionForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (createFilesBlocked) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Archivos bloqueados',
+                    text: 'Elimina los archivos bloqueados antes de crear la distribución.',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        });
+    }
+});
+
 function filterComputers(input, selectId) {
     var filter = input.value.toLowerCase();
     var select = document.getElementById(selectId);

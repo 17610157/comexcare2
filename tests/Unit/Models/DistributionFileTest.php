@@ -99,7 +99,7 @@ class DistributionFileTest extends TestCase
         }
     }
 
-    public function test_delete_distribution_cascade_to_files()
+    public function test_delete_distribution_soft_deletes()
     {
         $distribution = Distribution::factory()->create();
         $distributionFiles = DistributionFile::factory()->count(2)->create(['distribution_id' => $distribution->id]);
@@ -108,8 +108,8 @@ class DistributionFileTest extends TestCase
 
         $distribution->delete();
 
-        $this->assertDatabaseCount('distribution_files', 0);
-        $this->assertDatabaseMissing('distribution_files', ['distribution_id' => $distribution->id]);
+        $this->assertSoftDeleted('distributions', ['id' => $distribution->id]);
+        $this->assertDatabaseCount('distribution_files', 2);
     }
 
     public function test_file_requires_mandatory_fields()

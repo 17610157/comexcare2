@@ -156,6 +156,8 @@ class PermissionSeeder extends Seeder
             'reportes.cartera-abonos.ver',
             'reportes.cartera-abonos.editar',
             'reportes.cartera-abonos.sincronizar',
+            'reportes.cartera-abonos.exportar',
+            'reportes.cartera-abonos.filtrar',
 
             // Reportes Notas Completas
             'reportes.notas_completas.ver',
@@ -170,6 +172,8 @@ class PermissionSeeder extends Seeder
             'reportes.notas-completas.ver',
             'reportes.notas-completas.editar',
             'reportes.notas-completas.sincronizar',
+            'reportes.notas-completas.exportar',
+            'reportes.notas-completas.filtrar',
 
             // Reportes Compras Directo
             'reportes.compras_directo.ver',
@@ -184,6 +188,8 @@ class PermissionSeeder extends Seeder
             'reportes.compras-directo.ver',
             'reportes.compras-directo.editar',
             'reportes.compras-directo.sincronizar',
+            'reportes.compras-directo.exportar',
+            'reportes.compras-directo.filtrar',
 
             // Reportes Redenciones Club
             'reportes.redenciones_club.ver',
@@ -213,6 +219,9 @@ class PermissionSeeder extends Seeder
             // Reportes Desglose
             'reportes.desglose.ver',
 
+            // Reportes Distribuciones
+            'reportes.distribuciones.ver',
+
             // Reception
             'reception.ver',
             'reception.crear',
@@ -230,8 +239,20 @@ class PermissionSeeder extends Seeder
             'file-lists.editar',
             'file-lists.eliminar',
 
+            // Agent Defaults
+            'agent-defaults.ver',
+            'agent-defaults.crear',
+            'agent-defaults.editar',
+            'agent-defaults.eliminar',
+
             // DBF Files
             'dbf-files.ver',
+
+            // Agent Defaults
+            'agent-defaults.ver',
+            'agent-defaults.crear',
+            'agent-defaults.editar',
+            'agent-defaults.eliminar',
 
             // Reportes Acumulaciones Club
             'reportes.acumulaciones-club.ver',

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentDefaultsController;
 use App\Http\Controllers\AgentVersionsController;
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Auth\LoginController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteDbfFilesController;
 use App\Http\Controllers\ReporteDesgloseController;
+use App\Http\Controllers\ReporteDistribucionesController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
@@ -44,6 +46,9 @@ Route::get('/home/stats', [HomeController::class, 'stats'])->middleware('auth')-
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// API pública de reportes DBF
+Route::get('/api/dbf-report', [ReporteDbfFilesController::class, 'api']);
 
 // Rutas de usuarios (protegidas por auth)
 Route::middleware(['auth'])->prefix('admin/usuarios')->group(function () {
@@ -102,34 +107,34 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
 
     // Reporte Vendedores B2B/VDT
     Route::get('vendedores-b2b', [ReporteVendedoresB2bController::class, 'index'])
-        ->name('reportes.vendedores.b2b')->middleware('can:reportes.vendedores.ver');
+        ->name('reportes.vendedores.b2b')->middleware('can:reportes.vendedores_b2b.ver');
 
     Route::get('vendedores-b2b/data', [ReporteVendedoresB2bController::class, 'data'])
-        ->name('reportes.vendedores.b2b.data')->middleware('can:reportes.vendedores.ver');
+        ->name('reportes.vendedores.b2b.data')->middleware('can:reportes.vendedores_b2b.ver');
 
     Route::post('vendedores-b2b/export', [ReporteVendedoresB2bController::class, 'export'])
-        ->name('reportes.vendedores.b2b.export')->middleware('can:reportes.vendedores.editar');
+        ->name('reportes.vendedores.b2b.export')->middleware('can:reportes.vendedores_b2b.editar');
 
     Route::post('vendedores-b2b/export-csv', [ReporteVendedoresB2bController::class, 'exportCsv'])
-        ->name('reportes.vendedores.b2b.export.csv')->middleware('can:reportes.vendedores.editar');
+        ->name('reportes.vendedores.b2b.export.csv')->middleware('can:reportes.vendedores_b2b.editar');
 
     Route::post('vendedores-b2b/export-pdf', [ReporteVendedoresB2bController::class, 'exportPdf'])
-        ->name('reportes.vendedores.b2b.export.pdf')->middleware('can:reportes.vendedores.editar');
+        ->name('reportes.vendedores.b2b.export.pdf')->middleware('can:reportes.vendedores_b2b.editar');
 
     Route::get('vendedores-matricial', [ReporteVendedoresMatricialController::class, 'index'])
-        ->name('reportes.vendedores.matricial')->middleware('can:reportes.vendedores.matricial.ver');
+        ->name('reportes.vendedores.matricial')->middleware('can:reportes.vendedores_matricial.ver');
 
     // Exportar Excel
     Route::post('vendedores-matricial/export-excel', [ReporteVendedoresMatricialController::class, 'exportExcel'])
-        ->name('reportes.vendedores.matricial.export.excel')->middleware('can:reportes.vendedores.matricial.editar');
+        ->name('reportes.vendedores.matricial.export.excel')->middleware('can:reportes.vendedores_matricial.editar');
 
     // Exportar PDF
     Route::post('vendedores-matricial/export-pdf', [ReporteVendedoresMatricialController::class, 'exportPdf'])
-        ->name('reportes.vendedores.matricial.export.pdf')->middleware('can:reportes.vendedores.matricial.editar');
+        ->name('reportes.vendedores.matricial.export.pdf')->middleware('can:reportes.vendedores_matricial.editar');
 
     // Exportar CSV
     Route::post('vendedores-matricial/export-csv', [ReporteVendedoresMatricialController::class, 'exportCsv'])
-        ->name('reportes.vendedores.matricial.export.csv')->middleware('can:reportes.vendedores.matricial.editar');
+        ->name('reportes.vendedores.matricial.export.csv')->middleware('can:reportes.vendedores_matricial.editar');
 
     Route::get('metas-ventas', [ReporteMetasVentasController::class, 'index'])->name('reportes.metas-ventas')->middleware('can:reportes.metas-ventas.ver');
     Route::post('metas-ventas/export', [ReporteMetasVentasController::class, 'export'])->name('reportes.metas-ventas.export')->middleware('can:reportes.metas-ventas.editar');
@@ -245,6 +250,15 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->middleware('can:reportes.redenciones_club.sincronizar')
         ->name('reportes.redenciones_club.sync');
 
+    Route::get('distribuciones', [ReporteDistribucionesController::class, 'index'])
+        ->name('reportes.distribuciones.index')->middleware('can:reportes.distribuciones.ver');
+    Route::get('distribuciones/data', [ReporteDistribucionesController::class, 'data'])
+        ->name('reportes.distribuciones.data')->middleware('can:reportes.distribuciones.ver');
+    Route::get('distribuciones/resumen', [ReporteDistribucionesController::class, 'resumen'])
+        ->name('reportes.distribuciones.resumen')->middleware('can:reportes.distribuciones.ver');
+    Route::get('distribuciones/por-usuario', [ReporteDistribucionesController::class, 'porUsuario'])
+        ->name('reportes.distribuciones.por-usuario')->middleware('can:reportes.distribuciones.ver');
+
 });
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:admin.ver')->group(function () {
@@ -259,6 +273,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::get('computers/{computer}/logs', [ComputersController::class, 'logs'])->name('computers.logs');
     Route::get('computers/{computer}/status', [ComputersController::class, 'status'])->name('computers.status');
     Route::get('computers-exportar', [ComputersController::class, 'export'])->name('computers.export');
+    Route::post('computers/fix-duplicates', [ComputersController::class, 'fixDuplicates'])->name('computers.fix-duplicates');
     Route::get('groups/export', [GroupsController::class, 'export'])->name('groups.export');
     Route::post('groups/import-excel', [GroupsController::class, 'importExcel'])->name('groups.import-excel');
     Route::resource('groups', GroupsController::class);
@@ -277,6 +292,22 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
 
     Route::resource('file-lists', FileListsController::class)->except(['create', 'show', 'edit']);
     Route::post('file-lists/validate', [FileListsController::class, 'validateFiles'])->name('file-lists.validate');
+
+    // Agent Defaults - Archivos Predeterminados
+    Route::post('agent-defaults/{category}/toggle-auto-sync', [AgentDefaultsController::class, 'toggleAutoSync'])->name('agent-defaults.toggle-auto-sync');
+    Route::post('agent-defaults/{category}/toggle-auto-validation', [AgentDefaultsController::class, 'toggleAutoValidation'])->name('agent-defaults.toggle-auto-validation');
+    Route::resource('agent-defaults', AgentDefaultsController::class)->parameters(['agent-defaults' => 'category']);
+    Route::post('agent-defaults/{category}/routes', [AgentDefaultsController::class, 'storeRoute'])->name('agent-defaults.routes.store');
+    Route::put('agent-defaults/routes/{route}', [AgentDefaultsController::class, 'updateRoute'])->name('agent-defaults.routes.update');
+    Route::delete('agent-defaults/routes/{route}', [AgentDefaultsController::class, 'destroyRoute'])->name('agent-defaults.routes.destroy');
+    Route::get('agent-defaults/routes/{route}/assignments', [AgentDefaultsController::class, 'listAssignments'])->name('agent-defaults.assignments.list');
+    Route::post('agent-defaults/routes/{route}/assignments', [AgentDefaultsController::class, 'storeAssignment'])->name('agent-defaults.assignments.store');
+    Route::delete('agent-defaults/assignments/{assignment}', [AgentDefaultsController::class, 'destroyAssignment'])->name('agent-defaults.assignments.destroy');
+    Route::post('agent-defaults/routes/{route}/files', [AgentDefaultsController::class, 'storeFile'])->name('agent-defaults.files.store');
+    Route::get('agent-defaults/routes/{route}/files', [AgentDefaultsController::class, 'listFiles'])->name('agent-defaults.files.list');
+    Route::delete('agent-defaults/routes/{route}/files/{file}', [AgentDefaultsController::class, 'destroyFile'])->name('agent-defaults.files.destroy');
+    Route::get('agent-defaults/routes/{route}/files/{file}/download', [AgentDefaultsController::class, 'downloadFile'])->name('agent-defaults.files.download');
+    Route::post('agent-defaults/routes/{route}/sync-files', [AgentDefaultsController::class, 'syncFiles'])->name('agent-defaults.files.sync');
 
     // User Plaza Tienda - Solo super_admin
     Route::middleware('can:admin.usuarios.ver')->group(function () {

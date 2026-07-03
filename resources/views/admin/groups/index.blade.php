@@ -312,6 +312,7 @@
 @stop
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <script>
 const computersData = @json($computers);
 
@@ -367,21 +368,40 @@ function deleteGroup(id, name) {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url("admin/groups") }}/' + id;
-            const csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = '_token';
-            csrf.value = '{{ csrf_token() }}';
-            form.appendChild(csrf);
-            const method = document.createElement('input');
-            method.type = 'hidden';
-            method.name = '_method';
-            method.value = 'DELETE';
-            form.appendChild(method);
-            document.body.appendChild(form);
-            form.submit();
+            $.ajax({
+                url: '{{ url("admin/groups") }}/' + id,
+                type: 'POST',
+                data: {
+                    _method: 'DELETE',
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    Swal.fire({
+                        title: 'Eliminado',
+                        text: 'Grupo eliminado exitosamente',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    let message = 'Error al eliminar el grupo';
+                    if (xhr.responseJSON?.message) {
+                        message = xhr.responseJSON.message;
+                    } else if (xhr.status === 419) {
+                        message = 'La sesión ha expirado. Recarga la página.';
+                    } else if (xhr.status === 403) {
+                        message = 'No tienes permiso para eliminar grupos.';
+                    }
+                    Swal.fire({
+                        title: 'Error',
+                        text: message,
+                        icon: 'error'
+                    });
+                }
+            });
         }
     });
 }
@@ -539,6 +559,7 @@ $(document).ready(function() {
 @stop
 
 @section('css')
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
 @media (max-width: 576px) {
     .table-sm th, .table-sm td {

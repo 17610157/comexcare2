@@ -91,7 +91,7 @@ class FileListsController extends Controller
             'files.*' => 'string|max:255',
         ]);
 
-        $fileNames = $request->files;
+        $fileNames = $request->input('files');
 
         $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
         $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
@@ -102,7 +102,9 @@ class FileListsController extends Controller
         foreach ($fileNames as $fileName) {
             if ($this->matchesList($fileName, $blacklistRules)) {
                 $blacklisted[] = $fileName;
-            } elseif (! empty($whitelistRules) && ! $this->matchesList($fileName, $whitelistRules)) {
+            }
+
+            if (! $this->matchesList($fileName, $whitelistRules)) {
                 $notWhitelisted[] = $fileName;
             }
         }

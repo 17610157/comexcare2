@@ -1,0 +1,207 @@
+INTEGRACIÓN DE AGENTE CON MÓDULO AGENT-DEFAULTS
+================================================
+
+Este documento describe los endpoints de API, el flujo de integración y
+cómo probar la funcionalidad de "Archivos Predeterminados del Agente".
+
+======================================================================
+1. ENDPOINTS DE API
+======================================================================
+
+1.1 Obtener configuración de archivos por computadora
+------------------------------------------------------
+GET /api/agent-defaults/config/{computerId}
+
+Ejemplo:
+  GET http://212.227.6.127/api/agent-defaults/config/5
+
+Respuesta (JSON):
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Formatos PDF",
+      "routes": [
+        {
+          "id": 10,
+          "route_pattern": "\\\\servidor\\archivos\\formatos",
+          "label": "Formatos de venta",
+          "download_path_index": 0,
+          "sort_order": 1,
+          "ruta_servidor": "\\\\servidor\\archivos\\formatos",
+          "files": [
+            {
+              "id": 100,
+              "file_name": "contrato.pdf",
+              "checksum": "sha256_del_archivo",
+              "file_size": 204800,
+              "ruta_servidor": "\\\\servidor\\archivos\\formatos\\contrato.pdf"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+1.2 Descargar archivo
+----------------------
+GET /api/agent-defaults/download/{fileId}
+
+Ejemplo:
+  GET http://212.227.6.127/api/agent-defaults/download/100
+
+Headers de respuesta:
+  - X-Checksum: sha256 del archivo
+  - X-FileSize: tamaño en bytes
+
+1.3 Reportar estado de sincronización
+--------------------------------------
+POST /api/agent-defaults/sync-status
+
+Body (JSON):
+{
+  "computer_id": 42,
+  "files": [
+    {
+      "file_id": 100,
+      "sync_status": "synced|different|error|pending",
+      "local_path": "C:\\ProgramData\\DistributionAgent\\files\\contrato.pdf",
+      "local_checksum": "sha256_del_archivo_local",
+      "ruta_local": "C:\\ProgramData\\DistributionAgent\\files\\contrato.pdf",
+      "ruta_servidor": "\\\\servidor\\archivos\\formatos\\contrato.pdf"
+    }
+  ]
+}
+
+Respuesta:
+{
+  "message": "Sync status updated",
+  "files": [
+    { "file_id": 100, "status": "synced" }
+  ]
+}
+
+======================================================================
+2. FLUJO DEL AGENTE (COMPLETO)
+======================================================================
+
+Paso 1: Determinar computerId
+-------------------------------
+El agente obtiene su ID durante el registro:
+  POST /api/register
+  Respuesta: { "id": 42, "group_id": 5, ... }
+
+Paso 2: Obtener configuración
+-------------------------------
+  GET /api/agent-defaults/config/{computerId}
+
+  El servidor devuelve solo las categorías activas cuyas rutas tienen
+  asignaciones que coinciden con la computadora (por computadora directa
+  o por grupo).
+
+Paso 3: Comparar y sincronizar cada archivo
+---------------------------------------------
+Por cada categoría, por cada ruta, por cada archivo:
+
+  a) Determinar el path local de instalación:
+     - Usar download_path_index como índice en el arreglo de paths
+       locales (extraído del heartbeat: download_paths[])
+     - Índice 0 = download_path principal
+     - Índice 1 = download_path_1, etc.
+     - Ruta local completa = path_local + "\\" + file_name
+
+  b) Comparar archivos:
+     - Si el archivo NO existe localmente:
+       sync_status = "pending" → descargar
+
+     - Si el archivo existe localmente:
+       Calcular SHA-256 del archivo local
+       Comparar con checksum del servidor
+       Si son IGUALES → sync_status = "synced" (no descargar)
+       Si son DIFERENTES → sync_status = "different" → descargar
+
+  c) Si necesita descargar:
+     GET /api/agent-defaults/download/{fileId}
+     Guardar en la ruta local correspondiente
+     Verificar checksum post-descarga vs X-Checksum header
+     Si coincide → sync_status = "synced"
+     Si no coincide → sync_status = "error"
+
+Paso 4: Reportar estado al servidor
+-------------------------------------
+  POST /api/agent-defaults/sync-status
+
+  Enviar TODOS los archivos procesados con su estado actual,
+  incluyendo checksum local y rutas completas.
+
+  El servidor actualiza la tabla de sincronización que se
+  visualiza en el panel admin en Tiempo Real.
+
+======================================================================
+3. TABLA DE SINCRONIZACIÓN (PANEL ADMIN)
+======================================================================
+
+El panel admin muestra por cada archivo:
+
+  | PC          | Ruta Servidor                | Ruta Local                              | Archivo       | Estado       | Checksum Servidor | Checksum Local   | Última sinc.     |
+  |-------------|------------------------------|-----------------------------------------|---------------|--------------|-------------------|------------------|------------------|
+  | PC-OFICINA1 | \\srv\formatos\contrato.pdf | C:\agent\files\contrato.pdf             | contrato.pdf  | ✅ Actualizado | a1b2c3d4e5f...    | a1b2c3d4e5f...   | 19/06/2026 14:30 |
+  | PC-OFICINA2 | \\srv\formatos\contrato.pdf | C:\agent\files\contrato.pdf             | contrato.pdf  | ⚠️ Diferente   | a1b2c3d4e5f...    | f6e7d8c9b0a...   | 19/06/2026 12:15 |
+
+Estados disponibles:
+  - synced    (verde)   = Archivo local coincide con el servidor
+  - different (amarillo) = Archivo local tiene checksum diferente
+  - error     (rojo)    = Error al descargar
+  - pending   (gris)    = Pendiente de procesar
+
+======================================================================
+4. PRUEBAS MANUALES
+======================================================================
+
+4.1 Probar endpoint de configuración
+--------------------------------------
+  curl -s "http://212.227.6.127/api/agent-defaults/config/1" | json_pp
+
+4.2 Probar descarga de archivo
+--------------------------------
+  curl -v -o archivo.pdf \
+    "http://212.227.6.127/api/agent-defaults/download/100"
+
+4.3 Probar reporte de sincronización
+--------------------------------------
+  curl -X POST "http://212.227.6.127/api/agent-defaults/sync-status" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "computer_id": 1,
+      "files": [
+        {
+          "file_id": 100,
+          "sync_status": "synced",
+          "local_path": "C:\\agent\\files\\contrato.pdf",
+          "local_checksum": "a1b2c3d4e5f6...",
+          "ruta_local": "C:\\agent\\files\\contrato.pdf",
+          "ruta_servidor": "\\\\srv\\formatos\\contrato.pdf"
+        }
+      ]
+    }'
+
+4.4 Verificar en panel admin
+------------------------------
+  1. Ir a /admin/agent-defaults
+  2. Seleccionar una categoría
+  3. Ir a la pestaña "Sincronización"
+  4. Ver los datos reportados por el agente
+
+======================================================================
+5. CONSIDERACIONES
+======================================================================
+
+- Las categorías inactivas (is_active = false) no se devuelven
+- La asignación puede ser por computadora o por grupo
+- download_path_index selecciona el subdirectorio local
+- El checksum es SHA-256 del contenido del archivo
+- Sincronizar periódicamente (ej. cada hora o en cada heartbeat)
+- Reportar siempre después de completar la verificación/download
+- El servidor hace upsert (actualiza o crea) por computer_id + file_id
+======================================================================

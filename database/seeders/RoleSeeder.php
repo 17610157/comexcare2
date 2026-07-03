@@ -23,14 +23,20 @@ class RoleSeeder extends Seeder
         $tiendasPermissions = ['tiendas.ver', 'tiendas.crear', 'tiendas.editar', 'tiendas.eliminar'];
 
         $reportesPermissions = [
-            'reportes.ver', 'reportes.vendedores.ver', 'reportes.vendedores.editar', 'reportes.vendedores.sincronizar',
-            'reportes.vendedores.filtrar',             'reportes.vendedores_matricial.ver', 'reportes.vendedores_matricial.editar',
-            'reportes.metas-ventas.ver', 'reportes.metas-ventas.editar', 'reportes.metas-matricial.ver', 'reportes.metas-matricial.editar',
-            'reportes.cartera-abonos.ver', 'reportes.cartera-abonos.editar', 'reportes.cartera-abonos.sincronizar',
-            'reportes.notas-completas.ver', 'reportes.notas-completas.editar', 'reportes.notas-completas.sincronizar',
-            'reportes.club-comex.ver', 'reportes.club-comex.sincronizar', 'reportes.compras-directo.ver',
-            'reportes.compras-directo.editar', 'reportes.compras-directo.sincronizar', 'reportes.vendedores_b2b.ver',
+            'reportes.ver',
+            'reportes.vendedores.ver', 'reportes.vendedores.editar', 'reportes.vendedores.sincronizar',
+            'reportes.vendedores.filtrar', 'reportes.vendedores.exportar',
+            'reportes.vendedores_matricial.ver', 'reportes.vendedores_matricial.editar', 'reportes.vendedores_matricial.exportar', 'reportes.vendedores_matricial.filtrar',
+            'reportes.vendedores_b2b.ver', 'reportes.vendedores_b2b.editar', 'reportes.vendedores_b2b.sincronizar', 'reportes.vendedores_b2b.exportar', 'reportes.vendedores_b2b.filtrar',
+            'reportes.metas-ventas.ver', 'reportes.metas-ventas.editar', 'reportes.metas-ventas.exportar', 'reportes.metas-ventas.filtrar',
+            'reportes.metas-matricial.ver', 'reportes.metas-matricial.editar',
+            'reportes.cartera-abonos.ver', 'reportes.cartera-abonos.editar', 'reportes.cartera-abonos.sincronizar', 'reportes.cartera-abonos.exportar', 'reportes.cartera-abonos.filtrar',
+            'reportes.notas-completas.ver', 'reportes.notas-completas.editar', 'reportes.notas-completas.sincronizar', 'reportes.notas-completas.exportar', 'reportes.notas-completas.filtrar',
+            'reportes.compras-directo.ver', 'reportes.compras-directo.editar', 'reportes.compras-directo.sincronizar', 'reportes.compras-directo.exportar', 'reportes.compras-directo.filtrar',
+            'reportes.club-comex.ver', 'reportes.club-comex.sincronizar',
+            'reportes.redenciones_club.ver', 'reportes.redenciones_club.editar', 'reportes.redenciones_club.sincronizar', 'reportes.redenciones_club.exportar', 'reportes.redenciones_club.filtrar',
             'reportes.desglose.ver', 'reportes.vales.ver', 'reportes.vales.editar',
+            'reportes.distribuciones.ver',
         ];
 
         $metasPermissions = ['metas.ver', 'metas.crear', 'metas.editar', 'metas.eliminar', 'metas.importar'];
@@ -43,6 +49,7 @@ class RoleSeeder extends Seeder
             'agent-versions.ver', 'agent-versions.crear', 'agent-versions.eliminar',
             'dbf-files.ver',
             'file-lists.ver', 'file-lists.crear', 'file-lists.editar', 'file-lists.eliminar',
+            'agent-defaults.ver', 'agent-defaults.crear', 'agent-defaults.editar', 'agent-defaults.eliminar',
         ];
 
         $userPlazaPermissions = ['user-plaza-tienda.ver', 'user-plaza-tienda.editar'];

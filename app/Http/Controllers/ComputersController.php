@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Computer;
 use App\Models\ComputerLog;
 use App\Models\Group;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
@@ -343,5 +344,104 @@ class ComputersController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
+    }
+
+    public function fixDuplicates(): JsonResponse
+    {
+        $duplicates = $this->findDuplicateGroups();
+
+        if (empty($duplicates)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'No se encontraron equipos duplicados.',
+                'processed' => 0,
+            ]);
+        }
+
+        $totalUpdated = 0;
+        $totalDeleted = 0;
+        $details = [];
+
+        foreach ($duplicates as $group) {
+            $result = $this->processDuplicateGroup($group);
+            if ($result['processed']) {
+                $totalUpdated += $result['updated'];
+                $totalDeleted += $result['deleted'];
+                $details[] = $result;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Procesados {$totalUpdated} actualizaciones y {$totalDeleted} eliminaciones.",
+            'processed' => count($details),
+            'updated' => $totalUpdated,
+            'deleted' => $totalDeleted,
+            'details' => $details,
+        ]);
+    }
+
+    private function findDuplicateGroups(): array
+    {
+        $duplicateNames = Computer::select('computer_name')
+            ->whereNotNull('computer_name')
+            ->where('computer_name', '!=', '')
+            ->groupBy('computer_name')
+            ->havingRaw('COUNT(*) > 1')
+            ->pluck('computer_name')
+            ->toArray();
+
+        $groups = [];
+
+        foreach ($duplicateNames as $name) {
+            $computers = Computer::where('computer_name', $name)->orderBy('id')->get();
+
+            if ($computers->count() > 1) {
+                $groups[] = [
+                    'key' => $name,
+                    'computers' => $computers,
+                ];
+            }
+        }
+
+        return $groups;
+    }
+
+    private function processDuplicateGroup(array $group): array
+    {
+        $computers = $group['computers'];
+
+        $online = $computers->firstWhere('status', 'online');
+        $offline = $computers->firstWhere('status', 'offline');
+
+        if (! $online || ! $offline || $online->id === $offline->id) {
+            return ['processed' => 0, 'updated' => 0, 'deleted' => 0];
+        }
+
+        $newShortKey = $offline->short_key ?? $online->short_key;
+        $newPlaza = $offline->plaza ?? $online->plaza;
+        $newGroupId = $offline->group_id ?? $online->group_id;
+
+        DB::transaction(function () use ($offline, $newShortKey, $newPlaza, $newGroupId, $online) {
+            $offline->update(['short_key' => null]);
+            $online->update([
+                'short_key' => $newShortKey,
+                'plaza' => $newPlaza,
+                'group_id' => $newGroupId,
+            ]);
+            $offline->delete();
+        });
+
+        return [
+            'processed' => 1,
+            'updated' => 1,
+            'deleted' => 1,
+            'computer_name' => $online->computer_name,
+            'online_id' => $online->id,
+            'offline_id' => $offline->id,
+            'short_key' => $newShortKey,
+            'plaza' => $newPlaza,
+            'group_id' => $newGroupId,
+        ];
     }
 }

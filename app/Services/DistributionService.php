@@ -9,6 +9,7 @@ use App\Models\Computer;
 use App\Models\Distribution;
 use App\Models\DistributionFile;
 use App\Models\DistributionTarget;
+use App\Models\FileList;
 use Illuminate\Support\Facades\Storage;
 
 class DistributionService
@@ -81,7 +82,17 @@ class DistributionService
         $files = $distribution->files;
         $subfolder = $distribution->subfolder;
 
+        $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
+        $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
+
         foreach ($files as $file) {
+            if ($this->matchesFileList($file->file_name, $blacklistRules)) {
+                continue;
+            }
+
+            if (! $this->matchesFileList($file->file_name, $whitelistRules)) {
+                continue;
+            }
             $commandData = [
                 'file_id' => $file->id,
                 'distribution_target_id' => $target->id,
@@ -127,5 +138,20 @@ class DistributionService
         }
 
         return $systemInfo['disk_free'] > $file->file_size;
+    }
+
+    private function matchesFileList(string $fileName, array $rules): bool
+    {
+        foreach ($rules as $rule) {
+            if (str_starts_with($rule, '.')) {
+                if (str_ends_with($fileName, $rule)) {
+                    return true;
+                }
+            } elseif ($fileName === $rule) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

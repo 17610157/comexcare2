@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Command as DistributionCommand;
 use App\Models\Distribution;
 use App\Models\DistributionTarget;
+use App\Models\FileList;
 use Illuminate\Console\Command;
 
 class RestartDistribution extends Command
@@ -23,6 +24,10 @@ class RestartDistribution extends Command
         if (! $distribution) {
             $this->error("Distribution {$distributionId} not found.");
 
+            return self::FAILURE;
+        }
+
+        if (! $this->validateFilesAgainstLists($distribution)) {
             return self::FAILURE;
         }
 
@@ -70,5 +75,54 @@ class RestartDistribution extends Command
         $this->info("Distribution {$distributionId} restarted successfully.");
 
         return self::SUCCESS;
+    }
+
+    private function validateFilesAgainstLists(Distribution $distribution): bool
+    {
+        $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
+        $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
+
+        $blocked = [];
+        foreach ($distribution->files as $file) {
+            if ($this->matchesList($file->file_name, $blacklistRules)) {
+                $blocked[] = $file->file_name;
+            }
+        }
+
+        if (! empty($blocked)) {
+            $this->error('Los siguientes archivos están en la blacklist y no pueden ser enviados: '.implode(', ', $blocked));
+
+            return false;
+        }
+
+        $notAllowed = [];
+        foreach ($distribution->files as $file) {
+            if (! $this->matchesList($file->file_name, $whitelistRules)) {
+                $notAllowed[] = $file->file_name;
+            }
+        }
+
+        if (! empty($notAllowed)) {
+            $this->error('Los siguientes archivos no están en la whitelist y no pueden ser enviados: '.implode(', ', $notAllowed));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private function matchesList(string $fileName, array $rules): bool
+    {
+        foreach ($rules as $rule) {
+            if (str_starts_with($rule, '.')) {
+                if (str_ends_with($fileName, $rule)) {
+                    return true;
+                }
+            } elseif ($fileName === $rule) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

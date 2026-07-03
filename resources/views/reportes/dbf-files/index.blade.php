@@ -124,6 +124,8 @@
                 <th>Ruta</th>
                 <th>Tamaño</th>
                 <th>Última Modificación</th>
+                <th>SHA-256</th>
+                <th>MD5</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -328,33 +330,43 @@ $(function() {
       params.append('archivo', archivo);
     }
     
+    params.append('_t', Date.now());
     const url = "{{ url('/reportes/dbf-files/export') }}?" + params.toString();
-    console.log('Export URL:', url);
     window.open(url, '_blank');
   });
 
   $('#report-table').on('click', '.btn-detail', function() {
-    const computer = $(this).data('computer');
+    const btn = $(this);
+    const tr = btn.closest('tr');
+    const rowData = dataTable.row(tr).data();
+    const computer = rowData || btn.data('computer');
+
+    if (!computer || !computer.dbf_files) return;
+
     $('#modalComputerName').text(computer.computer_name + ' - ' + computer.plaza + ' / ' + computer.group_name);
-    
+
     const tbody = $('#dbfFilesTable tbody');
     tbody.empty();
-    
-    if (computer.dbf_files && computer.dbf_files.length > 0) {
+
+    if (computer.dbf_files.length > 0) {
       computer.dbf_files.forEach(function(file) {
         const size = file.size ? (file.size / 1024).toFixed(2) + ' KB' : 'N/A';
         const modified = formatAgentModifiedDate(file.modified || '');
+        const checksum = file.checksum || '';
+        const md5 = file.hash_md5 || '';
         tbody.append('<tr>' +
           '<td>'+(file.name || 'N/A')+'</td>' +
-          '<td style="word-break: break-all; font-size: 0.65rem;">'+(file.path || 'N/A')+'</td>' +
+          '<td style="word-break:break-all;font-size:0.65rem;">'+(file.path || 'N/A')+'</td>' +
           '<td>'+size+'</td>' +
           '<td>'+modified+'</td>' +
-        '</tr>');
+          '<td style="max-width:none;overflow:visible;white-space:normal;word-break:break-all;font-size:0.7rem;"><code style="white-space:normal;word-break:break-all;background:#f5f5f5;padding:1px 3px;">'+checksum+'</code></td>' +
+          '<td style="max-width:none;overflow:visible;white-space:normal;word-break:break-all;font-size:0.7rem;"><code style="white-space:normal;word-break:break-all;background:#f5f5f5;padding:1px 3px;">'+md5+'</code></td>' +
+          '</tr>');
       });
     } else {
-      tbody.append('<tr><td colspan="4" class="text-center">No hay archivos DBF</td></tr>');
+      tbody.append('<tr><td colspan="6" class="text-center">No hay archivos DBF</td></tr>');
     }
-    
+
     const modal = new bootstrap.Modal(document.getElementById('detailModal'));
     modal.show();
   });

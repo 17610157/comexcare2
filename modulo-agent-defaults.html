@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Módulo: Archivos Predeterminados del Agente - COMEXCARE</title>
+<style>
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bgc: #0d1117;
+    --tx: #e2e8f0; --tx2: #94a3b8; --tx3: #64748b;
+    --ac: #38bdf8; --ac2: #4ade80; --ac3: #fbbf24; --ac4: #f87171; --ac5: #a78bfa;
+    --bd: #334155;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg); color: var(--tx); line-height: 1.7;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 3px; }
+  .cont { max-width: 1000px; margin: 0 auto; padding: 48px 40px 80px; }
+  h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; letter-spacing: -1px; }
+  h2 {
+    font-size: 24px; font-weight: 700; margin: 48px 0 16px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--bd); color: var(--ac); letter-spacing: -0.5px;
+  }
+  h3 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; color: var(--ac2); }
+  h4 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--tx2); }
+  p { margin-bottom: 16px; color: var(--tx2); }
+  ul, ol { margin-bottom: 16px; padding-left: 24px; }
+  li { margin-bottom: 6px; color: var(--tx2); }
+  a { color: var(--ac); }
+  .card {
+    background: var(--bg2); border: 1px solid var(--bd); border-radius: 12px;
+    padding: 24px; margin-bottom: 20px;
+  }
+  .card-note {
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.25);
+    border-radius: 8px; padding: 16px; margin-bottom: 16px;
+  }
+  .card-ok {
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 8px; padding: 16px; margin-bottom: 16px;
+  }
+  .hero {
+    text-align: center; padding: 60px 0 40px;
+    background: linear-gradient(135deg, rgba(56,189,248,0.06) 0%, rgba(167,139,250,0.06) 100%);
+    border-radius: 16px; margin-bottom: 40px; border: 1px solid var(--bd);
+  }
+  .hero h1 { font-size: 38px; margin-bottom: 12px; }
+  .hero .sub { font-size: 16px; color: var(--tx2); margin-bottom: 8px; }
+  .hero .meta { font-size: 14px; color: var(--tx3); }
+  .flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; flex-wrap: wrap; padding: 20px;
+    background: var(--bg2); border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 24px;
+  }
+  .flow .s {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.2); border-radius: 8px;
+    font-size: 13px; color: var(--ac);
+  }
+  .flow .a { color: var(--tx3); font-size: 18px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+  thead th {
+    background: var(--bg2); color: var(--tx2); font-weight: 600; text-align: left;
+    padding: 12px 16px; border-bottom: 2px solid var(--bd); font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  tbody td { padding: 10px 16px; border-bottom: 1px solid var(--bd); color: var(--tx2); vertical-align: top; }
+  tbody tr:hover td { background: rgba(56,189,248,0.04); }
+  pre {
+    background: var(--bgc); border: 1px solid var(--bd); border-radius: 8px;
+    padding: 20px; overflow-x: auto; margin-bottom: 20px;
+  }
+  pre code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.6; }
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; font-size: 13px;
+    background: rgba(56,189,248,0.1); color: var(--ac); padding: 2px 6px; border-radius: 4px;
+  }
+  pre code .k { color: #ff79c6; }  pre code .s { color: #f1fa8c; }
+  pre code .c { color: #6272a4; }  pre code .f { color: #50fa7b; }
+  pre code .v { color: #f8f8f2; }  pre code .num { color: #bd93f9; }
+  pre code .r { color: #38bdf8; }  pre code .e { color: #fbbf24; }
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+  }
+  .b-blue { background: rgba(56,189,248,0.15); color: var(--ac); }
+  .b-green { background: rgba(74,222,128,0.15); color: var(--ac2); }
+  .b-yellow { background: rgba(251,191,36,0.15); color: var(--ac3); }
+  .b-red { background: rgba(248,113,113,0.15); color: var(--ac4); }
+  .b-purple { background: rgba(167,139,250,0.15); color: var(--ac5); }
+  .b-cyan { background: rgba(34,211,238,0.15); color: #22d3ee; }
+  .b-orange { background: rgba(251,146,60,0.15); color: #fb923c; }
+  .b-pink { background: rgba(244,114,182,0.15); color: #f472b6; }
+  .fp { font-family: monospace; font-size: 13px; color: var(--ac2); background: rgba(74,222,128,0.08); padding: 2px 8px; border-radius: 4px; }
+  .cg { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .sc { background: var(--bg2); border: 1px solid var(--bd); border-radius: 12px; padding: 20px; text-align: center; }
+  .sc .n { font-size: 24px; font-weight: 800; color: var(--ac); line-height: 1.2; }
+  .sc .l { font-size: 13px; color: var(--tx3); margin-top: 4px; }
+  .route-preview {
+    background: rgba(56,189,248,0.05);
+    border: 1px dashed rgba(56,189,248,0.3);
+    border-radius: 8px; padding: 16px; margin: 8px 0;
+    font-family: monospace; font-size: 13px;
+  }
+  .plaza-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+    background: rgba(167,139,250,0.15); color: var(--ac5);
+  }
+  @media (max-width: 768px) {
+    .cont { padding: 24px 16px; }
+    .hero h1 { font-size: 28px; }
+    .flow { flex-direction: column; }
+    .flow .a { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="cont">
+
+<div class="hero">
+  <h1>Archivos Predeterminados del Agente</h1>
+  <div class="sub">Distribución con rutas por plaza, asignación por ruta y sincronización por checksum</div>
+  <div class="meta">COMEXCARE &bull; Laravel 12 &bull; PHP 8.3</div>
+</div>
+
+<div class="cg">
+  <div class="sc"><div class="n">Categorías</div><div class="l">Agrupaciones lógicas de archivos por tipo</div></div>
+  <div class="sc"><div class="n">Rutas por Plaza</div><div class="l">Cada ruta se asigna a equipos de UNA misma plaza</div></div>
+  <div class="sc"><div class="n">Asignación por Ruta</div><div class="l">Cada ruta tiene sus propios grupos/PCs destino</div></div>
+  <div class="sc"><div class="n">Validación WL/BL</div><div class="l">Contra whitelist/blacklist del sistema</div></div>
+  <div class="sc"><div class="n">Checksum SHA256</div><div class="l">Sincronización agente vs servidor</div></div>
+  <div class="sc"><div class="n">Hasta 3 Rutas</div><div class="l">Patrones dinámicos por categoría</div></div>
+</div>
+
+<h2>Diagrama de Flujo General</h2>
+<div class="flow">
+  <div class="s">Crea categoría</div>
+  <div class="a">→</div>
+  <div class="s">Configura rutas</div>
+  <div class="a">→</div>
+  <div class="s">Sube archivos (validados)</div>
+  <div class="a">→</div>
+  <div class="s">Asigna CADA ruta a PCs/Grupos</div>
+  <div class="a">→</div>
+  <div class="s">Agente consulta y sincroniza</div>
+</div>
+
+<h2>Concepto de Asignación por Ruta</h2>
+<div class="card-note">
+  <strong><i class="badge b-purple">CAMBIO CLAVE</i></strong>
+  <p>Las asignaciones ya no son a nivel de categoría, sino a nivel de <strong>ruta</strong>. Cada ruta dentro de una categoría puede tener sus propios grupos o computadoras destino. La única restricción es que <strong>todas las rutas de una misma categoría deben compartir la misma plaza</strong> — no se pueden mezclar equipos de plazas diferentes dentro de la misma categoría.</p>
+</div>
+
+<div class="card">
+  <h4>Ejemplo:</h4>
+  <p><strong>Categoría "DBF Ventas"</strong> — Plaza: <span class="plaza-badge">TIJUANA</span></p>
+  <table>
+    <tr><th>Ruta</th><th>Asignada a</th><th>¿Válido?</th></tr>
+    <tr><td>Ruta #1 "Por Tipo" → <code>DATA/{tipo}/{archivo}</code></td><td>Grupo: Tijuana (PCs plaza TIJUANA)</td><td><span class="badge b-green">✅</span></td></tr>
+    <tr><td>Ruta #2 "Por Plaza" → <code>DATA/{plaza}/{tipo}/{archivo}</code></td><td>PC-CAJA-01 (plaza TIJUANA)</td><td><span class="badge b-green">✅</span></td></tr>
+    <tr><td>Ruta #3 "Completa" → <code>DATA/{tipo}/{plaza}/{categoria}/{archivo}</code></td><td>PC-ADMIN-01 (plaza NORTE)</td><td><span class="badge b-red">❌ Misma plaza requerida</span></td></tr>
+  </table>
+  <p class="mt-2"><small class="text-muted">Si se intenta asignar un equipo de plaza diferente, el sistema lo rechaza.</small></p>
+</div>
+
+<h2>Flujo Detallado</h2>
+<pre><code>┌────────────────────────────────────────────────────────────────────────────────────┐
+│                          PANEL ADMINISTRATIVO (Web)                                │
+│                                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────────┐     │
+│  │                     CREAR CATEGORÍA                                        │     │
+│  │  [Nombre]    "DBF Ventas"     [Tipo]  dbf  [Activo] ✅                    │     │
+│  │  [Ruta Servidor]  /data/agent-defaults/dbf/                                │     │
+│  └──────────────────────────────────────────────────────────────────────────┘     │
+│                                    │                                               │
+│                                    ▼                                               │
+│  ┌──────────────────────────────────────────────────────────────────────────┐     │
+│  │  RUTA #1 "Por Tipo"   ✅ Activa                                           │     │
+│  │  Patrón: DATA/{tipo}/{archivo}                                            │     │
+│  │  ┌──────────────────────────────────────────────────────────────────┐    │     │
+│  │  │  ASIGNACIONES DE ESTA RUTA                                        │    │     │
+│  │  │  [x] Grupo: Tijuana    (3 PCs, plaza: TIJUANA)                     │    │     │
+│  │  │  [x] PC: CAJA-01       (plaza: TIJUANA)                           │    │     │
+│  │  │  [ ] PC: ADMIN-01      (plaza: NORTE) ← BLOQUEADO ❌               │    │     │
+│  │  │  └─ Plaza de categoría: TIJUANA                                    │    │     │
+│  │  └──────────────────────────────────────────────────────────────────┘    │     │
+│  │                                                                           │     │
+│  │  ────────────────────────────────────────────────────────────────────    │     │
+│  │                                                                           │     │
+│  │  RUTA #2 "Por Plaza"  ✅ Activa                                           │     │
+│  │  Patrón: DATA/{plaza}/{tipo}/{archivo}                                   │     │
+│  │  ┌──────────────────────────────────────────────────────────────────┐    │     │
+│  │  │  ASIGNACIONES DE ESTA RUTA                                        │    │     │
+│  │  │  [x] Grupo: Tijuana    (misma plaza) ✅                            │     │     │
+│  │  │  [x] PC: CAJA-02       (plaza: TIJUANA) ✅                         │     │     │
+│  │  └──────────────────────────────────────────────────────────────────┘    │     │
+│  └──────────────────────────────────────────────────────────────────────────┘     │
+│                                                                                    │
+│                                    ▼                                               │
+│  ┌──────────────────────────────────────────────────────────────────────────┐     │
+│  │                         BASE DE DATOS                                     │     │
+│  │                                                                           │     │
+│  │  agent_default_categories                                                 │     │
+│  │  ┌─────┬──────────┬───────────┬──────────────────┬──────────┐            │     │
+│  │  │ id  │ name     │ file_type │ server_path      │ is_active│            │     │
+│  │  ├─────┼──────────┼───────────┼──────────────────┼──────────┤            │     │
+│  │  │ 1   │ DBF Vent │ dbf       │ /data/dbf/       │ true     │            │     │
+│  │  └─────┴──────────┴───────────┴──────────────────┴──────────┘            │     │
+│  │                                                                           │     │
+│  │  agent_default_category_routes                                            │     │
+│  │  ┌─────┬────────┬───────────┬──────────────────────┬──────┬──────┐       │     │
+│  │  │ id  │ cat_id │ name      │ route_pattern        │active│order │       │     │
+│  │  ├─────┼────────┼───────────┼──────────────────────┼──────┼──────┤       │     │
+│  │  │ 1   │ 1      │ Por Tipo  │ DATA/{tipo}/{archivo} │ true │ 1    │       │     │
+│  │  │ 2   │ 1      │ Por Plaza │ DATA/{plaza}/{tipo}/{a}│ true │ 2    │       │     │
+│  │  └─────┴────────┴───────────┴──────────────────────┴──────┴──────┘       │     │
+│  │                                                                           │     │
+│  │  agent_default_route_assignments  ← NUEVA (asignaciones por RUTA)         │     │
+│  │  ┌─────┬──────────┬─────────────────┬───────────────┬──────────┐         │     │
+│  │  │ id  │ route_id │ assignable_type  │ assignable_id │ plaza    │         │     │
+│  │  ├─────┼──────────┼─────────────────┼───────────────┼──────────┤         │     │
+│  │  │ 1   │ 1        │ group           │ 3             │ TIJUANA  │         │     │
+│  │  │ 2   │ 1        │ computer        │ 15            │ TIJUANA  │         │     │
+│  │  │ 3   │ 2        │ computer        │ 16            │ TIJUANA  │         │     │
+│  │  └─────┴──────────┴─────────────────┴───────────────┴──────────┘         │     │
+│  │                                                                           │     │
+│  │  agent_default_category_files                                             │     │
+│  │  ┌─────┬─────────┬──────────────┬──────────────┬───────────┐             │     │
+│  │  │ id  │ cat_id  │ file_name    │ checksum     │ file_size │             │     │
+│  │  ├─────┼─────────┼──────────────┼──────────────┼───────────┤             │     │
+│  │  │ 1   │ 1       │ ventas.dbf   │ a1b2c3d4e5.. │ 4096      │             │     │
+│  │  └─────┴─────────┴──────────────┴──────────────┴───────────┘             │     │
+│  └──────────────────────────────────────────────────────────────────────────┘     │
+│                                                                                    │
+│                                    ▼                                               │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐ │
+│  │              API: Configuración para el agente                                │ │
+│  │                                                                               │ │
+│  │  GET /api/agent-defaults/config/{computerId}                                 │ │
+│  │  └─ Lógica:                                                                   │ │
+│  │     1. Buscar todas las rutas donde este equipo esté asignado                │ │
+│  │        (directamente o a través de su grupo)                                 │ │
+│  │     2. Agrupar por categoría                                                  │ │
+│  │     3. Resolver patrones con datos del equipo                                │ │
+│  │     4. Devolver categorías + rutas + archivos + checksums                     │ │
+│  │                                                                               │ │
+│  │     Respuesta:                                                               │ │
+│  │     {                                                                         │ │
+│  │       "categories": [{                                         ← Solo las     │ │
+│  │         "name": "DBF Ventas",                                  ← categorías   │ │
+│  │         "routes": [                                            ← con rutas    │ │
+│  │           { "resolved": "DATA/dbf/ventas.dbf" },               ← asignadas    │ │
+│  │           { "resolved": "DATA/TIJUANA/dbf/ventas.dbf" }       ← a este        │ │
+│  │         ],                                                     ← equipo       │ │
+│  │         "files": [{ "checksum": "a1b2c3...", "file_name": "ventas.dbf" }]     │ │
+│  │       }]                                                                       │ │
+│  │     }                                                                         │ │
+│  └──────────────────────────────────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────────────────────────────┘</code></pre>
+
+<h2>Estructura de Base de Datos</h2>
+
+<h3>agent_default_categories</h3>
+<table>
+  <thead><tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>bigIncrements</td><td>Identificador único</td></tr>
+    <tr><td>name</td><td>string(255)</td><td>Nombre de la categoría</td></tr>
+    <tr><td>description</td><td>text (nullable)</td><td>Descripción opcional</td></tr>
+    <tr><td>file_type</td><td>string(100)</td><td>Tipo: dbf, pvsi, config, log, etc.</td></tr>
+    <tr><td>server_path</td><td>string(512)</td><td>Ruta base en servidor</td></tr>
+    <tr><td>is_active</td><td>boolean</td><td>✅ / ❌</td></tr>
+    <tr><td>created_by</td><td>foreignId → users</td><td>Usuario creador</td></tr>
+    <tr><td>timestamps</td><td>—</td><td>created_at, updated_at</td></tr>
+  </tbody>
+</table>
+
+<h3>agent_default_category_routes</h3>
+<table>
+  <thead><tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>bigIncrements</td><td>Identificador único</td></tr>
+    <tr><td>category_id</td><td>foreignId → categories</td><td>Categoría (cascade)</td></tr>
+    <tr><td>name</td><td>string(255)</td><td>Nombre: "Por Tipo", "Por Plaza"</td></tr>
+    <tr><td>route_pattern</td><td>string(512)</td><td>Patrón con variables</td></tr>
+    <tr><td>is_active</td><td>boolean</td><td>Activar/desactivar esta ruta</td></tr>
+    <tr><td>sort_order</td><td>integer (0)</td><td>Orden</td></tr>
+    <tr><td>timestamps</td><td>—</td><td>created_at, updated_at</td></tr>
+  </tbody>
+</table>
+
+<h3>agent_default_route_assignments <span class="badge b-purple">NUEVA</span></h3>
+<p>Reemplaza la tabla de asignaciones anterior. Cada asignación pertenece a una ruta (no a la categoría).</p>
+<table>
+  <thead><tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>bigIncrements</td><td>Identificador único</td></tr>
+    <tr><td>route_id</td><td>foreignId → routes</td><td>Ruta a la que pertenece (cascade)</td></tr>
+    <tr><td>assignable_type</td><td>string(50)</td><td>"computer" o "group"</td></tr>
+    <tr><td>assignable_id</td><td>bigInteger</td><td>ID del equipo o grupo</td></tr>
+    <tr><td>plaza</td><td>string(100) nullable</td><td>Plaza del equipo (se guarda al asignar, para validación)</td></tr>
+    <tr><td>timestamps</td><td>—</td><td>created_at, updated_at</td></tr>
+  </tbody>
+</table>
+
+<h3>agent_default_category_files</h3>
+<table>
+  <thead><tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>bigIncrements</td><td>Identificador único</td></tr>
+    <tr><td>category_id</td><td>foreignId → categories</td><td>Categoría (cascade)</td></tr>
+    <tr><td>file_name</td><td>string(255)</td><td>Nombre del archivo</td></tr>
+    <tr><td>file_path</td><td>string(512)</td><td>Ruta física en servidor</td></tr>
+    <tr><td>checksum</td><td>string(64)</td><td>SHA256</td></tr>
+    <tr><td>file_size</td><td>bigInteger</td><td>Tamaño en bytes</td></tr>
+    <tr><td>timestamps</td><td>—</td><td>created_at, updated_at</td></tr>
+  </tbody>
+</table>
+
+<h3>agent_default_downloads</h3>
+<table>
+  <thead><tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>bigIncrements</td><td>Identificador único</td></tr>
+    <tr><td>computer_id</td><td>foreignId → computers</td><td>Computadora</td></tr>
+    <tr><td>file_id</td><td>foreignId → category_files</td><td>Archivo</td></tr>
+    <tr><td>status</td><td>string(50)</td><td>pending, up_to_date, updated, failed</td></tr>
+    <tr><td>local_checksum</td><td>string(64) nullable</td><td>SHA256 reportado por el agente</td></tr>
+    <tr><td>error_message</td><td>text nullable</td><td>Mensaje de error</td></tr>
+    <tr><td>downloaded_at</td><td>timestamp nullable</td><td>Última descarga</td></tr>
+    <tr><td>timestamps</td><td>—</td><td>created_at, updated_at</td></tr>
+  </tbody>
+</table>
+
+<h2>Modelos Eloquent</h2>
+<pre><code><span class="k">class</span> <span class="f">AgentDefaultCategory</span> <span class="k">extends</span> <span class="f">Model</span> {
+    <span class="k">public function</span> <span class="f">routes</span>(): <span class="f">HasMany</span>
+    <span class="k">public function</span> <span class="f">files</span>(): <span class="f">HasMany</span>
+    <span class="k">public function</span> <span class="f">creator</span>(): <span class="f">BelongsTo</span>
+}
+
+<span class="k">class</span> <span class="f">AgentDefaultCategoryRoute</span> <span class="k">extends</span> <span class="f">Model</span> {
+    <span class="k">public function</span> <span class="f">category</span>(): <span class="f">BelongsTo</span>
+    <span class="k">public function</span> <span class="f">assignments</span>(): <span class="f">HasMany</span>  <span class="c">// ← asignaciones por ruta</span>
+    <span class="k">public function</span> <span class="f">resolve</span>(<span class="f">Computer</span> <span class="v">$c</span>, <span class="f">AgentDefaultCategoryFile</span> <span class="v">$f</span>): <span class="f">string</span>
+}
+
+<span class="k">class</span> <span class="f">AgentDefaultRouteAssignment</span> <span class="k">extends</span> <span class="f">Model</span> {  <span class="c">// ← NUEVO</span>
+    <span class="k">public function</span> <span class="f">route</span>(): <span class="f">BelongsTo</span>
+    <span class="k">public function</span> <span class="f">assignable</span>(): <span class="f">MorphTo</span>
+
+    <span class="c">// Valida que el assignable pertenezca a la misma plaza que otras asignaciones de la categoría</span>
+    <span class="k">public static function</span> <span class="f">validatePlaza</span>(<span class="v">$routeId</span>, <span class="v">$assignable</span>): <span class="f">bool</span>
+}
+
+<span class="k">class</span> <span class="f">AgentDefaultCategoryFile</span> <span class="k">extends</span> <span class="f">Model</span> {
+    <span class="k">public function</span> <span class="f">category</span>(): <span class="f">BelongsTo</span>
+}
+
+<span class="k">class</span> <span class="f">AgentDefaultDownload</span> <span class="k">extends</span> <span class="f">Model</span> {
+    <span class="k">public function</span> <span class="f">computer</span>(): <span class="f">BelongsTo</span>
+    <span class="k">public function</span> <span class="f">file</span>(): <span class="f">BelongsTo</span>
+}</code></pre>
+
+<h2>API Endpoints</h2>
+<table>
+  <thead><tr><th>Método</th><th>Ruta</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge b-green">GET</span></td><td><span class="fp">/api/agent-defaults/config/{computerId}</span></td><td>Devuelve categorías + rutas asignadas al equipo (revisa route_assignments por computadora y grupo). Incluye checksums.</td></tr>
+    <tr><td><span class="badge b-green">GET</span></td><td><span class="fp">/api/agent-defaults/download/{fileId}</span></td><td>Descarga archivo con headers <code>X-Checksum</code> y <code>X-FileSize</code></td></tr>
+    <tr><td><span class="badge b-blue">POST</span></td><td><span class="fp">/api/agent-defaults/report</span></td><td>Reporta estado: <code>{computer_id, reports: [{file_id, status, local_checksum}]}</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Controladores</h2>
+<table>
+  <thead><tr><th>Controlador</th><th>Métodos</th></tr></thead>
+  <tbody>
+    <tr><td><span class="fp">AgentDefaultsController</span></td><td>index, create, store, show, edit, update, destroy, toggleActive, uploadFile (valida WL/BL), deleteFile, addRoute, updateRoute, deleteRoute, toggleRoute, <span class="fp" style="background:rgba(167,139,250,0.08);color:var(--ac5);">assignRoute</span>, <span class="fp" style="background:rgba(167,139,250,0.08);color:var(--ac5);">removeAssignment</span>, downloads</td></tr>
+    <tr><td><span class="fp">Api\AgentDefaultsController</span></td><td>config, download, report</td></tr>
+  </tbody>
+</table>
+
+<h2>Rutas Web (admin)</h2>
+<table>
+  <thead><tr><th>Verbo</th><th>URI</th><th>Controlador</th></tr></thead>
+  <tbody>
+    <tr><td>GET/POST</td><td>/admin/agent-defaults</td><td>@index / @store</td></tr>
+    <tr><td>GET</td><td>/admin/agent-defaults/create</td><td>@create</td></tr>
+    <tr><td>GET/PUT/DELETE</td><td>/admin/agent-defaults/{id}</td><td>@show / @update / @destroy</td></tr>
+    <tr><td>GET</td><td>/admin/agent-defaults/{id}/edit</td><td>@edit</td></tr>
+    <tr><td>PATCH</td><td>/admin/agent-defaults/{id}/toggle</td><td>@toggleActive</td></tr>
+    <tr><td colspan="3" style="border-bottom:2px solid var(--ac);"></td></tr>
+    <tr><td colspan="3" class="b-purple" style="background:rgba(167,139,250,0.08);"><strong>Gestión de Rutas</strong></td></tr>
+    <tr><td>POST</td><td>/admin/agent-defaults/{id}/routes</td><td>@addRoute</td></tr>
+    <tr><td>PUT/DELETE</td><td>/admin/agent-defaults/{id}/routes/{routeId}</td><td>@updateRoute / @deleteRoute</td></tr>
+    <tr><td>PATCH</td><td>/admin/agent-defaults/{id}/routes/{routeId}/toggle</td><td>@toggleRoute</td></tr>
+    <tr><td colspan="3" style="border-bottom:2px solid var(--ac);"></td></tr>
+    <tr><td colspan="3" class="b-purple" style="background:rgba(167,139,250,0.08);"><strong>Asignaciones por Ruta</strong></td></tr>
+    <tr><td>POST</td><td>/admin/agent-defaults/routes/{routeId}/assign</td><td>@assignRoute <span class="b-purple">(valida plaza)</span></td></tr>
+    <tr><td>DELETE</td><td>/admin/agent-defaults/assignments/{assignId}</td><td>@removeAssignment</td></tr>
+    <tr><td colspan="3" style="border-bottom:2px solid var(--ac);"></td></tr>
+    <tr><td colspan="3"><strong>Archivos</strong></td></tr>
+    <tr><td>POST/DELETE</td><td>/admin/agent-defaults/{id}/files</td><td>@uploadFile (valida WL/BL) / @deleteFile</td></tr>
+    <tr><td>GET</td><td>/admin/agent-defaults/{id}/downloads</td><td>@downloads (progreso)</td></tr>
+  </tbody>
+</table>
+
+<h2>Validación de Plaza al Asignar</h2>
+<pre><code><span class="k">public static function</span> <span class="f">validatePlaza</span>(<span class="v">$routeId</span>, <span class="v">$assignable</span>): <span class="f">bool</span>
+{
+    <span class="v">$route</span> = <span class="f">AgentDefaultCategoryRoute</span>::<span class="f">findOrFail</span>(<span class="v">$routeId</span>);
+    <span class="v">$category</span> = <span class="v">$route</span>->category;
+
+    <span class="c">// Obtener plaza del assignable</span>
+    <span class="k">if</span> (<span class="v">$assignable</span> <span class="k">instanceof</span> <span class="f">Computer</span>) {
+        <span class="v">$plaza</span> = <span class="v">$assignable</span>->plaza;
+    } <span class="k">elseif</span> (<span class="v">$assignable</span> <span class="k">instanceof</span> <span class="f">Group</span>) {
+        <span class="c">// Tomar la plaza de la primera computadora del grupo</span>
+        <span class="v">$plaza</span> = <span class="v">$assignable</span>-><span class="f">computers</span>()-><span class="f">first</span>()->plaza;
+    }
+
+    <span class="c">// Revisar si ya hay asignaciones en la categoría</span>
+    <span class="v">$existingPlaza</span> = <span class="f">AgentDefaultRouteAssignment</span>::<span class="f">whereHas</span>(<span class="s">'route'</span>, <span class="k">fn</span>(<span class="v">$q</span>) =>
+        <span class="v">$q</span>-><span class="f">where</span>(<span class="s">'category_id'</span>, <span class="v">$category</span>->id)
+    )-><span class="f">value</span>(<span class="s">'plaza'</span>);
+
+    <span class="k">if</span> (<span class="v">$existingPlaza</span> && <span class="v">$existingPlaza</span> !== <span class="v">$plaza</span>) {
+        <span class="k">return false</span>; <span class="c">// ❌ Plaza diferente</span>
+    }
+
+    <span class="k">return true</span>; <span class="c">// ✅ Misma plaza o primera asignación</span>
+}</code></pre>
+
+<h2>Plan de Implementación</h2>
+<ol>
+  <li><strong>Migración</strong> — categories, routes, route_assignments, files, downloads</li>
+  <li><strong>Modelos</strong> — 5 modelos con relaciones y validación de plaza</li>
+  <li><strong>Servicio de validación</strong> — Reutilizar FileListsController para WL/BL</li>
+  <li><strong>Controlador Web</strong> — CRUD + rutas + asignaciones por ruta + archivos</li>
+  <li><strong>Vistas Blade</strong> — AdminLTE 3 con DataTable + modales</li>
+  <li><strong>Rutas Web</strong> — Registrar en routes/web.php</li>
+  <li><strong>Controlador API</strong> — config (filtra por route_assignments), download, report</li>
+  <li><strong>Rutas API</strong> — Registrar en routes/api.php</li>
+  <li><strong>Menú AdminLTE</strong> — Agregar enlace</li>
+  <li><strong>Pruebas</strong> — Pest feature tests</li>
+</ol>
+
+<hr style="border:none;border-top:1px solid var(--bd);margin:40px 0;">
+<footer style="text-align:center;padding:20px 0;color:var(--tx3);font-size:13px;">
+  <strong>COMEXCARE</strong> — Módulo: Archivos Predeterminados del Agente &bull; v4 &bull; Asignación por Ruta + Validación de Plaza
+</footer>
+</div>
+</body>
+</html>
