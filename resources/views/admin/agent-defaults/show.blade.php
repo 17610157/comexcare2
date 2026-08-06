@@ -106,7 +106,7 @@
                                                 <i class="fas fa-users text-primary"></i>
                                             @endif
                                             <strong>
-                                                {{ $assignment->assignable->computer_name ?? $assignment->assignable->name ?? 'N/A' }}
+                                                {{ $assignment->assignable->nombre_instalacion ?? $assignment->assignable->name ?? 'N/A' }}
                                             </strong>
                                             @if($assignment->assignable && $assignment->assignable->plaza)
                                                 <span class="plaza-badge ml-2">{{ $assignment->assignable->plaza }}</span>
@@ -211,7 +211,7 @@
                                         };
                                     @endphp
                                     <tr>
-                                        <td><strong>{{ $row->computer_name }}</strong></td>
+                                        <td><strong>{{ $row->nombre_instalacion }}</strong></td>
                                         <td><code class="small">{{ $row->ruta_servidor }}</code></td>
                                         <td><code class="small">{{ $row->ruta_local ?: '—' }}</code></td>
                                         <td>{{ $row->file_name }}</td>
@@ -640,7 +640,7 @@
                     data.assignments.forEach(function(a) {
                         const type = a.assignable_type === 'App\\Models\\Computer' ? 'Computadora' : 'Grupo';
                         const icon = a.assignable_type === 'App\\Models\\Computer' ? 'fa-desktop text-info' : 'fa-users text-primary';
-                        const name = a.assignable ? (a.assignable.computer_name || a.assignable.name || 'N/A') : 'N/A';
+                        const name = a.assignable ? (a.assignable.nombre_instalacion || a.assignable.name || 'N/A') : 'N/A';
                         const plaza = a.assignable && a.assignable.plaza ? `<span class="plaza-badge ml-2">${a.assignable.plaza}</span>` : '';
                         container.append(`
                             <div class="assign-item" id="assignment-row-${a.id}">
@@ -665,7 +665,7 @@
         if (type === 'computer') {
             select.empty().append('<option value="">Seleccionar computadora...</option>');
             COMPUTERS.forEach(function(c) {
-                select.append(`<option value="${c.id}">${c.computer_name} (${c.short_key})${c.plaza ? ' - ' + c.plaza : ''}</option>`);
+                select.append(`<option value="${c.id}">${c.nombre_instalacion} (${c.short_key})${c.plaza ? ' - ' + c.plaza : ''}</option>`);
             });
         } else {
             select.empty().append('<option value="">Seleccionar grupo...</option>');

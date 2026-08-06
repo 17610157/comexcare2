@@ -32,6 +32,7 @@ class DistributionsControllerTest extends TestCase
         Permission::firstOrCreate(['name' => 'distribution.crear', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'distribution.editar', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'distribution.eliminar', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'distribution.ver_todas', 'guard_name' => 'web']);
 
         $this->admin = User::factory()->create();
         $this->admin->givePermissionTo([
@@ -357,5 +358,182 @@ class DistributionsControllerTest extends TestCase
         $response = $this->post(route('admin.distributions.store'), $data);
 
         $response->assertRedirect(route('admin.distributions.index'));
+    }
+
+    public function test_index_shows_all_distributions_with_ver_todas_permission()
+    {
+        $this->admin->givePermissionTo('distribution.ver_todas');
+
+        Distribution::factory()->count(3)->create(['created_by' => $this->admin->id]);
+        Distribution::factory()->count(2)->create();
+
+        $response = $this->get(route('admin.distributions.index'));
+
+        $response->assertStatus(200);
+        $distributions = $response->viewData('distributions');
+        $this->assertCount(5, $distributions);
+    }
+
+    public function test_index_filters_distributions_by_creator_without_ver_todas_permission()
+    {
+        Distribution::factory()->count(3)->create(['created_by' => $this->admin->id]);
+        Distribution::factory()->count(2)->create();
+
+        $response = $this->get(route('admin.distributions.index'));
+
+        $response->assertStatus(200);
+        $distributions = $response->viewData('distributions');
+        $this->assertCount(3, $distributions);
+    }
+
+    public function test_show_allows_access_to_own_distribution()
+    {
+        $distribution = Distribution::factory()
+            ->hasFiles(1)
+            ->hasTargets(1)
+            ->create(['created_by' => $this->admin->id]);
+
+        $response = $this->get(route('admin.distributions.show', $distribution));
+
+        $response->assertStatus(200);
+    }
+
+    public function test_show_allows_access_with_ver_todas_permission()
+    {
+        $this->admin->givePermissionTo('distribution.ver_todas');
+
+        $otherUser = User::factory()->create();
+        $distribution = Distribution::factory()
+            ->hasFiles(1)
+            ->hasTargets(1)
+            ->create(['created_by' => $otherUser->id]);
+
+        $response = $this->get(route('admin.distributions.show', $distribution));
+
+        $response->assertStatus(200);
+    }
+
+    public function test_show_denies_access_to_other_users_distribution()
+    {
+        $otherUser = User::factory()->create();
+        $distribution = Distribution::factory()
+            ->hasFiles(1)
+            ->hasTargets(1)
+            ->create(['created_by' => $otherUser->id]);
+
+        $response = $this->get(route('admin.distributions.show', $distribution));
+
+        $response->assertForbidden();
+    }
+
+    public function test_destroy_allows_owner()
+    {
+        $distribution = Distribution::factory()->create(['created_by' => $this->admin->id]);
+
+        $response = $this->delete(route('admin.distributions.destroy', $distribution));
+
+        $response->assertRedirect(route('admin.distributions.index'));
+        $this->assertSoftDeleted('distributions', ['id' => $distribution->id]);
+    }
+
+    public function test_destroy_denies_non_owner_without_ver_todas()
+    {
+        $otherUser = User::factory()->create();
+        $distribution = Distribution::factory()->create(['created_by' => $otherUser->id]);
+
+        $response = $this->delete(route('admin.distributions.destroy', $distribution));
+
+        $response->assertForbidden();
+    }
+
+    public function test_update_allows_owner()
+    {
+        $distribution = Distribution::factory()->create([
+            'created_by' => $this->admin->id,
+            'distribution_type' => 'file',
+        ]);
+
+        $data = [
+            'name' => 'Updated Distribution',
+            'type' => $distribution->type,
+            'distribution_type' => 'file',
+        ];
+
+        $response = $this->put(route('admin.distributions.update', $distribution), $data);
+
+        $response->assertRedirect(route('admin.distributions.index'));
+    }
+
+    public function test_update_denies_non_owner_without_ver_todas()
+    {
+        $otherUser = User::factory()->create();
+        $distribution = Distribution::factory()->create([
+            'created_by' => $otherUser->id,
+            'distribution_type' => 'file',
+        ]);
+
+        $data = [
+            'name' => 'Hacked Distribution',
+            'type' => $distribution->type,
+            'distribution_type' => 'file',
+        ];
+
+        $response = $this->put(route('admin.distributions.update', $distribution), $data);
+
+        $response->assertForbidden();
+    }
+
+    public function test_stop_allows_owner()
+    {
+        $distribution = Distribution::factory()->create([
+            'created_by' => $this->admin->id,
+            'status' => 'in_progress',
+        ]);
+
+        $response = $this->postJson(route('admin.distributions.stop', $distribution));
+
+        $this->assertNotEquals(403, $response->status());
+    }
+
+    public function test_stop_denies_non_owner_without_ver_todas()
+    {
+        $otherUser = User::factory()->create();
+        $distribution = Distribution::factory()->create([
+            'created_by' => $otherUser->id,
+            'status' => 'in_progress',
+        ]);
+
+        $response = $this->postJson(route('admin.distributions.stop', $distribution));
+
+        $response->assertForbidden();
+    }
+
+    public function test_start_allows_owner()
+    {
+        $this->mock(DistributionService::class, function ($mock) {
+            $mock->shouldReceive('startDistribution')->once();
+        });
+
+        $distribution = Distribution::factory()->create([
+            'created_by' => $this->admin->id,
+            'status' => 'completed',
+        ]);
+
+        $response = $this->postJson(route('admin.distributions.start', $distribution));
+
+        $response->assertSuccessful();
+    }
+
+    public function test_start_denies_non_owner_without_ver_todas()
+    {
+        $otherUser = User::factory()->create();
+        $distribution = Distribution::factory()->create([
+            'created_by' => $otherUser->id,
+            'status' => 'completed',
+        ]);
+
+        $response = $this->postJson(route('admin.distributions.start', $distribution));
+
+        $response->assertForbidden();
     }
 }

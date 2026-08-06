@@ -135,7 +135,7 @@
                         @foreach($computers as $computer)
                             <tr>
                                 <td>
-                                    <i class="fas fa-desktop"></i> {{ $computer->computer_name }}
+                                    <i class="fas fa-desktop"></i> {{ $computer->nombre_instalacion }}
                                     <br><small class="text-muted">{{ $computer->mac_address }}</small>
                                 </td>
                                 <td>

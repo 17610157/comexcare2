@@ -103,7 +103,7 @@
                 <tbody>
                     @foreach($reception->targets as $target)
                         <tr>
-                            <td>{{ $target->computer->computer_name ?? 'N/A' }}</td>
+                            <td>{{ $target->computer->nombre_instalacion ?? $target->computer->computer_name ?? 'N/A' }}</td>
                             <td>
                                 @if($target->status === 'completed')
                                     <span class="badge badge-success">Completado</span>

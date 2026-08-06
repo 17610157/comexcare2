@@ -12,6 +12,7 @@ class Computer extends Model
 
     protected $fillable = [
         'computer_name',
+        'nombre_instalacion',
         'short_key',
         'plaza',
         'mac_address',
@@ -23,8 +24,9 @@ class Computer extends Model
         'pvsi_fecha',
         'pvsi_hora',
         'pvsi_files',
-        'resurtido_version',
-        'resurtido_fecha',
+        'pvsi_bepartners_version',
+        'pvsi_bepartners_fecha',
+        'pvsi_bepartners_hora',
         'windows_version',
         'architecture',
         'total_ram',

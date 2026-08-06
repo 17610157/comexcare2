@@ -3,7 +3,7 @@
 @section('title', 'Editar Computadora')
 
 @section('content_header')
-    <h1>Editar {{ $computer->computer_name }}</h1>
+    <h1>Editar {{ $computer->nombre_instalacion ?? $computer->computer_name }}</h1>
 @stop
 
 @section('content')
@@ -13,8 +13,8 @@
                 @csrf
                 @method('PUT')
                 <div class="form-group">
-                    <label>Nombre de Computadora</label>
-                    <input type="text" name="computer_name" class="form-control" value="{{ $computer->computer_name }}">
+                    <label>Nombre de Instalaci&oacute;n</label>
+                    <input type="text" name="nombre_instalacion" class="form-control" value="{{ $computer->nombre_instalacion ?? '' }}" placeholder="Ej: Tienda Principal">
                 </div>
                 <div class="form-group">
                     <label>Short Key (Clave Corta)</label>

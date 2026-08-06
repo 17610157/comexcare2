@@ -368,6 +368,18 @@ return [
             'can' => 'file-lists.ver',
         ],
         [
+            'text' => 'Módulos de Autorización',
+            'url' => 'admin/modules',
+            'icon' => 'fas fa-puzzle-piece',
+            'can' => 'modules.ver',
+        ],
+        [
+            'text' => 'Correos Autorizados',
+            'url' => 'admin/authorizable-emails',
+            'icon' => 'fas fa-envelope-open-text',
+            'can' => 'authorizable-emails.ver',
+        ],
+        [
             'text' => 'Recepción',
             'url' => 'admin/reception',
             'icon' => 'fas fa-download',
@@ -452,6 +464,13 @@ return [
                 ],
 
                 [
+                    'text' => 'API Demo',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/api-demo',
+                    'can' => 'reportes.api-demo.ver',
+                ],
+
+                [
                     'text' => 'Reporte Cargos y Abonos',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/cartera-abonos',
@@ -465,7 +484,7 @@ return [
                 ],
                 [
                     'text' => 'Club Comex',
-                    'icon' => 'fas fa-coins',
+                    'icon' => 'far fa-file-alt',
                     'url' => 'reportes/club-comex',
                     'can' => 'reportes.club-comex.ver',
                 ],
@@ -482,10 +501,28 @@ return [
                     'can' => 'dbf-files.ver',
                 ],
                 [
+                    'text' => 'Archivos de Precios',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/dbf-files-especificos',
+                    'can' => 'dbf-files-especificos.ver',
+                ],
+                [
+                    'text' => 'Conciliación QuickBCK',
+                    'icon' => 'far fa-file-alt',
+                    'url' => 'reportes/dbf-files-quickbck',
+                    'can' => 'dbf-files-quickbck.ver',
+                ],
+                [
                     'text' => 'Reporte Distribuciones',
-                    'icon' => 'fas fa-upload',
+                    'icon' => 'far fa-file-alt',
                     'url' => 'reportes/distribuciones',
                     'can' => 'reportes.distribuciones.ver',
+                ],
+                [
+                    'text' => 'Reporte Autorizaciones',
+                    'icon' => 'fas fa-file-alt',
+                    'url' => 'reportes/authorization-report',
+                    'can' => 'reportes.ver',
                 ],
             ],
         ],

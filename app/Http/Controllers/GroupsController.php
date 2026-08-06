@@ -20,7 +20,7 @@ class GroupsController extends Controller
             ->paginate(20);
 
         $plazas = Computer::distinct()->pluck('plaza')->filter()->sort()->values();
-        $computers = Computer::orderBy('computer_name')->get();
+        $computers = Computer::orderBy('nombre_instalacion')->get();
 
         return view('admin.groups.index', compact('groups', 'plazas', 'computers'));
     }
@@ -28,7 +28,7 @@ class GroupsController extends Controller
     public function create()
     {
         $plazas = Computer::distinct()->pluck('plaza')->filter()->sort()->values();
-        $computers = Computer::orderBy('computer_name')->get();
+        $computers = Computer::orderBy('nombre_instalacion')->get();
 
         return view('admin.groups.create', compact('plazas', 'computers'));
     }

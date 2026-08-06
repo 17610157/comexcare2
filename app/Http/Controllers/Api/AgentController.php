@@ -295,6 +295,9 @@ class AgentController extends Controller
             'pvsi_files.*.version' => 'nullable|string|max:50',
             'pvsi_files.*.fecha' => 'nullable|string|max:20',
             'pvsi_files.*.hora' => 'nullable|string|max:10',
+            'pvsi_bepartners_version' => 'nullable|string|max:50',
+            'pvsi_bepartners_fecha' => 'nullable|string|max:20',
+            'pvsi_bepartners_hora' => 'nullable|string|max:10',
             'windows_version' => 'nullable|string|max:100',
             'architecture' => 'nullable|string|max:10',
             'total_ram' => 'nullable|integer',
@@ -403,6 +406,15 @@ class AgentController extends Controller
         }
         if ($request->filled('pvsi_fecha')) {
             $updateData['pvsi_fecha'] = $request->pvsi_fecha;
+        }
+        if ($request->filled('pvsi_bepartners_version')) {
+            $updateData['pvsi_bepartners_version'] = $request->pvsi_bepartners_version;
+        }
+        if ($request->filled('pvsi_bepartners_fecha')) {
+            $updateData['pvsi_bepartners_fecha'] = $request->pvsi_bepartners_fecha;
+        }
+        if ($request->filled('pvsi_bepartners_hora')) {
+            $updateData['pvsi_bepartners_hora'] = $request->pvsi_bepartners_hora;
         }
         if ($request->filled('resurtido_version')) {
             $updateData['resurtido_version'] = $request->resurtido_version;
@@ -553,8 +565,10 @@ class AgentController extends Controller
         $computer->update(['last_seen' => now(), 'status' => 'online']);
 
         // Get pending commands — limit to 10 at a time to avoid flooding the agent
+        // Exclude 'update' commands — those are handled by checkUpdate + CheckForUpdate()
         $commands = Command::where('computer_id', $id)
             ->whereIn('status', ['pending', 'sent'])
+            ->where('type', '!=', 'update')
             ->orderBy('created_at')
             ->limit(10)
             ->get();
@@ -619,6 +633,14 @@ class AgentController extends Controller
                     $commandArray['search_drives'] = ['C', 'D', 'E', 'F'];
                     $commandArray['search_folder'] = 'RBF\\exe_';
                     $commandArray['search_file'] = 'UPDATECAREAGENTRESURTIDO.BAT';
+                    $commandArray['run_as_admin'] = true;
+                } elseif (preg_match('/^(DALISTA|DAPROMO|DAOFERTA|DACOMBO)\.BAT$/i', $baseCommand)) {
+                    $commandArray['command'] = $baseCommand;
+                    $commandArray['cmd'] = $baseCommand;
+                    $commandArray['execute_command'] = $baseCommand;
+                    $commandArray['search_drives'] = ['C', 'D', 'E', 'F'];
+                    $commandArray['search_folder'] = 'RBF\\ejecutables';
+                    $commandArray['search_file'] = strtoupper($baseCommand);
                     $commandArray['run_as_admin'] = true;
                 } else {
                     $commandArray['command'] = $baseCommand;
@@ -875,23 +897,16 @@ class AgentController extends Controller
 
     public function checkUpdate(Request $request, $version)
     {
-        $current = AgentVersion::where('version', $version)->first();
-        $latest = AgentVersion::whereRaw('"is_active" = true')->orderBy('created_at', 'desc')->first();
+        // Intentar interpretar como computer_id
+        $computer = Computer::find((int) $version);
 
-        if (! $latest || $current && $current->id >= $latest->id) {
-            return response()->json(['update_available' => false]);
+        if ($computer) {
+            $computer->update(['last_seen' => now(), 'status' => 'online']);
+
+            return $this->checkUpdateForComputer($computer);
         }
 
-        $filename = basename($latest->file_path);
-
-        return response()->json([
-            'update_available' => true,
-            'version' => $latest->version,
-            'download_url' => url('storage/'.$latest->file_path),
-            'channel' => $latest->channel,
-            'checksum' => $latest->checksum,
-            'changelog' => $latest->changelog,
-        ]);
+        return response()->json(['update_available' => false]);
     }
 
     public function checkUpdateByComputerId(Request $request, $computer_id)
@@ -904,40 +919,40 @@ class AgentController extends Controller
 
         $computer->update(['last_seen' => now(), 'status' => 'online']);
 
-        $currentVersion = $computer->agent_version;
-        $latest = AgentVersion::whereRaw('"is_active" = true')->orderBy('created_at', 'desc')->first();
+        return $this->checkUpdateForComputer($computer);
+    }
 
-        Log::info('Update check', [
-            'computer_id' => $computer_id,
-            'current_version' => $currentVersion,
-            'latest_version' => $latest?->version,
-            'latest_id' => $latest?->id,
-        ]);
+    private function checkUpdateForComputer(Computer $computer)
+    {
+        $pendingCommand = Command::where('computer_id', $computer->id)
+            ->where('type', 'update')
+            ->whereIn('status', ['pending', 'sent'])
+            ->latest()
+            ->first();
 
-        if (! $latest) {
+        if (! $pendingCommand) {
             return response()->json(['update_available' => false]);
         }
 
-        // Compare versions properly
-        $hasUpdate = version_compare($currentVersion, $latest->version) < 0;
+        $data = is_array($pendingCommand->data) ? $pendingCommand->data : json_decode($pendingCommand->data, true);
+        $version = $data['version'] ?? null;
 
-        Log::info('Version comparison', [
-            'result' => $hasUpdate,
-            'current' => $currentVersion,
-            'latest' => $latest->version,
-        ]);
+        if (! $version) {
+            return response()->json(['update_available' => false]);
+        }
 
-        if (! $hasUpdate) {
+        $agentVersion = AgentVersion::where('version', $version)->first();
+        if (! $agentVersion) {
             return response()->json(['update_available' => false]);
         }
 
         return response()->json([
             'update_available' => true,
-            'version' => $latest->version,
-            'download_url' => url('storage/'.$latest->file_path),
-            'channel' => $latest->channel,
-            'checksum' => $latest->checksum,
-            'changelog' => $latest->changelog,
+            'version' => $agentVersion->version,
+            'download_url' => url('storage/'.$agentVersion->file_path),
+            'channel' => $agentVersion->channel,
+            'checksum' => $agentVersion->checksum,
+            'changelog' => $agentVersion->changelog,
         ]);
     }
 

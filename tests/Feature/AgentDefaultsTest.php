@@ -695,8 +695,8 @@ it('shows error status when agent reports error', function () {
 
 it('expands group assignments to member computers in sync tab', function () {
     $group = Group::factory()->create();
-    $computerA = Computer::factory()->for($group)->create(['computer_name' => 'PC-A']);
-    $computerB = Computer::factory()->for($group)->create(['computer_name' => 'PC-B']);
+    $computerA = Computer::factory()->for($group)->create(['computer_name' => 'PC-A', 'nombre_instalacion' => 'PC-A']);
+    $computerB = Computer::factory()->for($group)->create(['computer_name' => 'PC-B', 'nombre_instalacion' => 'PC-B']);
     $category = AgentDefaultCategory::create(['name' => 'Group Sync']);
     $route = AgentDefaultCategoryRoute::factory()->for($category, 'category')->create();
     AgentDefaultRouteAssignment::factory()->for($route, 'route')->forGroup()->create([

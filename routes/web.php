@@ -4,6 +4,9 @@ use App\Http\Controllers\AgentDefaultsController;
 use App\Http\Controllers\AgentVersionsController;
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\AuthorizableEmailsController;
+use App\Http\Controllers\AuthorizationController;
+use App\Http\Controllers\AuthorizationReportController;
 use App\Http\Controllers\ComputersController;
 use App\Http\Controllers\DistributionsController;
 use App\Http\Controllers\FileListsController;
@@ -11,10 +14,14 @@ use App\Http\Controllers\FileReceptionController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MetasMensualController;
+use App\Http\Controllers\ModulesController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ReceptionController;
+use App\Http\Controllers\ReporteApiDemoController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteDbfFilesController;
+use App\Http\Controllers\ReporteDbfFilesEspecificosController;
+use App\Http\Controllers\ReporteDbfFilesQuickbckController;
 use App\Http\Controllers\ReporteDesgloseController;
 use App\Http\Controllers\ReporteDistribucionesController;
 use App\Http\Controllers\ReporteMetasMatricialController;
@@ -46,6 +53,10 @@ Route::get('/home/stats', [HomeController::class, 'stats'])->middleware('auth')-
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// Authorization routes (public - no auth required)
+Route::get('/authorization/{token}', [AuthorizationController::class, 'show'])->name('authorization.show');
+Route::post('/authorization/{token}', [AuthorizationController::class, 'process'])->name('authorization.process');
 
 // API pública de reportes DBF
 Route::get('/api/dbf-report', [ReporteDbfFilesController::class, 'api']);
@@ -229,6 +240,32 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
     Route::get('dbf-files/export', [ReporteDbfFilesController::class, 'export'])
         ->name('reportes.dbf-files.export')->middleware('can:dbf-files.ver');
 
+    // REPORTE: DBF Files Especificos
+    Route::get('dbf-files-especificos', [ReporteDbfFilesEspecificosController::class, 'index'])
+        ->name('reportes.dbf-files-especificos')->middleware('can:dbf-files-especificos.ver');
+    Route::get('dbf-files-especificos/data', [ReporteDbfFilesEspecificosController::class, 'data'])
+        ->name('reportes.dbf-files-especificos.data')->middleware('can:dbf-files-especificos.ver');
+    Route::get('dbf-files-especificos/export', [ReporteDbfFilesEspecificosController::class, 'export'])
+        ->name('reportes.dbf-files-especificos.export')->middleware('can:dbf-files-especificos.ver');
+    Route::post('dbf-files-especificos/ejecutar/{tipo}', [ReporteDbfFilesEspecificosController::class, 'ejecutar'])
+        ->name('reportes.dbf-files-especificos.ejecutar')->middleware('can:dbf-files-especificos.ejecutar');
+    Route::get('dbf-files-especificos/bitacora', [ReporteDbfFilesEspecificosController::class, 'bitacora'])
+        ->name('reportes.dbf-files-especificos.bitacora')->middleware('can:dbf-files-especificos.ver');
+    Route::get('dbf-files-especificos/ids', [ReporteDbfFilesEspecificosController::class, 'ids'])
+        ->name('reportes.dbf-files-especificos.ids')->middleware('can:dbf-files-especificos.ver');
+    Route::get('dbf-files-especificos/historial', [ReporteDbfFilesEspecificosController::class, 'historial'])
+        ->name('reportes.dbf-files-especificos.historial')->middleware('can:dbf-files-especificos.ver');
+
+    // REPORTE: DBF Files QuickBCK Conciliación
+    Route::get('dbf-files-quickbck', [ReporteDbfFilesQuickbckController::class, 'index'])
+        ->name('reportes.dbf-files-quickbck')->middleware('can:dbf-files-quickbck.ver');
+    Route::get('dbf-files-quickbck/data', [ReporteDbfFilesQuickbckController::class, 'data'])
+        ->name('reportes.dbf-files-quickbck.data')->middleware('can:dbf-files-quickbck.ver');
+    Route::get('dbf-files-quickbck/export', [ReporteDbfFilesQuickbckController::class, 'export'])
+        ->name('reportes.dbf-files-quickbck.export')->middleware('can:dbf-files-quickbck.ver');
+    Route::post('dbf-files-quickbck/sync', [ReporteDbfFilesQuickbckController::class, 'sync'])
+        ->name('reportes.dbf-files-quickbck.sync')->middleware('can:dbf-files-quickbck.ver');
+
     // REPORTE: Vales
     Route::get('vales', [ReporteValesController::class, 'index'])
         ->name('reportes.vales')->middleware('can:reportes.vales.ver');
@@ -259,6 +296,20 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
     Route::get('distribuciones/por-usuario', [ReporteDistribucionesController::class, 'porUsuario'])
         ->name('reportes.distribuciones.por-usuario')->middleware('can:reportes.distribuciones.ver');
 
+    // Reporte: API Demo
+    Route::get('api-demo', [ReporteApiDemoController::class, 'index'])
+        ->name('reportes.api-demo')->middleware('can:reportes.api-demo.ver');
+    Route::get('api-demo/data', [ReporteApiDemoController::class, 'data'])
+        ->name('reportes.api-demo.data')->middleware('can:reportes.api-demo.ver');
+
+    // Reporte de Autorizaciones
+    Route::get('authorization-report', [AuthorizationReportController::class, 'index'])
+        ->name('reportes.authorization-report.index')->middleware('can:reportes.ver');
+    Route::get('authorization-report/data', [AuthorizationReportController::class, 'data'])
+        ->name('reportes.authorization-report.data')->middleware('can:reportes.ver');
+    Route::get('authorization-report/export', [AuthorizationReportController::class, 'export'])
+        ->name('reportes.authorization-report.export')->middleware('can:reportes.ver');
+
 });
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:admin.ver')->group(function () {
@@ -278,6 +329,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::post('groups/import-excel', [GroupsController::class, 'importExcel'])->name('groups.import-excel');
     Route::resource('groups', GroupsController::class);
     Route::resource('agent-versions', AgentVersionsController::class);
+    Route::post('agent-versions/{agentVersion}/deploy', [AgentVersionsController::class, 'deploy'])->name('agent-versions.deploy');
+    Route::post('agent-versions/{agentVersion}/activate', [AgentVersionsController::class, 'activate'])->name('agent-versions.activate');
+    Route::delete('agent-versions/{agentVersion}/force-delete', [AgentVersionsController::class, 'forceDelete'])->name('agent-versions.force-delete');
     Route::resource('resurtido-agent-versions', ResurtidoAgentVersionsController::class);
     Route::post('resurtido-agent-versions/{resurtido_agent_version}/deploy', [ResurtidoAgentVersionsController::class, 'deploy'])->name('resurtido-agent-versions.deploy');
 
@@ -292,6 +346,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
 
     Route::resource('file-lists', FileListsController::class)->except(['create', 'show', 'edit']);
     Route::post('file-lists/validate', [FileListsController::class, 'validateFiles'])->name('file-lists.validate');
+
+    // Modules
+    Route::resource('modules', ModulesController::class)->except(['create', 'show', 'edit']);
+
+    // Authorizable Emails
+    Route::resource('authorizable-emails', AuthorizableEmailsController::class)->except(['create', 'show', 'edit']);
 
     // Agent Defaults - Archivos Predeterminados
     Route::post('agent-defaults/{category}/toggle-auto-sync', [AgentDefaultsController::class, 'toggleAutoSync'])->name('agent-defaults.toggle-auto-sync');

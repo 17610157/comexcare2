@@ -83,6 +83,7 @@ class ReporteDistribucionesController extends Controller
                     'created_by' => $distribution->creator?->name ?? 'N/A',
                     'created_by_id' => $distribution->creator?->id,
                     'created_at' => $distribution->created_at?->format('Y-m-d H:i:s'),
+                    'updated_at' => $distribution->updated_at?->format('Y-m-d H:i:s'),
                     'total_targets' => $totalTargets,
                     'completed_targets' => $completedTargets,
                     'failed_targets' => $failedTargets,

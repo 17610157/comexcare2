@@ -1,10 +1,10 @@
 @extends('adminlte::page')
 
-@section('title', 'Computadora: ' . $computer->computer_name)
+@section('title', 'Computadora: ' . ($computer->nombre_instalacion ?? $computer->computer_name))
 
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
-        <h1>{{ $computer->computer_name }}</h1>
+        <h1>{{ $computer->nombre_instalacion ?? $computer->computer_name }}</h1>
         <div class="d-flex align-items-center gap-2">
             <form action="{{ route('admin.computers.destroy', $computer) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta computadora?');">
                 @csrf
@@ -30,7 +30,7 @@
                 </div>
                 <div class="card-body">
                     <table class="table table-sm">
-                        <tr><th width="40%">Nombre:</th><td>{{ $computer->computer_name }}</td></tr>
+                        <tr><th width="40%">Nombre:</th><td>{{ $computer->nombre_instalacion ?? $computer->computer_name }}</td></tr>
                         @if($computer->short_key)
                         <tr><th>Clave Corta:</th><td><span class="badge badge-info">{{ $computer->short_key }}</span></td></tr>
                         @endif

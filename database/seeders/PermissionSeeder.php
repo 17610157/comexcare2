@@ -60,6 +60,7 @@ class PermissionSeeder extends Seeder
             'distribution.crear',
             'distribution.editar',
             'distribution.eliminar',
+            'distribution.ver_todas',
 
             // Distributions (alternativo)
             'distributions.ver',
@@ -238,6 +239,22 @@ class PermissionSeeder extends Seeder
             'file-lists.crear',
             'file-lists.editar',
             'file-lists.eliminar',
+            'file-lists.autorizar',
+
+            // Modules
+            'modules.ver',
+            'modules.crear',
+            'modules.editar',
+            'modules.eliminar',
+
+            // Authorizable Emails
+            'authorizable-emails.ver',
+            'authorizable-emails.crear',
+            'authorizable-emails.editar',
+            'authorizable-emails.eliminar',
+
+            // Authorization Report
+            'authorization-report.ver',
 
             // Agent Defaults
             'agent-defaults.ver',
@@ -247,6 +264,13 @@ class PermissionSeeder extends Seeder
 
             // DBF Files
             'dbf-files.ver',
+
+            // DBF Files Especificos
+            'dbf-files-especificos.ver',
+            'dbf-files-especificos.ejecutar',
+
+            // DBF Files QuickBCK Conciliación
+            'dbf-files-quickbck.ver',
 
             // Agent Defaults
             'agent-defaults.ver',
@@ -266,6 +290,9 @@ class PermissionSeeder extends Seeder
             'reportes.redenciones-completo.editar',
             'reportes.redenciones-completo.filtrar',
             'reportes.redenciones-completo.exportar',
+
+            // API Demo
+            'reportes.api-demo.ver',
         ];
 
         foreach ($permissions as $permission) {

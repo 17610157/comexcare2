@@ -1,10 +1,10 @@
 @extends('adminlte::page')
 
-@section('title', 'Recepción: ' . $computer->computer_name)
+@section('title', 'Recepción: ' . ($computer->nombre_instalacion ?? $computer->computer_name))
 
 @section('content_header')
     <div class="d-flex justify-content-between align-items-center">
-        <h1><i class="fas fa-upload"></i> Recepción: {{ $computer->computer_name }}</h1>
+        <h1><i class="fas fa-upload"></i> Recepción: {{ $computer->nombre_instalacion ?? $computer->computer_name }}</h1>
         <a href="{{ route('admin.reception.index') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Volver
         </a>
@@ -21,7 +21,7 @@
                 </div>
                 <div class="card-body">
                     <table class="table table-sm">
-                        <tr><th width="40%">Nombre:</th><td>{{ $computer->computer_name }}</td></tr>
+                        <tr><th width="40%">Nombre:</th><td>{{ $computer->nombre_instalacion ?? $computer->computer_name }}</td></tr>
                         <tr><th>Short Key:</th>
                             <td>
                                 @if($computer->short_key)

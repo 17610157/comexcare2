@@ -37,19 +37,26 @@ class RoleSeeder extends Seeder
             'reportes.redenciones_club.ver', 'reportes.redenciones_club.editar', 'reportes.redenciones_club.sincronizar', 'reportes.redenciones_club.exportar', 'reportes.redenciones_club.filtrar',
             'reportes.desglose.ver', 'reportes.vales.ver', 'reportes.vales.editar',
             'reportes.distribuciones.ver',
+            'reportes.api-demo.ver',
         ];
 
         $metasPermissions = ['metas.ver', 'metas.crear', 'metas.editar', 'metas.eliminar', 'metas.importar'];
 
         $distributionPermissions = [
-            'distribution.ver', 'distribution.crear', 'distribution.editar', 'distribution.eliminar',
+            'distribution.ver', 'distribution.crear', 'distribution.editar', 'distribution.eliminar', 'distribution.ver_todas',
             'reception.ver', 'reception.crear', 'reception.editar', 'reception.eliminar',
             'computers.ver', 'computers.crear', 'computers.editar', 'computers.eliminar',
             'groups.ver', 'groups.crear', 'groups.editar', 'groups.eliminar',
             'agent-versions.ver', 'agent-versions.crear', 'agent-versions.eliminar',
             'dbf-files.ver',
-            'file-lists.ver', 'file-lists.crear', 'file-lists.editar', 'file-lists.eliminar',
+            'dbf-files-especificos.ver',
+            'dbf-files-especificos.ejecutar',
+            'dbf-files-quickbck.ver',
+            'file-lists.ver', 'file-lists.crear', 'file-lists.editar', 'file-lists.eliminar', 'file-lists.autorizar',
             'agent-defaults.ver', 'agent-defaults.crear', 'agent-defaults.editar', 'agent-defaults.eliminar',
+            'modules.ver', 'modules.crear', 'modules.editar', 'modules.eliminar',
+            'authorizable-emails.ver', 'authorizable-emails.crear', 'authorizable-emails.editar', 'authorizable-emails.eliminar',
+            'authorization-report.ver',
         ];
 
         $userPlazaPermissions = ['user-plaza-tienda.ver', 'user-plaza-tienda.editar'];

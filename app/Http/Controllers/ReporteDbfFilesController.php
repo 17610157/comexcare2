@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Computer;
 use App\Models\Group;
+use App\Models\RbfFileHash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -51,6 +52,18 @@ class ReporteDbfFilesController extends Controller
         sort($archivos);
 
         return $archivos;
+    }
+
+    private function getRbfHashLookup(): array
+    {
+        $map = [];
+        $records = RbfFileHash::all();
+        foreach ($records as $r) {
+            $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.($r->name ?? '');
+            $map[$key] = $r;
+        }
+
+        return $map;
     }
 
     private function formatAgentModifiedTime($modified)
@@ -114,14 +127,38 @@ class ReporteDbfFilesController extends Controller
         return "'{$value}";
     }
 
+    private function isValidDbfFile(array $file): bool
+    {
+        return true;
+    }
+
+    private function getFileCategory(array $file): string
+    {
+        $name = $file['name'] ?? '';
+        $path = $file['path'] ?? '';
+        $ext = strtoupper(pathinfo($name, PATHINFO_EXTENSION));
+
+        if ($ext === 'EXE') {
+            return 'exe';
+        }
+
+        if (stripos($path, 'quickbck') !== false || stripos($name, 'quickbck') !== false) {
+            return 'quickbck';
+        }
+
+        return 'other';
+    }
+
     public function data(Request $request)
     {
-        $draw = (int) $request->input('draw', 1);
-        $startIdx = (int) $request->input('start', 0);
-        $length = (int) $request->input('length', 50);
-        $search = $request->input('search.value', '');
+        $draw = (int) ($request->query('draw') ?? $request->input('draw', 1));
+        $startIdx = (int) ($request->query('start') ?? $request->input('start', 0));
+        $length = (int) ($request->query('length') ?? $request->input('length', 50));
+        $search = $request->query('search') ?? $request->input('search.value', '');
         $lengthInt = (int) $length;
         $offsetInt = (int) $startIdx;
+        $sortColumn = $request->query('sort') ?? 'nombre_instalacion';
+        $sortDirection = $request->query('direction') ?? 'asc';
 
         try {
             $query = Computer::with('group');
@@ -141,43 +178,259 @@ class ReporteDbfFilesController extends Controller
                 $query->where('agent_config', 'ILIKE', '%'.$archivoInput.'%');
             }
 
+            $hashInput = $request->query('hash') ?? $request->input('hash');
+            if (! empty($hashInput)) {
+                $query->where('agent_config', 'ILIKE', '%'.$hashInput.'%');
+            }
+
             if (! empty($search)) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('computer_name', 'ILIKE', '%'.$search.'%')
+                    $q->where('nombre_instalacion', 'ILIKE', '%'.$search.'%')
                         ->orWhere('ip_address', 'ILIKE', '%'.$search.'%');
                 });
             }
 
-            $total = $query->count();
+            $allComputers = $query->orderBy('nombre_instalacion')->get();
 
-            $computers = $query->orderBy('computer_name')
-                ->offset($offsetInt)
-                ->limit($lengthInt)
-                ->get();
+            $rbfLookup = $this->getRbfHashLookup();
 
-            $data = $computers->map(function ($computer) {
+            $globalMatched = 0;
+            $globalTotal = 0;
+            $plazaStats = [];
+            $fileStats = [];
+            $groupStats = [];
+            $computerOutdated = [];
+            $computerMatchMap = [];
+            $globalCategoryStats = ['exe' => ['total' => 0, 'matched' => 0], 'quickbck' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
+
+            foreach ($allComputers as $computer) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
+                $dbfFiles = array_filter($dbfFiles, fn ($f) => $this->isValidDbfFile($f));
+                $plaza = $computer->plaza ?? 'N/A';
+                $groupName = $computer->group->name ?? 'N/A';
+                $isOnline = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5;
+                $computerMatched = 0;
+                $categoryStats = ['exe' => ['total' => 0, 'matched' => 0], 'quickbck' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
 
+                foreach ($dbfFiles as $file) {
+                    $fileName = $file['name'] ?? 'N/A';
+                    $key = strtolower($computer->plaza ?? '').'|'.($file['hash_md5'] ?? '').'|'.$fileName;
+                    $isMatched = isset($rbfLookup[$key]);
+                    $cat = $this->getFileCategory($file);
+
+                    $categoryStats[$cat]['total']++;
+                    if ($isMatched) {
+                        $computerMatched++;
+                        $categoryStats[$cat]['matched']++;
+                    }
+
+                    if (! isset($fileStats[$fileName])) {
+                        $fileStats[$fileName] = ['total' => 0, 'matched' => 0];
+                    }
+                    $fileStats[$fileName]['total']++;
+                    if ($isMatched) {
+                        $fileStats[$fileName]['matched']++;
+                    }
+                }
+
+                $computerTotal = count($dbfFiles);
+                $computerMatchMap[$computer->id] = [
+                    'matched' => $computerMatched,
+                    'total' => $computerTotal,
+                    'exe' => $categoryStats['exe'],
+                    'quickbck' => $categoryStats['quickbck'],
+                    'other' => $categoryStats['other'],
+                ];
+
+                foreach ($categoryStats as $cat => $stats) {
+                    $globalCategoryStats[$cat]['total'] += $stats['total'];
+                    $globalCategoryStats[$cat]['matched'] += $stats['matched'];
+                }
+
+                $globalMatched += $computerMatched;
+                $globalTotal += $computerTotal;
+
+                if (! isset($plazaStats[$plaza])) {
+                    $plazaStats[$plaza] = ['total' => 0, 'matched' => 0];
+                }
+                $plazaStats[$plaza]['total'] += $computerTotal;
+                $plazaStats[$plaza]['matched'] += $computerMatched;
+
+                if (! isset($groupStats[$groupName])) {
+                    $groupStats[$groupName] = ['total' => 0, 'online' => 0, 'offline' => 0];
+                }
+                $groupStats[$groupName]['total']++;
+                if ($isOnline) {
+                    $groupStats[$groupName]['online']++;
+                } else {
+                    $groupStats[$groupName]['offline']++;
+                }
+
+                $computerUnmatched = $computerTotal - $computerMatched;
+                if ($computerUnmatched > 0) {
+                    $computerOutdated[] = [
+                        'name' => $computer->nombre_instalacion,
+                        'plaza' => $plaza,
+                        'group' => $groupName,
+                        'total' => $computerTotal,
+                        'matched' => $computerMatched,
+                        'unmatched' => $computerUnmatched,
+                    ];
+                }
+            }
+
+            $estadoInput = $request->query('estado') ?? $request->input('estado', '');
+            if (! empty($estadoInput) && in_array($estadoInput, ['actualizado', 'desactualizado'])) {
+                $allComputers = $allComputers->filter(function ($computer) use ($computerMatchMap, $estadoInput) {
+                    $map = $computerMatchMap[$computer->id] ?? ['matched' => 0, 'total' => 0];
+                    if ($map['total'] === 0) {
+                        return $estadoInput === 'desactualizado';
+                    }
+                    $allMatched = $map['matched'] === $map['total'];
+
+                    return $estadoInput === 'actualizado' ? $allMatched : ! $allMatched;
+                })->values();
+            }
+
+            $total = $allComputers->count();
+
+            $allComputers = $allComputers->sortBy(function ($computer) use ($computerMatchMap, $sortColumn) {
+                $map = $computerMatchMap[$computer->id] ?? ['matched' => 0, 'total' => 0, 'exe' => ['total' => 0, 'matched' => 0], 'quickbck' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
+                $total = $map['total'];
+                $matched = $map['matched'];
+                $pct = $total > 0 ? round(($matched / $total) * 100) : 0;
+
+                return match ($sortColumn) {
+                    'nombre_instalacion' => strtolower($computer->nombre_instalacion ?? ''),
+                    'plaza' => strtolower($computer->plaza ?? ''),
+                    'group_name' => strtolower($computer->group->name ?? ''),
+                    'status' => ($computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5) ? 0 : 1,
+                    'last_seen' => $computer->last_seen ? $computer->last_seen->timestamp : 0,
+                    'dbf_files_count' => $total,
+                    'dbf_files_matched' => $matched,
+                    'pct' => $pct,
+                    default => strtolower($computer->nombre_instalacion ?? ''),
+                };
+            }, SORT_REGULAR, $sortDirection === 'desc')->values();
+
+            $computers = $allComputers->slice($offsetInt, $lengthInt);
+
+            $fileCategoryFilter = $request->query('file_category') ?? '';
+            $data = $computers->map(function ($computer) use ($rbfLookup, $fileCategoryFilter) {
+                $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
+                $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->isValidDbfFile($f)));
+
+                $dbfFiles = array_map(function ($file) use ($computer, $rbfLookup) {
+                    $key = strtolower($computer->plaza ?? '').'|'.($file['hash_md5'] ?? '').'|'.($file['name'] ?? '');
+                    $rbfRecord = $rbfLookup[$key] ?? null;
+                    $file['rbf_path'] = $rbfRecord ? $rbfRecord->path : null;
+                    $file['rbf_hash'] = $rbfRecord ? $rbfRecord->hash : null;
+                    $file['rbf_matched'] = $rbfRecord !== null;
+
+                    unset($file['checksum']);
+
+                    return $file;
+                }, $dbfFiles);
+
+                if (! empty($fileCategoryFilter) && in_array($fileCategoryFilter, ['exe', 'quickbck', 'other'])) {
+                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->getFileCategory($f) === $fileCategoryFilter));
+                }
+
+                $computerMatched = count(array_filter($dbfFiles, fn ($f) => $f['rbf_matched']));
                 $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
 
                 return [
                     'id' => $computer->id,
-                    'computer_name' => $computer->computer_name,
+                    'nombre_instalacion' => $computer->nombre_instalacion,
                     'plaza' => $computer->plaza ?? 'N/A',
                     'group_name' => $computer->group->name ?? 'N/A',
                     'group_id' => $computer->group_id,
                     'status' => $status,
                     'last_seen' => $computer->last_seen ? $computer->last_seen->format('Y-m-d H:i:s') : 'Never',
                     'dbf_files_count' => count($dbfFiles),
+                    'dbf_files_matched' => $computerMatched,
                     'dbf_files' => $dbfFiles,
+                    'pvsi_bepartners_version' => $computer->pvsi_bepartners_version ?? null,
+                    'pvsi_bepartners_fecha' => $computer->pvsi_bepartners_fecha ?? null,
+                    'pvsi_bepartners_hora' => $computer->pvsi_bepartners_hora ?? null,
                 ];
             });
+
+            $perPlaza = [];
+            foreach ($plazaStats as $plaza => $stats) {
+                $perPlaza[] = [
+                    'plaza' => $plaza,
+                    'total' => $stats['total'],
+                    'matched' => $stats['matched'],
+                    'unmatched' => $stats['total'] - $stats['matched'],
+                    'percent' => $stats['total'] > 0 ? round(($stats['matched'] / $stats['total']) * 100, 1) : 0,
+                ];
+            }
+
+            usort($perPlaza, fn ($a, $b) => $b['total'] <=> $a['total']);
+
+            $perFile = [];
+            foreach ($fileStats as $name => $stats) {
+                $perFile[] = [
+                    'name' => $name,
+                    'total' => $stats['total'],
+                    'matched' => $stats['matched'],
+                    'unmatched' => $stats['total'] - $stats['matched'],
+                    'percent' => $stats['total'] > 0 ? round(($stats['matched'] / $stats['total']) * 100, 1) : 0,
+                ];
+            }
+            usort($perFile, fn ($a, $b) => $b['total'] <=> $a['total']);
+            $perFile = array_slice($perFile, 0, 15);
+
+            $perGroup = [];
+            foreach ($groupStats as $name => $stats) {
+                $perGroup[] = [
+                    'name' => $name,
+                    'total' => $stats['total'],
+                    'online' => $stats['online'],
+                    'offline' => $stats['offline'],
+                ];
+            }
+            usort($perGroup, fn ($a, $b) => $b['total'] <=> $a['total']);
+
+            usort($computerOutdated, fn ($a, $b) => $b['unmatched'] <=> $a['unmatched']);
+            $topOutdated = array_slice($computerOutdated, 0, 10);
 
             return response()->json([
                 'draw' => $draw,
                 'recordsTotal' => (int) $total,
                 'recordsFiltered' => (int) $total,
                 'data' => $data,
+                'rbf_stats' => [
+                    'total_files' => $globalTotal,
+                    'total_matched' => $globalMatched,
+                    'total_unmatched' => $globalTotal - $globalMatched,
+                    'percent' => $globalTotal > 0 ? round(($globalMatched / $globalTotal) * 100, 1) : 0,
+                    'per_category' => [
+                        'exe' => [
+                            'total' => $globalCategoryStats['exe']['total'],
+                            'matched' => $globalCategoryStats['exe']['matched'],
+                            'unmatched' => $globalCategoryStats['exe']['total'] - $globalCategoryStats['exe']['matched'],
+                            'percent' => $globalCategoryStats['exe']['total'] > 0 ? round(($globalCategoryStats['exe']['matched'] / $globalCategoryStats['exe']['total']) * 100, 1) : 0,
+                        ],
+                        'quickbck' => [
+                            'total' => $globalCategoryStats['quickbck']['total'],
+                            'matched' => $globalCategoryStats['quickbck']['matched'],
+                            'unmatched' => $globalCategoryStats['quickbck']['total'] - $globalCategoryStats['quickbck']['matched'],
+                            'percent' => $globalCategoryStats['quickbck']['total'] > 0 ? round(($globalCategoryStats['quickbck']['matched'] / $globalCategoryStats['quickbck']['total']) * 100, 1) : 0,
+                        ],
+                        'other' => [
+                            'total' => $globalCategoryStats['other']['total'],
+                            'matched' => $globalCategoryStats['other']['matched'],
+                            'unmatched' => $globalCategoryStats['other']['total'] - $globalCategoryStats['other']['matched'],
+                            'percent' => $globalCategoryStats['other']['total'] > 0 ? round(($globalCategoryStats['other']['matched'] / $globalCategoryStats['other']['total']) * 100, 1) : 0,
+                        ],
+                    ],
+                    'per_plaza' => $perPlaza,
+                    'per_file' => $perFile,
+                    'per_group' => $perGroup,
+                    'top_outdated' => $topOutdated,
+                ],
             ])->header('Cache-Control', 'no-cache, no-store, must-revalidate');
         } catch (\Exception $e) {
             Log::error('DbfFiles data error: '.$e->getMessage());
@@ -197,7 +450,8 @@ class ReporteDbfFilesController extends Controller
         try {
             $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
             $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
-            $archivo = $request->query('archivo') ?? $request->input('archivo', '');
+            $fileCategory = $request->query('file_category') ?? $request->input('file_category', '');
+            $hash = $request->query('hash') ?? $request->input('hash', '');
 
             $query = Computer::with('group');
 
@@ -209,20 +463,34 @@ class ReporteDbfFilesController extends Controller
                 $query->whereIn('group_id', $groupInput);
             }
 
-            if (! empty($archivo)) {
-                $query->where('agent_config', 'ILIKE', '%'.$archivo.'%');
+            if (! empty($hash)) {
+                $query->where('agent_config', 'ILIKE', '%'.$hash.'%');
             }
 
-            $computers = $query->orderBy('computer_name')->get();
+            $computers = $query->orderBy('nombre_instalacion')->get();
 
-            error_log('DbfFiles Export - Total computers found: '.$computers->count().' for archivo: '.$archivo);
+            $rbfLookup = $this->getRbfHashLookup();
 
-            $computersData = $computers->map(function ($computer) {
+            $computersData = $computers->map(function ($computer) use ($rbfLookup, $fileCategory) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
+
+                $dbfFiles = array_map(function ($file) use ($computer, $rbfLookup) {
+                    $key = strtolower($computer->plaza ?? '').'|'.($file['hash_md5'] ?? '').'|'.($file['name'] ?? '');
+                    $rbfRecord = $rbfLookup[$key] ?? null;
+                    $file['rbf_path'] = $rbfRecord ? $rbfRecord->path : null;
+                    $file['rbf_hash'] = $rbfRecord ? $rbfRecord->hash : null;
+
+                    return $file;
+                }, $dbfFiles);
+
+                if (! empty($fileCategory) && in_array($fileCategory, ['exe', 'quickbck', 'other'])) {
+                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->getFileCategory($f) === $fileCategory));
+                }
+
                 $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
 
                 return [
-                    'computer_name' => $computer->computer_name,
+                    'nombre_instalacion' => $computer->nombre_instalacion,
                     'short_key' => $computer->short_key ?? '',
                     'plaza' => $computer->plaza ?? 'N/A',
                     'group_name' => $computer->group->name ?? 'N/A',
@@ -246,9 +514,9 @@ class ReporteDbfFilesController extends Controller
                 fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
                 fputcsv($output, [
-                    'Computadora', 'ShortKey', 'Plaza', 'Grupo', 'Estado', 'Última Conexión',
-                    'Archivo DBF', 'Ruta', 'Tamaño (KB)', 'Última Modificación',
-                    'SHA-256', 'MD5',
+                    'Computadora', 'ShortKey', 'Plaza', 'Grupo', 'Estado', 'Ultima Conexion',
+                    'Archivo', 'Ruta', 'Tamano (KB)', 'Ultima Modificacion',
+                    'MD5', 'Ruta RBF', 'Hash RBF',
                 ]);
 
                 foreach ($computersData as $computer) {
@@ -256,13 +524,14 @@ class ReporteDbfFilesController extends Controller
 
                     if (empty($dbfFiles)) {
                         fputcsv($output, [
-                            $computer['computer_name'],
+                            $computer['nombre_instalacion'],
                             $computer['short_key'],
                             $computer['plaza'],
                             $computer['group_name'],
                             $computer['status'],
                             $computer['last_seen'],
                             'Sin archivos',
+                            '',
                             '',
                             '',
                             '',
@@ -279,7 +548,7 @@ class ReporteDbfFilesController extends Controller
                             $modified = $this->excelTextValue($this->formatAgentModifiedTime($dbfFile['modified'] ?? ''));
 
                             fputcsv($output, [
-                                $computer['computer_name'],
+                                $computer['nombre_instalacion'],
                                 $computer['short_key'],
                                 $computer['plaza'],
                                 $computer['group_name'],
@@ -289,8 +558,9 @@ class ReporteDbfFilesController extends Controller
                                 $dbfFile['path'] ?? '',
                                 $sizeKb,
                                 $modified,
-                                $dbfFile['checksum'] ?? '',
                                 $dbfFile['hash_md5'] ?? '',
+                                $dbfFile['rbf_path'] ?? '',
+                                $dbfFile['rbf_hash'] ?? '',
                             ]);
                         }
                     }
@@ -312,7 +582,8 @@ class ReporteDbfFilesController extends Controller
     {
         $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
         $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
-        $archivo = $request->query('archivo') ?? $request->input('archivo', '');
+        $fileCategory = $request->query('file_category') ?? $request->input('file_category', '');
+        $hash = $request->query('hash') ?? $request->input('hash', '');
         $format = $request->query('format', 'json');
 
         $query = Computer::with('group');
@@ -325,20 +596,32 @@ class ReporteDbfFilesController extends Controller
             $query->whereIn('group_id', $groupInput);
         }
 
-        if (! empty($archivo)) {
-            $query->where('agent_config', 'ILIKE', '%'.$archivo.'%');
+        if (! empty($hash)) {
+            $query->where('agent_config', 'ILIKE', '%'.$hash.'%');
         }
 
-        $computers = $query->orderBy('computer_name')->get();
+        $computers = $query->orderBy('nombre_instalacion')->get();
+
+        $rbfLookup = $this->getRbfHashLookup();
 
         $rows = [];
         foreach ($computers as $computer) {
             $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
+            $dbfFiles = array_filter($dbfFiles, fn ($f) => $this->isValidDbfFile($f));
             $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
 
             foreach ($dbfFiles as $dbfFile) {
+                $category = $this->getFileCategory($dbfFile);
+
+                if (! empty($fileCategory) && in_array($fileCategory, ['exe', 'quickbck', 'other']) && $category !== $fileCategory) {
+                    continue;
+                }
+
+                $key = strtolower($computer->plaza ?? '').'|'.($dbfFile['hash_md5'] ?? '').'|'.($dbfFile['name'] ?? '');
+                $rbfRecord = $rbfLookup[$key] ?? null;
+
                 $rows[] = [
-                    'computadora' => $computer->computer_name,
+                    'computadora' => $computer->nombre_instalacion,
                     'short_key' => $computer->short_key ?? '',
                     'plaza' => $computer->plaza ?? 'N/A',
                     'grupo' => $computer->group->name ?? 'N/A',
@@ -348,8 +631,9 @@ class ReporteDbfFilesController extends Controller
                     'ruta' => $dbfFile['path'] ?? '',
                     'tamano_kb' => isset($dbfFile['size']) ? round($dbfFile['size'] / 1024, 2) : null,
                     'ultima_modificacion' => $this->formatAgentModifiedTime($dbfFile['modified'] ?? ''),
-                    'sha256' => $dbfFile['checksum'] ?? '',
                     'md5' => $dbfFile['hash_md5'] ?? '',
+                    'ruta_rbf' => $rbfRecord->path ?? null,
+                    'hash_rbf' => $rbfRecord->hash ?? null,
                 ];
             }
         }
@@ -370,7 +654,7 @@ class ReporteDbfFilesController extends Controller
                 fputcsv($output, [
                     'Computadora', 'ShortKey', 'Plaza', 'Grupo', 'Estado', 'UltimaConexion',
                     'Archivo', 'Ruta', 'TamanoKB', 'UltimaModificacion',
-                    'SHA256', 'MD5',
+                    'MD5', 'RutaRBF', 'HashRBF',
                 ]);
 
                 foreach ($rows as $row) {
@@ -385,8 +669,9 @@ class ReporteDbfFilesController extends Controller
                         $row['ruta'],
                         $row['tamano_kb'],
                         $row['ultima_modificacion'],
-                        $row['sha256'],
                         $row['md5'],
+                        $row['ruta_rbf'] ?? '',
+                        $row['hash_rbf'] ?? '',
                     ]);
                 }
 

@@ -27,6 +27,8 @@
                                 <th>Tipo</th>
                                 <th>Nombre de Archivo</th>
                                 <th>Descripción</th>
+                                <th>Módulo</th>
+                                <th>Estado</th>
                                 <th>Creado por</th>
                                 <th>Fecha</th>
                                 <th>Acciones</th>
@@ -45,6 +47,14 @@
                                     </td>
                                     <td><code>{{ $item->file_name }}</code></td>
                                     <td>{{ $item->description ?? '-' }}</td>
+                                    <td>{{ $item->module->name ?? '-' }}</td>
+                                    <td>
+                                        @if($item->status === 'active')
+                                            <span class="badge badge-success">Activo</span>
+                                        @else
+                                            <span class="badge badge-warning">Pendiente</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $item->creator->name ?? 'N/A' }}</td>
                                     <td>{{ $item->created_at->format('d/m/Y H:i') }}</td>
                                     <td>

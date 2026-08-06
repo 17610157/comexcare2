@@ -21,11 +21,16 @@ class DistributionsController extends Controller
 {
     public function index()
     {
-        $distributions = Distribution::with(['creator', 'files', 'targets.computer'])
-            ->orderBy('id', 'desc')
-            ->get();
+        $query = Distribution::with(['creator', 'files', 'targets.computer'])
+            ->orderBy('id', 'desc');
+
+        if (! Auth::user()->hasPermissionTo('distribution.ver_todas')) {
+            $query->where('created_by', Auth::id());
+        }
+
+        $distributions = $query->get();
         $groups = Group::all();
-        $computers = Computer::select('id', 'computer_name', 'short_key')->orderBy('computer_name')->get();
+        $computers = Computer::select('id', 'nombre_instalacion', 'short_key')->orderBy('nombre_instalacion')->get();
 
         return view('admin.distributions.index', compact('distributions', 'groups', 'computers'));
     }
@@ -33,7 +38,7 @@ class DistributionsController extends Controller
     public function create()
     {
         $groups = Group::all();
-        $computers = Computer::select('id', 'computer_name', 'short_key')->orderBy('computer_name')->get();
+        $computers = Computer::select('id', 'nombre_instalacion', 'short_key')->orderBy('nombre_instalacion')->get();
 
         return view('admin.distributions.create', compact('groups', 'computers'));
     }
@@ -115,6 +120,8 @@ class DistributionsController extends Controller
 
     public function show(Distribution $distribution)
     {
+        $this->authorizeDistributionAccess($distribution);
+
         $distribution->load('files', 'targets.computer');
 
         return view('admin.distributions.show', compact('distribution'));
@@ -122,6 +129,8 @@ class DistributionsController extends Controller
 
     public function destroy(Distribution $distribution)
     {
+        $this->authorizeDistributionAccess($distribution);
+
         AuditLog::create([
             'user_id' => Auth::id(),
             'action' => 'delete',
@@ -152,6 +161,8 @@ class DistributionsController extends Controller
 
     public function stop(Distribution $distribution)
     {
+        $this->authorizeDistributionAccess($distribution);
+
         $distribution->update(['status' => 'stopped']);
 
         if (request()->expectsJson()) {
@@ -165,6 +176,8 @@ class DistributionsController extends Controller
 
     public function start(Distribution $distribution, DistributionService $service)
     {
+        $this->authorizeDistributionAccess($distribution);
+
         $distribution->update(['status' => 'pending']);
 
         $service->startDistribution($distribution);
@@ -180,6 +193,8 @@ class DistributionsController extends Controller
 
     public function retryTarget(DistributionTarget $target)
     {
+        $this->authorizeDistributionAccess($target->distribution);
+
         $target->update([
             'status' => 'pending',
             'error_message' => null,
@@ -195,6 +210,8 @@ class DistributionsController extends Controller
 
     public function update(Request $request, Distribution $distribution)
     {
+        $this->authorizeDistributionAccess($distribution);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:immediate,scheduled,recurring',
@@ -249,6 +266,8 @@ class DistributionsController extends Controller
 
     public function restart(Distribution $distribution, Request $request, DistributionService $service)
     {
+        $this->authorizeDistributionAccess($distribution);
+
         try {
             DB::beginTransaction();
 
@@ -333,6 +352,13 @@ class DistributionsController extends Controller
             return response()->json([
                 'error' => 'Error al reiniciar distribución: '.$e->getMessage(),
             ], 500);
+        }
+    }
+
+    private function authorizeDistributionAccess(Distribution $distribution): void
+    {
+        if (! Auth::user()->hasPermissionTo('distribution.ver_todas') && $distribution->created_by !== Auth::id()) {
+            abort(403, 'No tiene permiso para acceder a esta distribución.');
         }
     }
 
@@ -423,7 +449,7 @@ class DistributionsController extends Controller
         $targetsData = $targets->map(function ($target) {
             return [
                 'id' => $target->id,
-                'computer_name' => $target->computer->computer_name ?? 'Unknown',
+                'computer_name' => $target->computer->nombre_instalacion ?? 'Unknown',
                 'status' => $target->status,
                 'progress' => $target->progress ?? 0,
                 'error_message' => $target->error_message,

@@ -307,12 +307,12 @@ class AgentControllerTest extends TestCase
     {
         $computer = Computer::factory()->create();
 
-        $pendingCommand = Command::factory()->create([
+        $pendingCommand = Command::factory()->download()->create([
             'computer_id' => $computer->id,
             'status' => 'pending',
         ]);
 
-        $sentCommand = Command::factory()->create([
+        $sentCommand = Command::factory()->execute()->create([
             'computer_id' => $computer->id,
             'status' => 'sent',
         ]);
@@ -322,10 +322,16 @@ class AgentControllerTest extends TestCase
             'status' => 'completed',
         ]);
 
+        $updateCommand = Command::factory()->update()->create([
+            'computer_id' => $computer->id,
+            'status' => 'pending',
+        ]);
+
         $response = $this->getJson("/api/commands/{$computer->id}");
 
         $response->assertStatus(200)
-            ->assertJsonCount(2);
+            ->assertJsonCount(2)
+            ->assertJsonMissing(['id' => $updateCommand->id]);
 
         $response->assertJsonFragment([
             'id' => $pendingCommand->id,
@@ -463,27 +469,82 @@ class AgentControllerTest extends TestCase
 
         $response = $this->getJson('/api/check-update/1.0.0');
 
-        $response->assertStatus(200);
-        $responseData = $response->json();
-        $this->assertArrayHasKey('update_available', $responseData);
+        $response->assertStatus(200)
+            ->assertJson(['update_available' => false]);
     }
 
-    public function test_check_update_returns_update_available()
+    public function test_check_update_returns_update_available_when_pending_command_exists()
     {
-        $currentVersion = AgentVersion::factory()->create(['version' => '1.0.0']);
-        $latestVersion = AgentVersion::factory()->create([
+        $computer = Computer::factory()->create(['id' => 500]);
+        $version = AgentVersion::factory()->create([
             'version' => '2.0.0',
             'is_active' => true,
-            'channel' => 'stable',
             'checksum' => 'abc123',
-            'changelog' => 'New features and bug fixes',
+            'file_path' => 'agent_updates/file.exe',
         ]);
 
-        $response = $this->getJson('/api/check-update/1.0.0');
+        Command::create([
+            'computer_id' => 500,
+            'type' => 'update',
+            'status' => 'pending',
+            'data' => ['version' => '2.0.0', 'checksum' => 'abc123', 'subfolder' => 'agent_update'],
+        ]);
 
-        $response->assertStatus(200);
-        $responseData = $response->json();
-        $this->assertArrayHasKey('update_available', $responseData);
+        $response = $this->getJson('/api/check-update/500');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'update_available' => true,
+                'version' => '2.0.0',
+            ]);
+    }
+
+    public function test_check_update_returns_false_when_no_pending_command()
+    {
+        $computer = Computer::factory()->create(['id' => 501]);
+        AgentVersion::factory()->create(['version' => '2.0.0', 'is_active' => true]);
+
+        $response = $this->getJson('/api/check-update/501');
+
+        $response->assertStatus(200)
+            ->assertJson(['update_available' => false]);
+    }
+
+    public function test_check_update_by_computer_id_returns_update_when_pending_command()
+    {
+        $computer = Computer::factory()->create(['id' => 600]);
+        $version = AgentVersion::factory()->create([
+            'version' => '3.0.0',
+            'is_active' => true,
+            'checksum' => 'def456',
+            'file_path' => 'agent_updates/v3.exe',
+        ]);
+
+        Command::create([
+            'computer_id' => 600,
+            'type' => 'update',
+            'status' => 'pending',
+            'data' => ['version' => '3.0.0', 'checksum' => 'def456', 'subfolder' => 'agent_update'],
+        ]);
+
+        $response = $this->getJson('/api/computer/600/update');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'update_available' => true,
+                'version' => '3.0.0',
+            ]);
+    }
+
+    public function test_check_update_by_computer_id_returns_false_when_no_pending_command()
+    {
+        $computer = Computer::factory()->create(['id' => 601]);
+        AgentVersion::factory()->create(['version' => '3.0.0', 'is_active' => true]);
+
+        $response = $this->getJson('/api/computer/601/update');
+
+        $response->assertStatus(200)
+            ->assertJson(['update_available' => false]);
     }
 
     public function test_check_update_when_no_active_versions()
@@ -741,5 +802,46 @@ class AgentControllerTest extends TestCase
         ])->assertStatus(200);
 
         $this->assertDatabaseCount('agent_default_downloads', 0);
+    }
+
+    public function test_heartbeat_stores_pvsi_bepartners_fields()
+    {
+        $computer = Computer::factory()->create();
+
+        $response = $this->postJson('/api/heartbeat', [
+            'computer_id' => $computer->id,
+            'agent_version' => '1.0.0',
+            'pvsi_bepartners_version' => '1.2.3',
+            'pvsi_bepartners_fecha' => '2026-07-14',
+            'pvsi_bepartners_hora' => '10:30:00',
+        ]);
+
+        $response->assertStatus(200);
+
+        $computer->refresh();
+        $this->assertEquals('1.2.3', $computer->pvsi_bepartners_version);
+        $this->assertEquals('2026-07-14', $computer->pvsi_bepartners_fecha);
+        $this->assertEquals('10:30:00', $computer->pvsi_bepartners_hora);
+    }
+
+    public function test_heartbeat_does_not_overwrite_pvsi_bepartners_when_empty()
+    {
+        $computer = Computer::factory()->create([
+            'pvsi_bepartners_version' => '1.0.0',
+            'pvsi_bepartners_fecha' => '2026-07-13',
+            'pvsi_bepartners_hora' => '09:00:00',
+        ]);
+
+        $response = $this->postJson('/api/heartbeat', [
+            'computer_id' => $computer->id,
+            'agent_version' => '1.0.0',
+        ]);
+
+        $response->assertStatus(200);
+
+        $computer->refresh();
+        $this->assertEquals('1.0.0', $computer->pvsi_bepartners_version);
+        $this->assertEquals('2026-07-13', $computer->pvsi_bepartners_fecha);
+        $this->assertEquals('09:00:00', $computer->pvsi_bepartners_hora);
     }
 }

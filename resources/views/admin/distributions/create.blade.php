@@ -171,9 +171,9 @@
                             <label>Seleccionar Equipos</label>
                             <input type="text" class="form-control mb-2" placeholder="Buscar por nombre o short key..." onkeyup="filterComputers(this, 'createComputersSelect')">
                             <select name="computers[]" id="createComputersSelect" class="form-control" multiple style="height: 150px;">
-                                @foreach(\App\Models\Computer::where('active', true)->orderBy('computer_name')->get() as $computer)
-                                    <option value="{{ $computer->id }}" data-search="{{ strtolower($computer->computer_name.' '.($computer->short_key ?? '')) }}">
-                                        {{ $computer->computer_name }} {{ $computer->short_key ? '('.$computer->short_key.')' : '' }}
+                                @foreach(\App\Models\Computer::where('active', true)->orderBy('nombre_instalacion')->get() as $computer)
+                                    <option value="{{ $computer->id }}" data-search="{{ strtolower($computer->nombre_instalacion.' '.($computer->short_key ?? '')) }}">
+                                        {{ $computer->nombre_instalacion }} {{ $computer->short_key ? '('.$computer->short_key.')' : '' }}
                                     </option>
                                 @endforeach
                             </select>

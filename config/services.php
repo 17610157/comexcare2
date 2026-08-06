@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'conciliacion' => [
+        'hash_archivos_endpoint' => env('CONCILIACION_HASH_ARCHIVOS_ENDPOINT', 'http://a561ebc317a38bf2a238baeb5c53e185.servicios.care/api_conciliaciones/index.php/hash-archivos/consulta'),
+        'hash_archivos_api_key' => env('CONCILIACION_HASH_ARCHIVOS_API_KEY'),
+    ],
+
 ];

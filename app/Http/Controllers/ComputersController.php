@@ -9,14 +9,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\Schema;
 
 class ComputersController extends Controller
 {
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
-            $columns = Schema::getColumnListing('computers');
+            $threshold = now()->subMinutes(5);
 
             $query = Computer::with('group');
 
@@ -24,7 +23,7 @@ class ComputersController extends Controller
             if (! empty($searchValue)) {
                 $query->where(function ($q) use ($searchValue) {
                     $q->where('short_key', 'like', "%{$searchValue}%")
-                        ->orWhere('computer_name', 'like', "%{$searchValue}%")
+                        ->orWhere('nombre_instalacion', 'like', "%{$searchValue}%")
                         ->orWhere('mac_address', 'like', "%{$searchValue}%")
                         ->orWhere('ip_address', 'like', "%{$searchValue}%");
                 });
@@ -39,9 +38,29 @@ class ComputersController extends Controller
             }
 
             if ($request->filled('status_type')) {
-                $query->where('status', $request->status_type);
+                if ($request->status_type === 'online') {
+                    $query->where('last_seen', '>=', $threshold)
+                        ->where('status', '!=', 'updating');
+                } elseif ($request->status_type === 'updating') {
+                    $query->where('last_seen', '>=', $threshold)
+                        ->where('status', 'updating');
+                } elseif ($request->status_type === 'offline') {
+                    $query->where(function ($q) use ($threshold) {
+                        $q->where('last_seen', '<', $threshold)->orWhereNull('last_seen');
+                    });
+                }
             } elseif ($request->filled('status')) {
-                $query->where('status', $request->status);
+                if ($request->status === 'online') {
+                    $query->where('last_seen', '>=', $threshold)
+                        ->where('status', '!=', 'updating');
+                } elseif ($request->status === 'updating') {
+                    $query->where('last_seen', '>=', $threshold)
+                        ->where('status', 'updating');
+                } elseif ($request->status === 'offline') {
+                    $query->where(function ($q) use ($threshold) {
+                        $q->where('last_seen', '<', $threshold)->orWhereNull('last_seen');
+                    });
+                }
             }
 
             if ($request->filled('short_key')) {
@@ -76,18 +95,21 @@ class ComputersController extends Controller
                     return $t->clave_tienda === $t->clave_alterna ? $t->clave_tienda : $t->clave_tienda.'|'.$t->clave_alterna;
                 });
 
-            $data = $computers->map(function ($computer) use ($tiendas) {
-                $tienda = $tiendas->first(function ($t) use ($computer) {
-                    return $t->clave_tienda === $computer->short_key || $t->clave_alterna === $computer->short_key;
-                });
+            $data = $computers->map(function ($computer) use ($threshold) {
                 $plaza = $computer->plaza ?? '';
 
-                $status = $computer->status;
+                if (! $computer->last_seen || $computer->last_seen->lt($threshold)) {
+                    $status = 'offline';
+                } elseif ($computer->status === 'updating') {
+                    $status = 'updating';
+                } else {
+                    $status = 'online';
+                }
 
                 return [
                     'id' => $computer->id,
                     'short_key' => $computer->short_key ?? '-',
-                    'computer_name' => $computer->computer_name,
+                    'nombre_instalacion' => $computer->nombre_instalacion,
                     'status' => $status,
                     'group_name' => $computer->group->name ?? 'N/A',
                     'group_id' => $computer->group_id,
@@ -96,6 +118,9 @@ class ComputersController extends Controller
                     'pvsi_fecha' => $computer->pvsi_fecha ?? '-',
                     'pvsi_hora' => $computer->pvsi_hora ?? '-',
                     'pvsi_files' => $computer->pvsi_files ?? [],
+                    'pvsi_bepartners_version' => $computer->pvsi_bepartners_version ?? '-',
+                    'pvsi_bepartners_fecha' => $computer->pvsi_bepartners_fecha ?? '-',
+                    'pvsi_bepartners_hora' => $computer->pvsi_bepartners_hora ?? '-',
                     'resurtido_version' => $computer->resurtido_version ?? '-',
                     'resurtido_fecha' => $computer->resurtido_fecha ?? '-',
                     'windows_version' => $computer->windows_version ?? '-',
@@ -118,10 +143,9 @@ class ComputersController extends Controller
         }
 
         $groups = Group::orderBy('name')->get();
-        $statuses = Computer::distinct()->pluck('status')->filter()->values()->toArray();
         $plazas = Computer::distinct()->pluck('plaza')->filter()->sort()->values()->toArray();
 
-        return view('admin.computers.index', compact('groups', 'statuses', 'plazas'));
+        return view('admin.computers.index', compact('groups', 'plazas'));
     }
 
     public function show(Computer $computer)
@@ -169,6 +193,7 @@ class ComputersController extends Controller
 
         $request->validate([
             'computer_name' => 'nullable|string|max:255',
+            'nombre_instalacion' => 'nullable|string|max:150',
             'short_key' => 'nullable|string|max:50|unique:computers,short_key,'.$computer->id,
             'group_id' => 'nullable|exists:groups,id',
             'agent_config' => 'nullable|array',
@@ -177,6 +202,7 @@ class ComputersController extends Controller
 
         $fillableFields = [
             'computer_name',
+            'nombre_instalacion',
             'short_key',
             'plaza',
             'group_id',
@@ -271,20 +297,32 @@ class ComputersController extends Controller
 
     public function status(Computer $computer)
     {
+        $threshold = now()->subMinutes(5);
+
+        if (! $computer->last_seen || $computer->last_seen->lt($threshold)) {
+            $status = 'offline';
+        } elseif ($computer->status === 'updating') {
+            $status = 'updating';
+        } else {
+            $status = 'online';
+        }
+
         return response()->json([
-            'status' => $computer->status,
+            'status' => $status,
             'last_seen' => $computer->last_seen?->toIso8601String(),
         ]);
     }
 
     public function export()
     {
-        $computers = Computer::with('group')->orderBy('computer_name')->get();
+        $threshold = now()->subMinutes(5);
+        $computers = Computer::with('group')->orderBy('nombre_instalacion')->get();
 
         $csvData = [];
         $csvData[] = [
             'Short Key', 'Nombre', 'MAC', 'IP', 'Estado', 'Plaza', 'Grupo',
             'Agent', 'PVSI', 'PVSI Fecha', 'PVSI Hora',
+            'PVSI Bepartners', 'PVSI Bepartners Fecha', 'PVSI Bepartners Hora',
             'AgentResurtido', 'Resurtido Fecha',
             'Windows', 'Arquitectura', 'RAM (GB)', 'Disco (GB)',
             'BitLocker', 'Download Path', 'Última Actividad',
@@ -301,11 +339,17 @@ class ComputersController extends Controller
             }
 
             $plaza = $computer->plaza ?? '';
-            $status = $computer->status;
+            if (! $computer->last_seen || $computer->last_seen->lt($threshold)) {
+                $status = 'offline';
+            } elseif ($computer->status === 'updating') {
+                $status = 'updating';
+            } else {
+                $status = 'online';
+            }
 
             $csvData[] = [
                 $computer->short_key ?? '',
-                $computer->computer_name,
+                $computer->nombre_instalacion,
                 $computer->mac_address,
                 $computer->ip_address,
                 $status,
@@ -315,6 +359,9 @@ class ComputersController extends Controller
                 $computer->pvsi_version ?? '',
                 $computer->pvsi_fecha ?? '',
                 $computer->pvsi_hora ?? '',
+                $computer->pvsi_bepartners_version ?? '',
+                $computer->pvsi_bepartners_fecha ?? '',
+                $computer->pvsi_bepartners_hora ?? '',
                 $computer->resurtido_version ?? '',
                 $computer->resurtido_fecha ?? '',
                 $computer->windows_version ?? '',
@@ -383,18 +430,18 @@ class ComputersController extends Controller
 
     private function findDuplicateGroups(): array
     {
-        $duplicateNames = Computer::select('computer_name')
-            ->whereNotNull('computer_name')
-            ->where('computer_name', '!=', '')
-            ->groupBy('computer_name')
+        $duplicateNames = Computer::select('nombre_instalacion')
+            ->whereNotNull('nombre_instalacion')
+            ->where('nombre_instalacion', '!=', '')
+            ->groupBy('nombre_instalacion')
             ->havingRaw('COUNT(*) > 1')
-            ->pluck('computer_name')
+            ->pluck('nombre_instalacion')
             ->toArray();
 
         $groups = [];
 
         foreach ($duplicateNames as $name) {
-            $computers = Computer::where('computer_name', $name)->orderBy('id')->get();
+            $computers = Computer::where('nombre_instalacion', $name)->orderBy('id')->get();
 
             if ($computers->count() > 1) {
                 $groups[] = [
@@ -436,7 +483,7 @@ class ComputersController extends Controller
             'processed' => 1,
             'updated' => 1,
             'deleted' => 1,
-            'computer_name' => $online->computer_name,
+            'nombre_instalacion' => $online->nombre_instalacion,
             'online_id' => $online->id,
             'offline_id' => $offline->id,
             'short_key' => $newShortKey,

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Command;
 use App\Models\Computer;
-use App\Models\ResurtidoAgentVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -112,25 +111,10 @@ class ResurtidoAgentController extends Controller
             return response()->json(['error' => 'Computer no encontrado'], 404);
         }
 
-        $currentVersion = $computer->resurtido_agent_version ?? '0.0.0';
-        $latest = ResurtidoAgentVersion::active()->orderBy('created_at', 'desc')->first();
+        $computer->update(['last_seen' => now(), 'status' => 'online']);
 
-        if (! $latest) {
-            return response()->json(['update_available' => false]);
-        }
-
-        $hasUpdate = version_compare($currentVersion, $latest->version) < 0;
-
-        if (! $hasUpdate) {
-            return response()->json(['update_available' => false]);
-        }
-
-        return response()->json([
-            'update_available' => true,
-            'version' => $latest->version,
-            'download_url' => url('storage/'.$latest->file_path),
-            'checksum' => $latest->checksum,
-        ]);
+        // Auto-update desactivado: las actualizaciones solo se envían por Deploy (Command push)
+        return response()->json(['update_available' => false]);
     }
 
     public function getCommands(Request $request, $computerId)

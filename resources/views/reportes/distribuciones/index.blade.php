@@ -125,7 +125,9 @@
                             <th>Fallidos</th>
                             <th>Pendientes</th>
                             <th>Progreso</th>
-                            <th>Eliminado</th>
+                            <th>Fecha Modificación</th>
+                            <th>Fecha Eliminación</th>
+                            <th>Estado Elim.</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -328,9 +330,15 @@ $(function() {
                     return '<div class="progress" style="height:16px"><div class="progress-bar '+color+'" style="width:'+data+'%">'+data+'%</div></div>';
                 }
             },
+            { data: 'updated_at', className: 'text-center',
+                render: function(data) { return data || '-'; }
+            },
             { data: 'deleted_at', className: 'text-center',
-                render: function(data) {
-                    return data ? '<span class="badge bg-danger">Eliminado</span>' : '<span class="badge bg-success">Activo</span>';
+                render: function(data) { return data || '-'; }
+            },
+            { data: null, className: 'text-center',
+                render: function(data, type, row) {
+                    return row.deleted_at ? '<span class="badge bg-danger">Eliminado</span>' : '<span class="badge bg-success">Activo</span>';
                 }
             },
         ]

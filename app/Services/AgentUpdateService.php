@@ -55,16 +55,16 @@ class AgentUpdateService
         return AgentVersion::findOrFail($id);
     }
 
-    public function deployUpdate(Computer $computer, AgentVersion $version)
+    public function deployUpdate(Computer $computer, AgentVersion $version): void
     {
-        // Send update command
         Command::create([
             'computer_id' => $computer->id,
             'type' => 'update',
             'data' => [
                 'version' => $version->version,
-                'file_id' => null, // Or create a file entry if needed
+                'file_id' => null,
                 'checksum' => $version->checksum,
+                'subfolder' => 'agent_update',
             ],
         ]);
 
@@ -89,7 +89,17 @@ class AgentUpdateService
             ->first();
     }
 
-    public function deactivateVersion(AgentVersion $version)
+    public function activateVersion(AgentVersion $version): void
+    {
+        DB::table('agent_versions')
+            ->where('id', $version->id)
+            ->update([
+                'is_active' => DB::raw('true'),
+                'updated_at' => now(),
+            ]);
+    }
+
+    public function deactivateVersion(AgentVersion $version): void
     {
         DB::table('agent_versions')
             ->where('id', $version->id)
@@ -97,5 +107,22 @@ class AgentUpdateService
                 'is_active' => DB::raw('false'),
                 'updated_at' => now(),
             ]);
+    }
+
+    public function forceDelete(AgentVersion $version): void
+    {
+        $changelogData = json_decode($version->changelog, true);
+        $files = $changelogData['files'] ?? [];
+
+        foreach ($files as $file) {
+            $path = $file['path'] ?? null;
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
+        DB::table('agent_versions')
+            ->where('id', $version->id)
+            ->delete();
     }
 }

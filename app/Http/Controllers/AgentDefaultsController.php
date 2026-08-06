@@ -53,8 +53,8 @@ class AgentDefaultsController extends Controller
         $category->load(['routes.assignments', 'routes.files']);
 
         $groups = Group::all();
-        $computers = Computer::select('id', 'computer_name', 'short_key', 'plaza')
-            ->orderBy('computer_name')
+        $computers = Computer::select('id', 'nombre_instalacion', 'short_key', 'plaza')
+            ->orderBy('nombre_instalacion')
             ->get();
 
         // Build sync table: all assigned files per computer, joined with download status
@@ -70,14 +70,14 @@ class AgentDefaultsController extends Controller
                     $targetComputers->push($assignment->assignable);
                 } elseif ($assignment->assignable_type === 'App\Models\Group' && $assignment->assignable) {
                     $targetComputers = Computer::where('group_id', $assignment->assignable->id)
-                        ->select('id', 'computer_name', 'plaza')->get();
+                        ->select('id', 'nombre_instalacion', 'plaza')->get();
                 }
 
                 foreach ($targetComputers as $computer) {
                     foreach ($route->files as $file) {
                         $download = $downloads->get($computer->id.'-'.$file->id);
                         $syncRows->push((object) [
-                            'computer_name' => $computer->computer_name,
+                            'nombre_instalacion' => $computer->nombre_instalacion,
                             'plaza' => $computer->plaza ?? '',
                             'ruta_servidor' => $route->route_pattern.'\\'.$file->file_name,
                             'ruta_local' => $download->ruta_local ?? '',

@@ -93,13 +93,16 @@
                                     </td>
                                     <td>{{ $distribution->created_at->diffForHumans() }}</td>
                                     <td>
-                                        @can('distribution.ver')
+                                        @php
+                                            $canAccessDistribution = Auth::user()->hasPermissionTo('distribution.ver_todas') || $distribution->created_by === Auth::id();
+                                        @endphp
+                                        @if($canAccessDistribution)
                                             <button type="button" class="btn btn-info btn-sm" data-toggle="modal" 
                                                     data-target="#viewDistributionModal{{ $distribution->id }}">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                        @endcan
-                                        @can('distribution.editar')
+                                        @endif
+                                        @if($canAccessDistribution && Auth::user()->hasPermissionTo('distribution.editar'))
                                             @if($distribution->type === 'recurring')
                                                 @if($distribution->status === 'stopped')
                                                     <button type="button" class="btn btn-success btn-sm" 
@@ -117,13 +120,13 @@
                                                     onclick="editDistribution({{ $distribution->id }}, '{{ $distribution->name }}', '{{ $distribution->type }}', '{{ $distribution->distribution_type ?? 'file' }}', '{{ $distribution->subfolder ?? '' }}', '{{ $distribution->description ?? '' }}', '{{ $distribution->scheduled_at ?? '' }}', '{{ json_encode($distribution->files->pluck('file_name')->toArray()) }}', {{ $distribution->targets->count() }}, '{{ json_encode($distribution->targets->pluck('computer_id')->toArray()) }}', '{{ $distribution->command ?? '' }}', '{{ $distribution->command_args ?? '' }}')">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                        @endcan
-                                        @can('distribution.eliminar')
+                                        @endif
+                                        @if($canAccessDistribution && Auth::user()->hasPermissionTo('distribution.eliminar'))
                                             <button type="button" class="btn btn-danger btn-sm" 
                                                     onclick="deleteDistribution({{ $distribution->id }}, '{{ $distribution->name }}')">
                                                 <i class="fas fa-trash"></i>
                                             </button>
-                                        @endcan
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -301,8 +304,8 @@
                                     <input type="text" class="form-control mb-2" placeholder="Buscar por nombre o short key..." onkeyup="filterComputers(this, 'modalComputersSelect')">
                                     <select name="computer_ids[]" id="modalComputersSelect" class="form-control" multiple style="height: 150px;">
                                         @foreach($computers ?? [] as $computer)
-                                            <option value="{{ $computer->id }}" data-search="{{ strtolower($computer->computer_name.' '.($computer->short_key ?? '')) }}">
-                                                {{ $computer->computer_name }} {{ $computer->short_key ? '('.$computer->short_key.')' : '' }}
+                                            <option value="{{ $computer->id }}" data-search="{{ strtolower($computer->nombre_instalacion.' '.($computer->short_key ?? '')) }}">
+                                                {{ $computer->nombre_instalacion }} {{ $computer->short_key ? '('.$computer->short_key.')' : '' }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -547,8 +550,8 @@
                                     <input type="text" class="form-control mb-2" placeholder="Buscar por nombre o short key..." onkeyup="filterComputers(this, 'editComputerIds')">
                                     <select name="computer_ids[]" id="editComputerIds" class="form-control" multiple style="height: 150px;">
                                         @foreach($computers ?? [] as $computer)
-                                            <option value="{{ $computer->id }}" data-search="{{ strtolower($computer->computer_name.' '.($computer->short_key ?? '')) }}">
-                                                {{ $computer->computer_name }} {{ $computer->short_key ? '('.$computer->short_key.')' : '' }}
+                                            <option value="{{ $computer->id }}" data-search="{{ strtolower($computer->nombre_instalacion.' '.($computer->short_key ?? '')) }}">
+                                                {{ $computer->nombre_instalacion }} {{ $computer->short_key ? '('.$computer->short_key.')' : '' }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -849,6 +852,9 @@ function stopPollingDistribution(distributionId) {
     removePendingDistribution(distributionId);
 }
 
+let validatedFiles = [];
+let hasBlockedFiles = false;
+
 $(document).ready(function() {
     // Clean stale localStorage entries (distributions that no longer exist or are done)
     const storedPending = getPendingDistributions();
@@ -896,9 +902,6 @@ $(document).ready(function() {
             }
         }
     });
-
-    let validatedFiles = [];
-    let hasBlockedFiles = false;
 
     function validateSelectedFiles(fileInput, callback) {
         const files = fileInput.files;

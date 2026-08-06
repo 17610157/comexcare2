@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\AgentDefaultsController;
+use App\Http\Controllers\Api\DemoRequestController;
 use App\Http\Controllers\Api\ResurtidoAgentController;
 use App\Http\Controllers\Api\ValeController;
 use App\Http\Controllers\MetricsController;
@@ -30,6 +31,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::get('/test-outside', function () {
     return response()->json(['ok' => true]);
 });
+
+// Endpoint público para guardar parámetros (GET y POST)
+Route::match(['get', 'post'], '/demo', [DemoRequestController::class, 'store']);
 
 // Agent API routes (without CSRF)
 Route::middleware('api')->group(function () {

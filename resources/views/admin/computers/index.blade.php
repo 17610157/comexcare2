@@ -135,9 +135,10 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <select id="status-filter" class="form-control form-control-sm">
-                            <option value="">Todos los Estados</option>
+                    <select id="status-filter" class="form-control form-control-sm">
+                             <option value="">Todos los Estados</option>
 <option value="online">En línea</option>
+                             <option value="updating">Actualizando</option>
                              <option value="offline">Fuera de línea</option>
                         </select>
                     </div>
@@ -271,14 +272,17 @@
                         return '<span class="text-muted">-</span>';
                     }
                 },
-                { data: 'computer_name', name: 'computer_name', className: 'text-center' },
+                { data: 'nombre_instalacion', name: 'nombre_instalacion', className: 'text-center' },
                 { 
                     data: 'status',
                     name: 'status',
                     className: 'text-center',
                     render: function(data) {
-if (data === 'online') {
+ if (data === 'online') {
                              return '<span class="text-success" title="En línea"><i class="fas fa-circle"></i></span>';
+                         }
+                         if (data === 'updating') {
+                             return '<span class="text-warning" title="Actualizando"><i class="fas fa-circle"></i></span>';
                          }
                          return '<span class="text-danger" title="Fuera de línea"><i class="fas fa-circle"></i></span>';
                     }
@@ -410,7 +414,7 @@ if (data === 'online') {
                 success: function(response) {
                     if (response.processed > 0) {
                         var details = response.details.map(function(d) {
-                            return '<tr><td>' + d.computer_name + '</td><td>' + d.short_key + '</td><td>' + d.online_id + '</td><td>' + d.offline_id + '</td></tr>';
+                            return '<tr><td>' + d.nombre_instalacion + '</td><td>' + d.short_key + '</td><td>' + d.online_id + '</td><td>' + d.offline_id + '</td></tr>';
                         }).join('');
                         Swal.fire({
                             title: 'Duplicados limpiados',

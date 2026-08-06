@@ -45,7 +45,7 @@
                 <tbody>
                     @foreach($distribution->targets as $target)
                         <tr>
-                            <td>{{ $target->computer->computer_name }}</td>
+                            <td>{{ $target->computer->nombre_instalacion ?? $target->computer->computer_name }}</td>
                             <td>
                                 @if($target->computer?->status === 'offline')
                                     Equipo Apagado

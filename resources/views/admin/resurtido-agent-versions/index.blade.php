@@ -105,7 +105,7 @@
                             <label>Computadoras</label>
                             <select name="computer_ids[]" id="computerSelect" class="form-control" multiple size="10">
                                 @foreach(\App\Models\Computer::whereNull('resurtido_agent_version')->orWhere('resurtido_agent_version', '')->get() as $computer)
-                                    <option value="{{ $computer->id }}" data-plaza="{{ $computer->plaza }}">{{ $computer->computer_name }} ({{ $computer->short_key }}) - {{ $computer->plaza }}</option>
+                                    <option value="{{ $computer->id }}" data-plaza="{{ $computer->plaza }}">{{ $computer->nombre_instalacion }} ({{ $computer->short_key }}) - {{ $computer->plaza }}</option>
                                 @endforeach
                             </select>
                         </div>

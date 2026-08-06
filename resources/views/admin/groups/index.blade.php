@@ -345,7 +345,7 @@ function editGroup(id, name, description, type, computerIdsArray, computerPlazas
                            id="edit_computer_${c.id}" value="${c.id}" checked
                            onchange="editToggleComputer(${c.id})">
                     <label class="form-check-label" for="edit_computer_${c.id}">
-                        ${c.computer_name} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
+                        ${c.nombre_instalacion} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
                         <span class="badge badge-info ml-1">${c.plaza}</span>
                     </label>
                 </div>
@@ -431,7 +431,7 @@ document.getElementById('plazaSelect').addEventListener('change', function() {
                    ${selectedComputerIds.includes(c.id) ? 'checked' : ''}
                    onchange="toggleComputer(${c.id})">
             <label class="form-check-label" for="computer_${c.id}">
-                ${c.computer_name} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
+                ${c.nombre_instalacion} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
             </label>
         </div>
     `).join('');
@@ -504,7 +504,7 @@ document.getElementById('editPlazaSelect').addEventListener('change', function()
                    ${editSelectedComputerIds.includes(c.id) ? 'checked' : ''}
                    onchange="editToggleComputer(${c.id})">
             <label class="form-check-label" for="edit_computer_${c.id}">
-                ${c.computer_name} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
+                ${c.nombre_instalacion} <span class="text-muted small">(${c.short_key || 'Sin short key'})</span>
             </label>
         </div>
     `).join('');

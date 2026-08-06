@@ -213,7 +213,7 @@
                             <label>Computadoras</label>
                             <select name="computer_ids[]" class="form-control" multiple style="height: 150px;">
                                 @foreach($computers as $computer)
-                                    <option value="{{ $computer->id }}">{{ $computer->computer_name }}</option>
+                                    <option value="{{ $computer->id }}">{{ $computer->nombre_instalacion }}</option>
                                 @endforeach
                             </select>
                         </div>
