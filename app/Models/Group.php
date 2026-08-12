@@ -16,6 +16,11 @@ class Group extends Model
         return $this->hasMany(Computer::class);
     }
 
+    public function monitoredFiles()
+    {
+        return $this->hasMany(MonitoredFile::class);
+    }
+
     public function shortKeys()
     {
         return $this->hasMany(GroupShortKey::class);

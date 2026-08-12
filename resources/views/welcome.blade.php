@@ -4,6 +4,9 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        <link rel="icon" type="image/gif" href="/favicon.gif" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Fonts -->

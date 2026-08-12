@@ -4,7 +4,6 @@ use App\Models\Computer;
 use App\Models\ConciliacionHashArchivo;
 use App\Models\Group;
 use App\Models\User;
-use App\Services\ConciliacionHashArchivoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 
@@ -626,45 +625,4 @@ it('includes data row with expected keys', function () {
         'pvsi_md5', 'pvsi_fecha', 'rbf_md5', 'rbf_fecha',
         'pvsi_matched', 'rbf_matched', 'status_conciliacion', 'desactualizado',
     ]);
-});
-
-it('requires authentication for sync', function () {
-    $response = $this->postJson(route('reportes.dbf-files-quickbck.sync'));
-    $response->assertUnauthorized();
-});
-
-it('requires permission for sync', function () {
-    config(['services.conciliacion.hash_archivos_endpoint' => 'http://test']);
-    config(['services.conciliacion.hash_archivos_api_key' => 'test-key']);
-    $userWithoutPermission = User::factory()->create();
-    $this->actingAs($userWithoutPermission);
-    $response = $this->postJson(route('reportes.dbf-files-quickbck.sync'));
-    $response->assertForbidden();
-});
-
-it('syncs hash records from API', function () {
-    $this->actingAs($this->user);
-
-    $mockService = \Pest\Laravel\mock(ConciliacionHashArchivoService::class);
-    $mockService->shouldReceive('fetchAndSync')
-        ->once()
-        ->andReturn(['success' => true, 'count' => 100]);
-
-    $response = $this->postJson(route('reportes.dbf-files-quickbck.sync'));
-    $response->assertOk();
-    expect($response->json('success'))->toBeTrue();
-    expect($response->json('message'))->toContain('100 registros');
-});
-
-it('handles sync failure from API', function () {
-    $this->actingAs($this->user);
-
-    $mockService = \Pest\Laravel\mock(ConciliacionHashArchivoService::class);
-    $mockService->shouldReceive('fetchAndSync')
-        ->once()
-        ->andReturn(['success' => false, 'message' => 'Error HTTP: 500']);
-
-    $response = $this->postJson(route('reportes.dbf-files-quickbck.sync'));
-    $response->assertStatus(500);
-    expect($response->json('success'))->toBeFalse();
 });

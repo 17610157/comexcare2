@@ -36,8 +36,9 @@ return [
     ],
 
     'conciliacion' => [
-        'hash_archivos_endpoint' => env('CONCILIACION_HASH_ARCHIVOS_ENDPOINT', 'http://a561ebc317a38bf2a238baeb5c53e185.servicios.care/api_conciliaciones/index.php/hash-archivos/consulta'),
         'hash_archivos_api_key' => env('CONCILIACION_HASH_ARCHIVOS_API_KEY'),
+        'hash_archivos_rate_limit' => env('HASH_ARCHIVOS_RATE_LIMIT_PER_MINUTE', 30),
+        'hash_archivos_max_lote_bytes' => env('HASH_ARCHIVOS_MAX_LOTE_MB', 10) * 1024 * 1024,
     ],
 
 ];

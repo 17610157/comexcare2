@@ -179,7 +179,7 @@ it('filters by estado actualizado', function () {
     RbfFileHash::create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060',
+        'hash' => 'B7060',
     ]);
 
     createComputerEspecifico([
@@ -205,7 +205,7 @@ it('filters by estado desactualizado', function () {
     RbfFileHash::create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060',
+        'hash' => 'B7060',
     ]);
 
     createComputerEspecifico([
@@ -318,7 +318,7 @@ it('creates commands for desactualizado computers via ejecutar', function () {
     RbfFileHash::create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060',
+        'hash' => 'B7060',
     ]);
 
     $response = $this->actingAs($this->user)->postJson(route('reportes.dbf-files-especificos.ejecutar', ['tipo' => 'combo']));
@@ -400,7 +400,7 @@ it('ejecutar only targets desactualizado for the specific dbf file', function ()
     RbfFileHash::create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060',
+        'hash' => 'B7060',
     ]);
 
     $response = $this->actingAs($this->user)->postJson(route('reportes.dbf-files-especificos.ejecutar', ['tipo' => 'lista']));
@@ -449,7 +449,7 @@ it('marks file as actualizado when rbf hash matches', function () {
     RbfFileHash::create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060',
+        'hash' => 'B7060',
     ]);
 
     createComputerEspecifico([
@@ -505,7 +505,7 @@ it('ids respects estado filter desactualizado', function () {
     RbfFileHash::create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060',
+        'hash' => 'B7060',
     ]);
 
     $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files-especificos.ids', ['estado' => 'desactualizado']));

@@ -13,6 +13,7 @@ class ConciliacionHashArchivo extends Model
         'sucursal',
         'archivo',
         'md5',
+        'md5_completo',
         'fecha_modificacion',
         'disparador',
         'fecha_consulta_api',

@@ -13,6 +13,7 @@ use App\Models\ComputerLog;
 use App\Models\DistributionFile;
 use App\Models\DistributionTarget;
 use App\Models\Group;
+use App\Models\MonitoredFile;
 use App\Models\ReceptionTarget;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -834,19 +835,21 @@ class AgentController extends Controller
 
                     $distribution = $target->distribution;
 
-                    broadcast(new DistributionProgressUpdated(
-                        $distribution->fresh(['targets']),
-                        $target->id,
-                        $target->status,
-                        $request->progress ?? 100
-                    ))->toOthers();
-                    $allTargets = $distribution->targets;
-                    $completedCount = $allTargets->where('status', 'completed')->count();
-                    $failedCount = $allTargets->where('status', 'failed')->count();
-                    $totalCount = $allTargets->count();
+                    if ($distribution) {
+                        broadcast(new DistributionProgressUpdated(
+                            $distribution->fresh(['targets']),
+                            $target->id,
+                            $target->status,
+                            $request->progress ?? 100
+                        ))->toOthers();
+                        $allTargets = $distribution->targets;
+                        $completedCount = $allTargets->where('status', 'completed')->count();
+                        $failedCount = $allTargets->where('status', 'failed')->count();
+                        $totalCount = $allTargets->count();
 
-                    if ($completedCount + $failedCount === $totalCount) {
-                        $distribution->update(['status' => $completedCount === $totalCount ? 'completed' : 'failed']);
+                        if ($completedCount + $failedCount === $totalCount) {
+                            $distribution->update(['status' => $completedCount === $totalCount ? 'completed' : 'failed']);
+                        }
                     }
                 }
             }
@@ -1063,7 +1066,64 @@ class AgentController extends Controller
             'download_paths' => $computer->getAllDownloadPaths(),
             'receive_paths' => $computer->receive_paths ?? [],
             'agent_config' => $computer->agent_config ?? [],
+            'monitored_files' => $this->getMonitoredFilesConfig($computer),
         ]);
+    }
+
+    private function getMonitoredFilesConfig(Computer $computer): array
+    {
+        $generalFiles = MonitoredFile::where('general', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (MonitoredFile $file) => [$file, 1]);
+
+        $groupFiles = collect();
+        if ($computer->group) {
+            $groupFiles = $computer->group->monitoredFiles()
+                ->orderBy('sort_order')
+                ->get()
+                ->map(fn (MonitoredFile $file) => [$file, 2]);
+        }
+
+        $computerFiles = $computer->monitoredFiles()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (MonitoredFile $file) => [$file, 3]);
+
+        // Precedencia por ruta (sin distinguir mayúsculas): equipo > grupo > general.
+        // Un nivel más específico reemplaza a uno general para la misma ruta.
+        // Los registros "general" se aplican a todas las máquinas. Se conservan
+        // varios registros del mismo nivel que compartan ruta (p. ej. "." con
+        // *.DBF, *.EXE y *.CDX).
+        $buckets = [];
+        foreach ($generalFiles->concat($groupFiles)->concat($computerFiles) as [$file, $priority]) {
+            $key = mb_strtolower((string) $file->path);
+
+            if (! isset($buckets[$key])) {
+                $buckets[$key] = ['priority' => $priority, 'files' => []];
+            }
+
+            if ($priority > $buckets[$key]['priority']) {
+                $buckets[$key] = ['priority' => $priority, 'files' => []];
+            }
+
+            if ($priority === $buckets[$key]['priority']) {
+                $buckets[$key]['files'][] = $file;
+            }
+        }
+
+        $records = collect($buckets)
+            ->flatMap(fn ($bucket) => array_map(
+                fn (MonitoredFile $file) => [$file, $bucket['priority']],
+                $bucket['files']
+            ))
+            ->values();
+
+        return $records
+            ->sortBy([['0.sort_order', 'asc'], ['1', 'desc']])
+            ->flatMap(fn ($item) => $item[0]->toConfigEntries())
+            ->values()
+            ->all();
     }
 
     public function uploadReception(Request $request)

@@ -72,11 +72,11 @@ return [
     */
 
     'logo' => '<b>COMEXCARE</b>',
-    'logo_img' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
+    'logo_img' => 'vendor/adminlte/dist/img/horse-logo.gif',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
     'logo_img_xl_class' => 'brand-image-xs',
-    'logo_img_alt' => 'Admin Logo',
+    'logo_img_alt' => 'Comexcare',
 
     /*
     |--------------------------------------------------------------------------
@@ -360,6 +360,18 @@ return [
             'url' => 'admin/agent-defaults',
             'icon' => 'fas fa-file-archive',
             'can' => 'agent-defaults.ver',
+        ],
+        [
+            'text' => 'Archivos Monitoreados',
+            'url' => 'admin/monitored-files',
+            'icon' => 'fas fa-eye',
+            'can' => 'monitored-files.ver',
+        ],
+        [
+            'text' => 'RBF File Hashes',
+            'url' => 'admin/rbf-file-hashes',
+            'icon' => 'fas fa-fingerprint',
+            'can' => 'rbf-file-hashes.ver',
         ],
         [
             'text' => 'Listas de Archivos',

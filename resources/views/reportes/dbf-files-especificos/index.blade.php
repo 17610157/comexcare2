@@ -545,7 +545,7 @@ function renderTable(json) {
         '<td style="word-break:break-all;max-width:250px;">' + (row.ruta || 'N/A') + '</td>' +
         '<td class="text-center">' + size + '</td>' +
         '<td style="white-space:nowrap;">' + modified + '</td>' +
-        '<td><code style="font-size:0.65rem;">' + (row.md5 || '') + '</code></td>' +
+        '<td><code style="font-size:0.65rem;">' + (row.md5 ? row.md5.slice(-5) : '') + '</code></td>' +
         '<td style="word-break:break-all;max-width:200px;">' + (row.rbf_path || '') + '</td>' +
         '<td><code style="font-size:0.65rem;">' + (row.rbf_hash || '') + '</code></td>' +
         '<td class="text-center"><div class="d-inline-flex align-items-center gap-1">' + statusBadge + '<button type="button" class="btn btn-outline-secondary btn-xs btn-historial" data-computer-id="' + computerId + '" data-archivo="' + (row.archivo || '') + '" title="Ver historial de hash (3 días)" style="padding:0 4px;"><i class="fas fa-eye"></i></button></div></td>' +

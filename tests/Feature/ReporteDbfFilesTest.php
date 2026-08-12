@@ -18,6 +18,7 @@ beforeEach(function () {
             $table->string('hash', 20);
             $table->timestamp('last_modified')->nullable();
             $table->timestamp('last_sync')->nullable();
+            $table->boolean('manual')->default(false);
             $table->timestamps();
             $table->index('servicio');
             $table->index('plaza');
@@ -33,39 +34,39 @@ it('builds lookup map correctly for matching plaza+hash+name', function () {
     RbfFileHash::query()->create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060', 'last_modified' => '2026-07-01 04:38:40', 'last_sync' => '2026-07-03 14:08:00',
+        'hash' => 'B7060', 'last_modified' => '2026-07-01 04:38:40', 'last_sync' => '2026-07-03 14:08:00',
     ]);
 
     RbfFileHash::query()->create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'sur',
         'path' => '/combo/bajac/sur/PDCOMB.DBF', 'name' => 'PDCOMB.DBF',
-        'hash' => 'A32E52', 'last_modified' => '2024-05-09 23:59:58', 'last_sync' => '2026-07-03 14:08:00',
+        'hash' => 'A32E5', 'last_modified' => '2024-05-09 23:59:58', 'last_sync' => '2026-07-03 14:08:00',
     ]);
 
     $records = RbfFileHash::all();
     $lookup = [];
     foreach ($records as $r) {
-        $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.($r->name ?? '');
+        $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.strtolower($r->name ?? '');
         $lookup[$key] = $r;
     }
 
-    // Match exists
-    $key = 'bajac|8B7060|PCOMB.DBF';
+    // Match exists (agent hash_md5 = 8B7060 -> last 5 = B7060)
+    $key = 'bajac|B7060|pcomb.dbf';
     expect(isset($lookup[$key]))->toBeTrue();
     expect($lookup[$key]->path)->toBe('/combo/bajac/norte/PCOMB.DBF');
-    expect($lookup[$key]->hash)->toBe('8B7060');
+    expect($lookup[$key]->hash)->toBe('B7060');
 
-    $key2 = 'bajac|A32E52|PDCOMB.DBF';
+    $key2 = 'bajac|A32E5|pdcomb.dbf';
     expect(isset($lookup[$key2]))->toBeTrue();
     expect($lookup[$key2]->path)->toBe('/combo/bajac/sur/PDCOMB.DBF');
 
     // No match
-    $key3 = 'bajac|FFFFFF|NOEXISTE.DBF';
+    $key3 = 'bajac|FFFFF|noexiste.dbf';
     expect(isset($lookup[$key3]))->toBeFalse();
 
-    // Case insensitive plaza - controller uses strtolower on both sides
+    // Case insensitive plaza
     $computerPlaza = 'BAJAC';
-    $lookupKey = strtolower($computerPlaza).'|'.'8B7060'.'|'.'PCOMB.DBF';
+    $lookupKey = strtolower($computerPlaza).'|'.'B7060'.'|'.'pcomb.dbf';
     expect(isset($lookup[$lookupKey]))->toBeTrue();
 });
 
@@ -73,7 +74,7 @@ it('finds rbf records using the same lookup logic as the controller', function (
     RbfFileHash::query()->create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060', 'last_modified' => '2026-07-01 04:38:40', 'last_sync' => '2026-07-03 14:08:00',
+        'hash' => 'B7060', 'last_modified' => '2026-07-01 04:38:40', 'last_sync' => '2026-07-03 14:08:00',
     ]);
 
     // Simulate what the controller does with computer data
@@ -86,23 +87,23 @@ it('finds rbf records using the same lookup logic as the controller', function (
     $records = RbfFileHash::all();
     $lookup = [];
     foreach ($records as $r) {
-        $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.($r->name ?? '');
+        $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.strtolower($r->name ?? '');
         $lookup[$key] = $r;
     }
 
-    $key = strtolower($computerPlaza).'|'.($dbfFile['hash_md5'] ?? '').'|'.($dbfFile['name'] ?? '');
+    $key = strtolower($computerPlaza).'|'.strtoupper(substr($dbfFile['hash_md5'] ?? '', -5)).'|'.strtolower($dbfFile['name'] ?? '');
     $rbfRecord = $lookup[$key] ?? null;
 
     expect($rbfRecord)->not->toBeNull();
     expect($rbfRecord->path)->toBe('/combo/bajac/norte/PCOMB.DBF');
-    expect($rbfRecord->hash)->toBe('8B7060');
+    expect($rbfRecord->hash)->toBe('B7060');
 });
 
 it('returns null when no match is found', function () {
     RbfFileHash::query()->create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
         'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060', 'last_modified' => '2026-07-01 04:38:40', 'last_sync' => '2026-07-03 14:08:00',
+        'hash' => 'B7060', 'last_modified' => '2026-07-01 04:38:40', 'last_sync' => '2026-07-03 14:08:00',
     ]);
 
     $computerPlaza = 'NOMATCH';
@@ -111,11 +112,11 @@ it('returns null when no match is found', function () {
     $records = RbfFileHash::all();
     $lookup = [];
     foreach ($records as $r) {
-        $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.($r->name ?? '');
+        $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.strtolower($r->name ?? '');
         $lookup[$key] = $r;
     }
 
-    $key = strtolower($computerPlaza).'|'.($dbfFile['hash_md5'] ?? '').'|'.($dbfFile['name'] ?? '');
+    $key = strtolower($computerPlaza).'|'.strtoupper(substr($dbfFile['hash_md5'] ?? '', -5)).'|'.strtolower($dbfFile['name'] ?? '');
     $rbfRecord = $lookup[$key] ?? null;
 
     expect($rbfRecord)->toBeNull();
@@ -141,7 +142,7 @@ it('verifies sync then lookup flow end-to-end', function () {
     $records = RbfFileHash::all();
     $lookup = [];
     foreach ($records as $r) {
-        $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.($r->name ?? '');
+        $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.strtolower($r->name ?? '');
         $lookup[$key] = $r;
     }
 
@@ -149,10 +150,10 @@ it('verifies sync then lookup flow end-to-end', function () {
     $computerPlaza = 'BAJAC';
     $dbfFile = ['name' => 'PCOMB.DBF', 'hash_md5' => '8B7060'];
 
-    $key = strtolower($computerPlaza).'|'.($dbfFile['hash_md5'] ?? '').'|'.($dbfFile['name'] ?? '');
+    $key = strtolower($computerPlaza).'|'.strtoupper(substr($dbfFile['hash_md5'] ?? '', -5)).'|'.strtolower($dbfFile['name'] ?? '');
     $rbfRecord = $lookup[$key] ?? null;
 
     expect($rbfRecord)->not->toBeNull();
     expect($rbfRecord->path)->toBe('/combo/bajac/norte/PCOMB.DBF');
-    expect($rbfRecord->hash)->toBe('8B7060');
+    expect($rbfRecord->hash)->toBe('B7060');
 });

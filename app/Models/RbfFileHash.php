@@ -18,6 +18,7 @@ class RbfFileHash extends Model
         'hash',
         'last_modified',
         'last_sync',
+        'manual',
     ];
 
     protected function casts(): array

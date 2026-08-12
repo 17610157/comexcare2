@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\AgentDefaultsController;
 use App\Http\Controllers\Api\DemoRequestController;
+use App\Http\Controllers\Api\HashArchivoController;
 use App\Http\Controllers\Api\ResurtidoAgentController;
 use App\Http\Controllers\Api\ValeController;
 use App\Http\Controllers\MetricsController;
@@ -134,5 +135,11 @@ Route::middleware('api')->group(function () {
             'computers' => $online,
         ]);
     });
+
+    // Hash archivos - Conciliación (cliente hash_dbf)
+    Route::post('/hash-archivos/registrar', [HashArchivoController::class, 'registrar'])
+        ->middleware(['hash.key', 'hash.rate_limit']);
+    Route::post('/hash-archivos/registrar-lote', [HashArchivoController::class, 'registrarLote'])
+        ->middleware(['hash.key', 'hash.rate_limit']);
 
 });

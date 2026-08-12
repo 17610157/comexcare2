@@ -63,6 +63,11 @@ class Computer extends Model
         return $this->belongsTo(Group::class);
     }
 
+    public function monitoredFiles()
+    {
+        return $this->hasMany(MonitoredFile::class);
+    }
+
     public function distributionTargets()
     {
         return $this->hasMany(DistributionTarget::class);

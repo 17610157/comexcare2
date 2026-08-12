@@ -15,7 +15,9 @@ use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MetasMensualController;
 use App\Http\Controllers\ModulesController;
+use App\Http\Controllers\MonitoredFilesController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\RbfFileHashesController;
 use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\ReporteApiDemoController;
 use App\Http\Controllers\ReporteComprasDirectoController;
@@ -263,8 +265,6 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.dbf-files-quickbck.data')->middleware('can:dbf-files-quickbck.ver');
     Route::get('dbf-files-quickbck/export', [ReporteDbfFilesQuickbckController::class, 'export'])
         ->name('reportes.dbf-files-quickbck.export')->middleware('can:dbf-files-quickbck.ver');
-    Route::post('dbf-files-quickbck/sync', [ReporteDbfFilesQuickbckController::class, 'sync'])
-        ->name('reportes.dbf-files-quickbck.sync')->middleware('can:dbf-files-quickbck.ver');
 
     // REPORTE: Vales
     Route::get('vales', [ReporteValesController::class, 'index'])
@@ -368,6 +368,19 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::delete('agent-defaults/routes/{route}/files/{file}', [AgentDefaultsController::class, 'destroyFile'])->name('agent-defaults.files.destroy');
     Route::get('agent-defaults/routes/{route}/files/{file}/download', [AgentDefaultsController::class, 'downloadFile'])->name('agent-defaults.files.download');
     Route::post('agent-defaults/routes/{route}/sync-files', [AgentDefaultsController::class, 'syncFiles'])->name('agent-defaults.files.sync');
+
+    // Monitored Files - Archivos Monitoreados
+    Route::get('monitored-files', [MonitoredFilesController::class, 'index'])->name('monitored-files.index')->middleware('can:monitored-files.ver');
+    Route::post('monitored-files/seed-defaults', [MonitoredFilesController::class, 'seedDefaults'])->name('monitored-files.seed-defaults')->middleware('can:monitored-files.crear');
+    Route::post('monitored-files', [MonitoredFilesController::class, 'store'])->name('monitored-files.store')->middleware('can:monitored-files.crear');
+    Route::put('monitored-files/{monitored_file}', [MonitoredFilesController::class, 'update'])->name('monitored-files.update')->middleware('can:monitored-files.editar');
+    Route::delete('monitored-files/{monitored_file}', [MonitoredFilesController::class, 'destroy'])->name('monitored-files.destroy')->middleware('can:monitored-files.eliminar');
+
+    // RBF File Hashes - Subida de archivos y cálculo de MD5
+    Route::get('rbf-file-hashes', [RbfFileHashesController::class, 'index'])->name('rbf-file-hashes.index')->middleware('can:rbf-file-hashes.ver');
+    Route::get('rbf-file-hashes/data', [RbfFileHashesController::class, 'data'])->name('rbf-file-hashes.data')->middleware('can:rbf-file-hashes.ver');
+    Route::post('rbf-file-hashes', [RbfFileHashesController::class, 'store'])->name('rbf-file-hashes.store')->middleware('can:rbf-file-hashes.crear');
+    Route::delete('rbf-file-hashes/{rbf_file_hash}', [RbfFileHashesController::class, 'destroy'])->name('rbf-file-hashes.destroy')->middleware('can:rbf-file-hashes.eliminar');
 
     // User Plaza Tienda - Solo super_admin
     Route::middleware('can:admin.usuarios.ver')->group(function () {

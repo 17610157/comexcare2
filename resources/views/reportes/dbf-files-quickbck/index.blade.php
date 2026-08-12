@@ -96,9 +96,6 @@
             <button id="btn_export" class="btn btn-info btn-sm">
               <i class="fas fa-file-csv"></i> CSV
             </button>
-            <button id="btn_sync_hashes" class="btn btn-warning btn-sm">
-              <i class="fas fa-download"></i> Sincronizar Hashes
-            </button>
           </div>
         </div>
       </div>
@@ -434,29 +431,6 @@ $(function() {
     if (archivo) params.append('archivo', archivo);
     params.append('_t', Date.now());
     window.open("{{ url('/reportes/dbf-files-quickbck/export') }}?" + params.toString(), '_blank');
-  });
-
-  $('#btn_sync_hashes').on('click', function() {
-    var $btn = $(this);
-    if (!confirm('Sincronizar hashes desde la API de Conciliacion? Esto actualizara todos los registros.')) return;
-    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sincronizando...');
-    $.ajax({
-      url: "{{ route('reportes.dbf-files-quickbck.sync') }}",
-      type: 'POST',
-      headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-      success: function(response) {
-        alert(response.message);
-        currentPage = 0;
-        loadData();
-      },
-      error: function(xhr) {
-        var msg = xhr.responseJSON?.message || 'Error al sincronizar';
-        alert(msg);
-      },
-      complete: function() {
-        $btn.prop('disabled', false).html('<i class="fas fa-download"></i> Sincronizar Hashes');
-      }
-    });
   });
 
   $('#filesTable thead th[data-sort]').on('click', function() {

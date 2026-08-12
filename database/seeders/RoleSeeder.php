@@ -54,6 +54,8 @@ class RoleSeeder extends Seeder
             'dbf-files-quickbck.ver',
             'file-lists.ver', 'file-lists.crear', 'file-lists.editar', 'file-lists.eliminar', 'file-lists.autorizar',
             'agent-defaults.ver', 'agent-defaults.crear', 'agent-defaults.editar', 'agent-defaults.eliminar',
+            'monitored-files.ver', 'monitored-files.crear', 'monitored-files.editar', 'monitored-files.eliminar',
+            'rbf-file-hashes.ver', 'rbf-file-hashes.crear', 'rbf-file-hashes.eliminar',
             'modules.ver', 'modules.crear', 'modules.editar', 'modules.eliminar',
             'authorizable-emails.ver', 'authorizable-emails.crear', 'authorizable-emails.editar', 'authorizable-emails.eliminar',
             'authorization-report.ver',

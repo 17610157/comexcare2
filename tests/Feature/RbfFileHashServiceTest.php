@@ -18,6 +18,7 @@ beforeEach(function () {
             $table->string('hash', 20);
             $table->timestamp('last_modified')->nullable();
             $table->timestamp('last_sync')->nullable();
+            $table->boolean('manual')->default(false);
             $table->timestamps();
             $table->index('servicio');
             $table->index('plaza');
@@ -53,7 +54,7 @@ it('parses paths correctly for different depths', function () {
     expect($r1->plaza)->toBe('bajac');
     expect($r1->zona)->toBe('norte');
     expect($r1->name)->toBe('PCOMB.DBF');
-    expect($r1->hash)->toBe('8B7060');
+    expect($r1->hash)->toBe('B7060');
 
     $r2 = RbfFileHash::where('path', '/combo/xalap/PCOMB.DBF')->first();
     expect($r2->servicio)->toBe('combo');
@@ -117,6 +118,7 @@ it('truncates old data before inserting new', function () {
 
     expect(RbfFileHash::count())->toBe(1);
     expect(RbfFileHash::first()->servicio)->toBe('combo');
+    expect(RbfFileHash::first()->hash)->toBe('B7060');
 });
 
 it('sets last_sync from the response', function () {
@@ -134,4 +136,5 @@ it('sets last_sync from the response', function () {
 
     $record = RbfFileHash::first();
     expect($record->last_sync->format('Y-m-d H:i:s'))->toBe('2026-07-03 14:08:00');
+    expect($record->hash)->toBe('B7060');
 });

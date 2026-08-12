@@ -28,7 +28,7 @@ function createComputer(array $overrides = []): Computer
         'group_id' => test()->group->id,
         'agent_config' => [
             'dbf_files' => [
-                ['name' => 'PCOMB.DBF', 'hash_md5' => '8B7060', 'size' => 1024, 'path' => 'C:\\PCOMB.DBF', 'checksum' => 'sha256hash', 'modified' => '2026-07-01 10:00:00 AM'],
+                ['name' => 'PCOMB.EXE', 'hash_md5' => '8B7060', 'size' => 1024, 'path' => 'C:\\PCOMB.EXE', 'checksum' => 'sha256hash', 'modified' => '2026-07-01 10:00:00 AM'],
             ],
         ],
         'last_seen' => now()->subMinutes(2),
@@ -121,19 +121,19 @@ it('filters by group', function () {
 it('filters by estado actualizado', function () {
     RbfFileHash::create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
-        'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060',
+        'path' => '/combo/bajac/norte/PCOMB.EXE', 'name' => 'PCOMB.EXE',
+        'hash' => 'B7060',
     ]);
 
     createComputer([
         'computer_name' => 'PC-MATCHED',
         'plaza' => 'BAJAC',
-        'agent_config' => ['dbf_files' => [['name' => 'PCOMB.DBF', 'hash_md5' => '8B7060', 'size' => 1024]]],
+        'agent_config' => ['dbf_files' => [['name' => 'PCOMB.EXE', 'hash_md5' => '8B7060', 'size' => 1024]]],
     ]);
     createComputer([
         'computer_name' => 'PC-NO-MATCH',
         'plaza' => 'BAJAC',
-        'agent_config' => ['dbf_files' => [['name' => 'PCOMB.DBF', 'hash_md5' => 'FFFFFF', 'size' => 1024]]],
+        'agent_config' => ['dbf_files' => [['name' => 'PCOMB.EXE', 'hash_md5' => 'FFFFFF', 'size' => 1024]]],
     ]);
 
     $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['estado' => 'actualizado']));
@@ -147,19 +147,19 @@ it('filters by estado actualizado', function () {
 it('filters by estado desactualizado', function () {
     RbfFileHash::create([
         'servicio' => 'combo', 'plaza' => 'bajac', 'zona' => 'norte',
-        'path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF',
-        'hash' => '8B7060',
+        'path' => '/combo/bajac/norte/PCOMB.EXE', 'name' => 'PCOMB.EXE',
+        'hash' => 'B7060',
     ]);
 
     createComputer([
         'computer_name' => 'PC-MATCHED',
         'plaza' => 'BAJAC',
-        'agent_config' => ['dbf_files' => [['name' => 'PCOMB.DBF', 'hash_md5' => '8B7060', 'size' => 1024]]],
+        'agent_config' => ['dbf_files' => [['name' => 'PCOMB.EXE', 'hash_md5' => '8B7060', 'size' => 1024]]],
     ]);
     createComputer([
         'computer_name' => 'PC-NO-MATCH',
         'plaza' => 'BAJAC',
-        'agent_config' => ['dbf_files' => [['name' => 'PCOMB.DBF', 'hash_md5' => 'FFFFFF', 'size' => 1024]]],
+        'agent_config' => ['dbf_files' => [['name' => 'PCOMB.EXE', 'hash_md5' => 'FFFFFF', 'size' => 1024]]],
     ]);
 
     $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['estado' => 'desactualizado']));
@@ -211,9 +211,9 @@ it('includes per_category stats in rbf_stats', function () {
 
     $stats = $response->json('rbf_stats');
     expect($stats)->toHaveKeys(['total_files', 'total_matched', 'total_unmatched', 'percent', 'per_category', 'per_plaza', 'per_file', 'per_group', 'top_outdated']);
-    expect($stats['per_category'])->toHaveKeys(['exe', 'quickbck', 'other']);
+    expect($stats['per_category'])->toHaveKeys(['exe', 'bat', 'other']);
     expect($stats['per_category']['exe'])->toHaveKeys(['total', 'matched', 'unmatched', 'percent']);
-    expect($stats['per_category']['quickbck'])->toHaveKeys(['total', 'matched', 'unmatched', 'percent']);
+    expect($stats['per_category']['bat'])->toHaveKeys(['total', 'matched', 'unmatched', 'percent']);
     expect($stats['per_category']['other'])->toHaveKeys(['total', 'matched', 'unmatched', 'percent']);
 });
 
@@ -222,8 +222,8 @@ it('computes per-category stats for computers with mixed file types', function (
         'computer_name' => 'PC-MIXED',
         'agent_config' => ['dbf_files' => [
             ['name' => 'POS32.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\POS32.exe'],
-            ['name' => 'PCOMB.DBF', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\quickbck\\PCOMB.DBF'],
-            ['name' => 'ARTICULOS.DBF', 'hash_md5' => 'CC3333', 'size' => 256, 'path' => 'D:\\pvsi\\ARTICULOS.DBF'],
+            ['name' => 'BACKUP.BAT', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\BACKUP.BAT'],
+            ['name' => 'ARTICULOS.EXE', 'hash_md5' => 'CC3333', 'size' => 256, 'path' => 'D:\\pvsi\\ARTICULOS.EXE'],
         ]],
     ]);
 
@@ -231,9 +231,9 @@ it('computes per-category stats for computers with mixed file types', function (
     $response->assertOk();
 
     $stats = $response->json('rbf_stats');
-    expect($stats['per_category']['exe']['total'])->toBe(1);
-    expect($stats['per_category']['quickbck']['total'])->toBe(1);
-    expect($stats['per_category']['other']['total'])->toBe(1);
+    expect($stats['per_category']['exe']['total'])->toBe(2);
+    expect($stats['per_category']['bat']['total'])->toBe(1);
+    expect($stats['per_category']['other']['total'])->toBe(0);
 });
 
 it('filters detail files by file_category exe', function () {
@@ -241,7 +241,7 @@ it('filters detail files by file_category exe', function () {
         'computer_name' => 'PC-CAT',
         'agent_config' => ['dbf_files' => [
             ['name' => 'POS32.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\POS32.exe'],
-            ['name' => 'PCOMB.DBF', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\quickbck\\PCOMB.DBF'],
+            ['name' => 'BACKUP.BAT', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\BACKUP.BAT'],
         ]],
     ]);
 
@@ -253,31 +253,31 @@ it('filters detail files by file_category exe', function () {
     expect($data[0]['dbf_files'][0]['name'])->toBe('POS32.EXE');
 });
 
-it('filters detail files by file_category quickbck', function () {
+it('filters detail files by file_category bat', function () {
     createComputer([
         'computer_name' => 'PC-CAT',
         'agent_config' => ['dbf_files' => [
             ['name' => 'POS32.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\POS32.exe'],
-            ['name' => 'PCOMB.DBF', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\quickbck\\PCOMB.DBF'],
-            ['name' => 'ARTICULOS.DBF', 'hash_md5' => 'CC3333', 'size' => 256, 'path' => 'D:\\pvsi\\ARTICULOS.DBF'],
+            ['name' => 'BACKUP.BAT', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\BACKUP.BAT'],
+            ['name' => 'ARTICULOS.EXE', 'hash_md5' => 'CC3333', 'size' => 256, 'path' => 'D:\\pvsi\\ARTICULOS.EXE'],
         ]],
     ]);
 
-    $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['file_category' => 'quickbck']));
+    $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['file_category' => 'bat']));
     $response->assertOk();
 
     $data = $response->json('data');
     expect($data[0]['dbf_files'])->toHaveCount(1);
-    expect($data[0]['dbf_files'][0]['name'])->toBe('PCOMB.DBF');
+    expect($data[0]['dbf_files'][0]['name'])->toBe('BACKUP.BAT');
 });
 
-it('filters detail files by file_category other', function () {
+it('filters detail files by file_category other is ignored', function () {
     createComputer([
         'computer_name' => 'PC-CAT',
         'agent_config' => ['dbf_files' => [
             ['name' => 'POS32.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\POS32.exe'],
-            ['name' => 'PCOMB.DBF', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\quickbck\\PCOMB.DBF'],
-            ['name' => 'ARTICULOS.DBF', 'hash_md5' => 'CC3333', 'size' => 256, 'path' => 'D:\\pvsi\\ARTICULOS.DBF'],
+            ['name' => 'BACKUP.BAT', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\BACKUP.BAT'],
+            ['name' => 'ARTICULOS.EXE', 'hash_md5' => 'CC3333', 'size' => 256, 'path' => 'D:\\pvsi\\ARTICULOS.EXE'],
         ]],
     ]);
 
@@ -285,15 +285,14 @@ it('filters detail files by file_category other', function () {
     $response->assertOk();
 
     $data = $response->json('data');
-    expect($data[0]['dbf_files'])->toHaveCount(1);
-    expect($data[0]['dbf_files'][0]['name'])->toBe('ARTICULOS.DBF');
+    expect($data[0]['dbf_files'])->toHaveCount(3);
 });
 
 it('does not include checksum in file data', function () {
     createComputer([
         'computer_name' => 'PC-CHECK',
         'agent_config' => ['dbf_files' => [
-            ['name' => 'PCOMB.DBF', 'hash_md5' => '8B7060', 'size' => 1024, 'checksum' => 'abc123'],
+            ['name' => 'PCOMB.EXE', 'hash_md5' => '8B7060', 'size' => 1024, 'checksum' => 'abc123'],
         ]],
     ]);
 

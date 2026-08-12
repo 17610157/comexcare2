@@ -70,7 +70,7 @@ class ReporteDbfFilesEspecificosController extends Controller
         $map = [];
         $records = RbfFileHash::all();
         foreach ($records as $r) {
-            $key = strtolower($r->plaza ?? '').'|'.($r->hash ?? '').'|'.($r->name ?? '');
+            $key = strtolower($r->plaza ?? '').'|'.strtoupper($r->hash ?? '').'|'.strtolower($r->name ?? '');
             $map[$key] = $r;
         }
 
@@ -203,7 +203,7 @@ class ReporteDbfFilesEspecificosController extends Controller
                     continue;
                 }
 
-                $key = strtolower($computer->plaza ?? '').'|'.($file['hash_md5'] ?? '').'|'.$fileName;
+                $key = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
                 $rbfRecord = $rbfLookup[$key] ?? null;
                 $isMatched = $rbfRecord !== null;
                 $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
@@ -440,7 +440,7 @@ class ReporteDbfFilesEspecificosController extends Controller
                         continue;
                     }
 
-                    $key = strtolower($computer->plaza ?? '').'|'.($file['hash_md5'] ?? '').'|'.$fileName;
+                    $key = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
                     $isMatched = isset($rbfLookup[$key]);
 
                     if (! $isMatched) {
@@ -610,52 +610,53 @@ class ReporteDbfFilesEspecificosController extends Controller
         try {
             $desde = now()->subDays(3);
 
-            $mensajes = ComputerLog::query()
+            $historial = [];
+            ComputerLog::query()
                 ->where('computer_id', $computerId)
                 ->where('created_at', '>=', $desde)
                 ->whereRaw('LENGTH(message) > 1000')
-                ->pluck('message');
-
-            $historial = [];
-            foreach ($mensajes as $mensaje) {
-                if (! str_contains($mensaje, 'Heartbeat JSON payload')) {
-                    continue;
-                }
-
-                $pos = strpos($mensaje, 'Heartbeat JSON payload: ');
-                if ($pos === false) {
-                    continue;
-                }
-
-                $json = substr($mensaje, $pos + strlen('Heartbeat JSON payload: '));
-                $data = json_decode($json, true);
-                if (! is_array($data)) {
-                    continue;
-                }
-
-                foreach (($data['dbf_files'] ?? []) as $file) {
-                    if (strtoupper($file['name'] ?? '') !== $archivo) {
-                        continue;
+                ->orderBy('created_at', 'desc')
+                ->cursor()
+                ->each(function ($log) use (&$historial, $archivo) {
+                    $mensaje = $log->message;
+                    if (! str_contains($mensaje, 'Heartbeat JSON payload')) {
+                        return;
                     }
 
-                    $hash = $file['hash_md5'] ?? '';
-                    if ($hash === '') {
-                        continue;
+                    $pos = strpos($mensaje, 'Heartbeat JSON payload: ');
+                    if ($pos === false) {
+                        return;
                     }
 
-                    $modified = $this->formatAgentModifiedTime($file['modified'] ?? '');
-
-                    if (! isset($historial[$hash])) {
-                        $historial[$hash] = ['hash' => $hash, 'modified' => $modified];
-
-                        continue;
+                    $json = substr($mensaje, $pos + strlen('Heartbeat JSON payload: '));
+                    $data = json_decode($json, true);
+                    if (! is_array($data)) {
+                        return;
                     }
 
-                    if (strtotime($modified) > strtotime($historial[$hash]['modified'])) {
-                        $historial[$hash]['modified'] = $modified;
+                    foreach (($data['dbf_files'] ?? []) as $file) {
+                        if (strtoupper($file['name'] ?? '') !== $archivo) {
+                            continue;
+                        }
+
+                        $hash = $file['hash_md5'] ?? '';
+                        if ($hash === '') {
+                            continue;
+                        }
+
+                        $modified = $this->formatAgentModifiedTime($file['modified'] ?? '');
+
+                        if (! isset($historial[$hash])) {
+                            $historial[$hash] = ['hash' => $hash, 'modified' => $modified];
+
+                            continue;
+                        }
+
+                        if (strtotime($modified) > strtotime($historial[$hash]['modified'])) {
+                            $historial[$hash]['modified'] = $modified;
+                        }
                     }
-                }
-            }
+                });
 
             uasort($historial, function ($a, $b) {
                 return strtotime($b['modified']) <=> strtotime($a['modified']);
@@ -724,7 +725,7 @@ class ReporteDbfFilesEspecificosController extends Controller
                             continue;
                         }
 
-                        $key = strtolower($computer->plaza ?? '').'|'.($dbfFile['hash_md5'] ?? '').'|'.$fileName;
+                        $key = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($dbfFile['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
                         $rbfRecord = $rbfLookup[$key] ?? null;
                         $sizeKb = isset($dbfFile['size']) ? round($dbfFile['size'] / 1024, 2).' KB' : '';
                         $modified = $this->excelTextValue($this->formatAgentModifiedTime($dbfFile['modified'] ?? ''));

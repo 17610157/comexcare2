@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Computer;
 use App\Models\ConciliacionHashArchivo;
 use App\Models\Group;
-use App\Services\ConciliacionHashArchivoService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -541,22 +540,5 @@ class ReporteDbfFilesQuickbckController extends Controller
             return redirect()->route('reportes.dbf-files-quickbck')
                 ->with('error', 'Error al exportar: '.$e->getMessage());
         }
-    }
-
-    public function sync(ConciliacionHashArchivoService $service)
-    {
-        $result = $service->fetchAndSync();
-
-        if ($result['success']) {
-            return response()->json([
-                'success' => true,
-                'message' => "Sincronizacion completada: {$result['count']} registros actualizados.",
-            ]);
-        }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Error al sincronizar: '.$result['message'],
-        ], 500);
     }
 }

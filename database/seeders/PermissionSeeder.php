@@ -262,6 +262,17 @@ class PermissionSeeder extends Seeder
             'agent-defaults.editar',
             'agent-defaults.eliminar',
 
+            // Monitored Files
+            'monitored-files.ver',
+            'monitored-files.crear',
+            'monitored-files.editar',
+            'monitored-files.eliminar',
+
+            // RBF File Hashes
+            'rbf-file-hashes.ver',
+            'rbf-file-hashes.crear',
+            'rbf-file-hashes.eliminar',
+
             // DBF Files
             'dbf-files.ver',
 

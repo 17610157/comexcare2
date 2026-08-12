@@ -2,6 +2,8 @@
 
 use App\Http\Middleware\ApiRateLimiter;
 use App\Http\Middleware\AuditMiddleware;
+use App\Http\Middleware\HashArchivoApiKey;
+use App\Http\Middleware\HashArchivoRateLimit;
 use App\Http\Middleware\ReleaseDatabaseConnection;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -40,6 +42,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'api.rate_limit' => ApiRateLimiter::class,
             'audit' => AuditMiddleware::class,
+            'hash.key' => HashArchivoApiKey::class,
+            'hash.rate_limit' => HashArchivoRateLimit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

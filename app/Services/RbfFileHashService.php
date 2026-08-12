@@ -57,17 +57,24 @@ class RbfFileHashService
                 'plaza' => $plaza,
                 'zona' => $zona,
                 'path' => $path,
-                'name' => $file['name'] ?? '',
-                'hash' => $file['hash'] ?? '',
+                'name' => strtoupper($file['name'] ?? ''),
+                'hash' => strtoupper(substr($file['hash'] ?? '', -5)),
                 'last_modified' => $file['last_modified'] ?? null,
                 'last_sync' => $lastSync,
+                'manual' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
 
-        RbfFileHash::query()->truncate();
-        RbfFileHash::query()->insert($records);
+        RbfFileHash::query()->where('manual', false)->delete();
+
+        foreach ($records as $record) {
+            RbfFileHash::query()->updateOrCreate(
+                ['path' => $record['path']],
+                $record
+            );
+        }
 
         $count = count($records);
         Log::info("Sincronización RBF FileServices completada: {$count} registros");
