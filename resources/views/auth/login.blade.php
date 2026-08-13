@@ -590,6 +590,68 @@
     crosshair.style.top=(e.clientY-8)+'px';
   });
 
+  // Relincho de caballo sintetizado (WebAudio)
+  function playNeigh(){
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC)return;
+      var ctx=playNeigh._ctx||(playNeigh._ctx=new AC());
+      if(ctx.state==='suspended')ctx.resume();
+      var t0=ctx.currentTime+0.01, dur=1.1;
+
+      // voz principal (timbre nasal)
+      var osc=ctx.createOscillator(); osc.type='sawtooth';
+      var f=osc.frequency;
+      f.setValueAtTime(640,t0);
+      f.exponentialRampToValueAtTime(990,t0+0.12);   // arranque ascendente
+      f.exponentialRampToValueAtTime(720,t0+0.45);
+      f.exponentialRampToValueAtTime(340,t0+dur);    // caida final
+
+      // vibrato
+      var vib=ctx.createOscillator(); vib.frequency.value=14;
+      var vibG=ctx.createGain(); vibG.gain.value=60;
+      vib.connect(vibG); vibG.connect(f);
+
+      // tremolo fuerte de amplitud (el "tiritar" del relincho)
+      var trem=ctx.createOscillator(); trem.frequency.value=12;
+      var tremG=ctx.createGain(); tremG.gain.value=0.35;
+      var carrier=ctx.createGain(); carrier.gain.value=0.65;
+      trem.connect(tremG); tremG.connect(carrier.gain);
+
+      // filtro nasal
+      var bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1100; bp.Q.value=1.2;
+
+      // envelope de volumen
+      var env=ctx.createGain();
+      env.gain.setValueAtTime(0.0001,t0);
+      env.gain.exponentialRampToValueAtTime(0.8,t0+0.06);
+      env.gain.setValueAtTime(0.8,t0+0.65);
+      env.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+
+      osc.connect(bp); bp.connect(carrier); carrier.connect(env); env.connect(ctx.destination);
+
+      osc.start(t0); osc.stop(t0+dur+0.05);
+      vib.start(t0); vib.stop(t0+dur+0.05);
+      trem.start(t0); trem.stop(t0+dur+0.05);
+    }catch(e){}
+  }
+
+  // Reproduce el relincho al enviar el login y retrasa el submit para que se escuche
+  (function(){
+    var form=document.getElementById('f');
+    if(!form)return;
+    var sent=false;
+    form.addEventListener('submit',function(e){
+      if(sent)return;                 // el submit real pasa directo
+      e.preventDefault();
+      sent=true;
+      playNeigh();
+      var btn=form.querySelector('button[type="submit"]');
+      if(btn){btn.disabled=true;btn.textContent='ENTRANDO...';}
+      setTimeout(function(){ form.submit(); },800);
+    });
+  })();
+
   document.addEventListener('click',function(e){
     var t=e.target;
     if(t&&t.closest&&(t.closest('#login')||t.closest('#paletteBtn')))return;

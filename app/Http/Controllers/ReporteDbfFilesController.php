@@ -131,12 +131,13 @@ class ReporteDbfFilesController extends Controller
     {
         $ext = strtoupper(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
 
-        return in_array($ext, ['EXE', 'BAT'], true);
+        return in_array($ext, ['EXE', 'BAT', 'DBF'], true);
     }
 
     private function getFileCategory(array $file): string
     {
         $name = $file['name'] ?? '';
+        $path = $file['path'] ?? '';
         $ext = strtoupper(pathinfo($name, PATHINFO_EXTENSION));
 
         if ($ext === 'EXE') {
@@ -145,6 +146,14 @@ class ReporteDbfFilesController extends Controller
 
         if ($ext === 'BAT') {
             return 'bat';
+        }
+
+        if ($ext === 'DBF') {
+            if (stripos($path, 'quickbck') !== false || stripos($name, 'quickbck') !== false) {
+                return 'qbck';
+            }
+
+            return 'dbf';
         }
 
         return 'other';
@@ -202,7 +211,7 @@ class ReporteDbfFilesController extends Controller
             $groupStats = [];
             $computerOutdated = [];
             $computerMatchMap = [];
-            $globalCategoryStats = ['exe' => ['total' => 0, 'matched' => 0], 'bat' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
+            $globalCategoryStats = ['exe' => ['total' => 0, 'matched' => 0], 'bat' => ['total' => 0, 'matched' => 0], 'dbf' => ['total' => 0, 'matched' => 0], 'qbck' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
 
             foreach ($allComputers as $computer) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
@@ -211,7 +220,7 @@ class ReporteDbfFilesController extends Controller
                 $groupName = $computer->group->name ?? 'N/A';
                 $isOnline = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5;
                 $computerMatched = 0;
-                $categoryStats = ['exe' => ['total' => 0, 'matched' => 0], 'bat' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
+                $categoryStats = ['exe' => ['total' => 0, 'matched' => 0], 'bat' => ['total' => 0, 'matched' => 0], 'dbf' => ['total' => 0, 'matched' => 0], 'qbck' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
 
                 foreach ($dbfFiles as $file) {
                     $fileName = $file['name'] ?? 'N/A';
@@ -240,6 +249,8 @@ class ReporteDbfFilesController extends Controller
                     'total' => $computerTotal,
                     'exe' => $categoryStats['exe'],
                     'bat' => $categoryStats['bat'],
+                    'dbf' => $categoryStats['dbf'],
+                    'qbck' => $categoryStats['qbck'],
                     'other' => $categoryStats['other'],
                 ];
 
@@ -296,7 +307,7 @@ class ReporteDbfFilesController extends Controller
             $total = $allComputers->count();
 
             $allComputers = $allComputers->sortBy(function ($computer) use ($computerMatchMap, $sortColumn) {
-                $map = $computerMatchMap[$computer->id] ?? ['matched' => 0, 'total' => 0, 'exe' => ['total' => 0, 'matched' => 0], 'bat' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
+                $map = $computerMatchMap[$computer->id] ?? ['matched' => 0, 'total' => 0, 'exe' => ['total' => 0, 'matched' => 0], 'bat' => ['total' => 0, 'matched' => 0], 'dbf' => ['total' => 0, 'matched' => 0], 'qbck' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
                 $total = $map['total'];
                 $matched = $map['matched'];
                 $pct = $total > 0 ? round(($matched / $total) * 100) : 0;
@@ -317,7 +328,8 @@ class ReporteDbfFilesController extends Controller
             $computers = $allComputers->slice($offsetInt, $lengthInt);
 
             $fileCategoryFilter = $request->query('file_category') ?? '';
-            $data = $computers->map(function ($computer) use ($rbfLookup, $fileCategoryFilter) {
+            $archivoFilter = $request->query('archivo') ?? $request->input('archivo', '');
+            $data = $computers->map(function ($computer) use ($rbfLookup, $fileCategoryFilter, $archivoFilter) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
                 $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->isValidDbfFile($f)));
 
@@ -333,8 +345,12 @@ class ReporteDbfFilesController extends Controller
                     return $file;
                 }, $dbfFiles);
 
-                if (! empty($fileCategoryFilter) && in_array($fileCategoryFilter, ['exe', 'bat'])) {
+                if (! empty($fileCategoryFilter) && in_array($fileCategoryFilter, ['exe', 'bat', 'dbf', 'qbck'])) {
                     $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->getFileCategory($f) === $fileCategoryFilter));
+                }
+
+                if (! empty($archivoFilter)) {
+                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => stripos($f['name'] ?? '', $archivoFilter) !== false));
                 }
 
                 $computerMatched = count(array_filter($dbfFiles, fn ($f) => $f['rbf_matched']));
@@ -420,6 +436,18 @@ class ReporteDbfFilesController extends Controller
                             'unmatched' => $globalCategoryStats['bat']['total'] - $globalCategoryStats['bat']['matched'],
                             'percent' => $globalCategoryStats['bat']['total'] > 0 ? round(($globalCategoryStats['bat']['matched'] / $globalCategoryStats['bat']['total']) * 100, 1) : 0,
                         ],
+                        'dbf' => [
+                            'total' => $globalCategoryStats['dbf']['total'],
+                            'matched' => $globalCategoryStats['dbf']['matched'],
+                            'unmatched' => $globalCategoryStats['dbf']['total'] - $globalCategoryStats['dbf']['matched'],
+                            'percent' => $globalCategoryStats['dbf']['total'] > 0 ? round(($globalCategoryStats['dbf']['matched'] / $globalCategoryStats['dbf']['total']) * 100, 1) : 0,
+                        ],
+                        'qbck' => [
+                            'total' => $globalCategoryStats['qbck']['total'],
+                            'matched' => $globalCategoryStats['qbck']['matched'],
+                            'unmatched' => $globalCategoryStats['qbck']['total'] - $globalCategoryStats['qbck']['matched'],
+                            'percent' => $globalCategoryStats['qbck']['total'] > 0 ? round(($globalCategoryStats['qbck']['matched'] / $globalCategoryStats['qbck']['total']) * 100, 1) : 0,
+                        ],
                         'other' => [
                             'total' => $globalCategoryStats['other']['total'],
                             'matched' => $globalCategoryStats['other']['matched'],
@@ -452,6 +480,7 @@ class ReporteDbfFilesController extends Controller
             $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
             $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
             $fileCategory = $request->query('file_category') ?? $request->input('file_category', '');
+            $archivoInput = $request->query('archivo') ?? $request->input('archivo', '');
             $hash = $request->query('hash') ?? $request->input('hash', '');
 
             $query = Computer::with('group');
@@ -464,6 +493,10 @@ class ReporteDbfFilesController extends Controller
                 $query->whereIn('group_id', $groupInput);
             }
 
+            if (! empty($archivoInput)) {
+                $query->where('agent_config', 'ILIKE', '%'.$archivoInput.'%');
+            }
+
             if (! empty($hash)) {
                 $query->where('agent_config', 'ILIKE', '%'.$hash.'%');
             }
@@ -472,7 +505,7 @@ class ReporteDbfFilesController extends Controller
 
             $rbfLookup = $this->getRbfHashLookup();
 
-            $computersData = $computers->map(function ($computer) use ($rbfLookup, $fileCategory) {
+            $computersData = $computers->map(function ($computer) use ($rbfLookup, $fileCategory, $archivoInput) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
 
                 $dbfFiles = array_map(function ($file) use ($computer, $rbfLookup) {
@@ -484,8 +517,12 @@ class ReporteDbfFilesController extends Controller
                     return $file;
                 }, $dbfFiles);
 
-                if (! empty($fileCategory) && in_array($fileCategory, ['exe', 'bat'])) {
+                if (! empty($fileCategory) && in_array($fileCategory, ['exe', 'bat', 'dbf', 'qbck'])) {
                     $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->getFileCategory($f) === $fileCategory));
+                }
+
+                if (! empty($archivoInput)) {
+                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => stripos($f['name'] ?? '', $archivoInput) !== false));
                 }
 
                 $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
@@ -585,9 +622,6 @@ class ReporteDbfFilesController extends Controller
         $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
         $fileCategory = $request->query('file_category') ?? $request->query('file_group') ?? $request->input('file_category', '') ?? $request->input('file_group', '');
         $fileCategory = strtolower(trim((string) $fileCategory));
-        if ($fileCategory === 'qbckq' || $fileCategory === 'qback' || $fileCategory === 'qbck') {
-            $fileCategory = 'bat';
-        }
         if ($fileCategory === 'respaldo' || $fileCategory === 'resplado' || $fileCategory === 'respslado') {
             $fileCategory = 'bat';
         }
@@ -619,27 +653,16 @@ class ReporteDbfFilesController extends Controller
         $rows = [];
         foreach ($computers as $computer) {
             $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
-            $allowedDbf = ['ARCERO.DBF', 'OFERTAS.DBF', 'LISTA.DBF', 'PDCOMB.DBF', 'PROMARTS.DBF'];
-            $dbfFiles = array_filter($dbfFiles, function ($f) use ($allowedDbf) {
-                if (! $this->isValidDbfFile($f)) {
-                    return false;
-                }
-                $name = strtoupper($f['name'] ?? '');
-                $ext = strtoupper(pathinfo($name, PATHINFO_EXTENSION));
-
-                if ($ext === 'EXE') {
-                    return true;
-                }
-
-                return $ext === 'DBF' && in_array($name, $allowedDbf);
+            $dbfFiles = array_filter($dbfFiles, function ($f) {
+                return $this->isValidDbfFile($f);
             });
             $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
 
             foreach ($dbfFiles as $dbfFile) {
                 $category = $this->getFileCategory($dbfFile);
-                $categoryLabels = ['exe' => 'exe', 'bat' => 'bat', 'other' => 'envios'];
+                $categoryLabels = ['exe' => 'exe', 'bat' => 'bat', 'dbf' => 'dbf', 'qbck' => 'qbck', 'other' => 'envios'];
 
-                if (! empty($fileCategory) && in_array($fileCategory, ['exe', 'bat']) && $category !== $fileCategory) {
+                if (! empty($fileCategory) && in_array($fileCategory, ['exe', 'bat', 'dbf', 'qbck']) && $category !== $fileCategory) {
                     continue;
                 }
 

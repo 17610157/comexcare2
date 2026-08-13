@@ -49,8 +49,19 @@
           <label class="form-label small mb-1">Categorias Archivos</label>
           <select id="file_category_filter" class="form-control form-control-sm">
             <option value="">Todos los archivos</option>
+            <option value="dbf">Solo .DBF</option>
+            <option value="qbck">Solo QBCK</option>
             <option value="exe">Solo .EXE</option>
             <option value="bat">Solo .BAT</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Archivo</label>
+          <select id="archivo_filter" class="form-control form-control-sm">
+            <option value="">Todos los archivos</option>
+            @foreach($archivos as $archivo)
+            <option value="{{ $archivo }}">{{ $archivo }}</option>
+            @endforeach
           </select>
         </div>
         <div class="col-6 col-md-2">
@@ -209,6 +220,7 @@ function getFilters() {
   if (plazas.length) d.plaza = plazas;
   if (grupos.length) d.group_id = grupos;
   if ($('#file_category_filter').val()) d.file_category = $('#file_category_filter').val();
+  if ($('#archivo_filter').val()) d.archivo = $('#archivo_filter').val();
   if ($('#hash_filter').val()) d.hash = $('#hash_filter').val();
   if ($('#computer_search').val()) d.search = $('#computer_search').val();
   if ($('#estado_filter').val()) d.estado = $('#estado_filter').val();
@@ -257,9 +269,16 @@ function renderStats(json) {
 
 function getCategoryInfo(file) {
   var name = (file.name || '').toUpperCase();
+  var path = (file.path || '').toUpperCase();
   var ext = name.split('.').pop();
   if (ext === 'EXE') return { label: '.EXE', badge: 'bg-info' };
   if (ext === 'BAT') return { label: '.BAT', badge: 'bg-success' };
+  if (ext === 'DBF') {
+    if (path.indexOf('QUICKBCK') !== -1 || name.indexOf('QUICKBCK') !== -1) {
+      return { label: 'QBCK', badge: 'bg-warning' };
+    }
+    return { label: '.DBF', badge: 'bg-primary' };
+  }
   return { label: 'Otros', badge: 'bg-secondary' };
 }
 
@@ -368,6 +387,7 @@ $(function() {
     $('#select_all_plazas').prop('checked', false);
     $('#select_all_groups').prop('checked', false);
     $('#file_category_filter').val('');
+    $('#archivo_filter').val('');
     $('#hash_filter').val('');
     $('#computer_search').val('');
     $('#estado_filter').val('');
@@ -404,11 +424,13 @@ $(function() {
     var plazasSeleccionadas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
     var gruposSeleccionados = $('.group-checkbox:checked').map(function() { return $(this).val(); }).get();
     var fileCategory = $('#file_category_filter').val();
+    var archivo = $('#archivo_filter').val();
     var hash = $('#hash_filter').val();
     var params = new URLSearchParams();
     plazasSeleccionadas.forEach(function(val) { params.append('plaza[]', val); });
     gruposSeleccionados.forEach(function(val) { params.append('group_id[]', val); });
     if (fileCategory) params.append('file_category', fileCategory);
+    if (archivo) params.append('archivo', archivo);
     if (hash) params.append('hash', hash);
     params.append('_t', Date.now());
     window.open("{{ url('/reportes/dbf-files/export') }}?" + params.toString(), '_blank');
