@@ -26,8 +26,17 @@ class ReporteDbfFilesQuickbckController extends Controller
 
         $archivos = $this->getUniqueQuickBckFiles();
 
+        $plazaGroups = Computer::whereNotNull('group_id')
+            ->whereNotNull('plaza')
+            ->select('plaza', 'group_id')
+            ->distinct()
+            ->get()
+            ->groupBy('plaza')
+            ->map(fn ($rows) => $rows->pluck('group_id')->map(fn ($id) => (int) $id)->values())
+            ->toArray();
+
         return response()
-            ->view('reportes.dbf-files-quickbck.index', compact('plazas', 'groups', 'archivos'))
+            ->view('reportes.dbf-files-quickbck.index', compact('plazas', 'groups', 'archivos', 'plazaGroups'))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');

@@ -8,10 +8,13 @@
 @section('content')
 <div class="container-fluid">
   <div class="card bg-light mb-3">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <h5 class="mb-0">
         <i class="fas fa-filter"></i> Filtros
       </h5>
+      <button type="button" class="btn-card-minimize" title="Minimizar">
+        <i class="fas fa-minus"></i>
+      </button>
     </div>
     <div class="card-body">
       <div class="row g-2">
@@ -19,8 +22,8 @@
           <label class="form-label small mb-1">Archivo</label>
           <select id="archivo_filter" class="form-control form-control-sm">
             <option value="">Todos los archivos</option>
-            @foreach($archivos as $archivo)
-            <option value="{{ $archivo }}">{{ $archivo }}</option>
+            @foreach($archivoGrupos as $grupo => $files)
+            <option value="{{ $grupo }}">{{ $grupo }}</option>
             @endforeach
           </select>
         </div>
@@ -32,7 +35,7 @@
               <label for="select_all_groups" class="form-check-label font-weight-bold"><strong>Todos</strong></label>
             </div>
             @foreach($groups as $group)
-            <div class="form-check">
+            <div class="form-check group-item">
               <input type="checkbox" name="group_id[]" value="{{ $group->id }}" id="group_{{ $group->id }}" class="form-check-input group-checkbox">
               <label for="group_{{ $group->id }}" class="form-check-label">{{ $group->name }}</label>
             </div>
@@ -93,104 +96,116 @@
     </div>
   </div>
 
-  <div class="row g-2 mb-3">
-    <div class="col-md col-sm-6">
-      <div class="card text-bg-light h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statTotalFiles">0</span>
-          <small class="text-muted">Total Archivos</small>
+  <div class="card mb-3" id="chartsCard">
+    <div class="card-header py-2 d-flex align-items-center gap-2">
+      <i class="fas fa-chart-bar text-info"></i>
+      <small class="fw-bold">Graficas</small>
+      <button type="button" class="btn-card-minimize ms-auto" title="Minimizar"><i class="fas fa-minus"></i></button>
+    </div>
+    <div class="card-body py-2">
+      <div class="row g-2 mb-3">
+        <div class="col-md col-sm-6">
+          <div class="card text-bg-light h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statTotalFiles">0</span>
+              <small class="text-muted">Total Archivos</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md col-sm-6">
+          <div class="card text-bg-success h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statMatchedFiles">0</span>
+              <small>Actualizados</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md col-sm-6">
+          <div class="card text-bg-warning h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statCambioManual">0</span>
+              <small class="text-dark">Cambio Manual</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md col-sm-6">
+          <div class="card text-bg-danger h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statUnmatchedFiles">0</span>
+              <small>Desactualizados</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md col-sm-6">
+          <div class="card text-bg-info h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statPercent">0%</span>
+              <small>Cumplimiento</small>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-md col-sm-6">
-      <div class="card text-bg-success h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statMatchedFiles">0</span>
-          <small>Actualizados</small>
+      <div id="chartsSection" class="row g-3 mb-0 d-none">
+        <div class="col-lg-6 col-md-6">
+          <div class="card h-100">
+            <div class="card-header py-2 d-flex align-items-center gap-2">
+              <i class="fas fa-chart-pie text-info"></i>
+              <small class="fw-bold">Actualizacion Archivos</small>
+            </div>
+            <div class="card-body py-3 text-center">
+              <canvas id="pieFilesChart"></canvas>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="col-md col-sm-6">
-      <div class="card text-bg-warning h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statCambioManual">0</span>
-          <small class="text-dark">Cambio Manual</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-md col-sm-6">
-      <div class="card text-bg-danger h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statUnmatchedFiles">0</span>
-          <small>Desactualizados</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-md col-sm-6">
-      <div class="card text-bg-info h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statPercent">0%</span>
-          <small>Cumplimiento</small>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="chartsSection" class="row g-3 mb-3 d-none">
-    <div class="col-lg-6 col-md-6">
-      <div class="card h-100">
-        <div class="card-header py-2 d-flex align-items-center gap-2">
-          <i class="fas fa-chart-pie text-info"></i>
-          <small class="fw-bold">Actualizacion Archivos</small>
-        </div>
-        <div class="card-body py-3 text-center">
-          <canvas id="pieFilesChart"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6 col-md-6">
-      <div class="card h-100">
-        <div class="card-header py-2 d-flex align-items-center gap-2">
-          <i class="fas fa-map-marker-alt text-warning"></i>
-          <small class="fw-bold">Actualizacion por Plaza</small>
-        </div>
-        <div class="card-body py-3">
-          <canvas id="barPlazaChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row mb-3">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header py-2" style="border-bottom: 2px solid #dee2e6;">
-          <i class="fas fa-play-circle text-success"></i>
-          <small class="fw-bold">Ejecutar Comandos</small>
-        </div>
-        <div class="card-body py-2">
-          <button class="btn btn-success btn-sm" id="btn_run_lista" style="margin-right:4px; margin-bottom:4px;"><i class="fas fa-play"></i> LISTA</button>
-          <button class="btn btn-info btn-sm" id="btn_run_promocion" style="margin-right:4px; margin-bottom:4px;"><i class="fas fa-play"></i> PROMOCION</button>
-          <button class="btn btn-warning btn-sm" id="btn_run_oferta" style="margin-right:4px; margin-bottom:4px;"><i class="fas fa-play"></i> OFERTA</button>
-          <button class="btn btn-danger btn-sm" id="btn_run_combo" style="margin-right:4px; margin-bottom:4px;"><i class="fas fa-play"></i> COMBO</button>
-          <button class="btn btn-secondary btn-sm" id="btn_bitacora" style="margin-bottom:4px;"><i class="fas fa-history"></i> Bitacora</button>
+        <div class="col-lg-6 col-md-6">
+          <div class="card h-100">
+            <div class="card-header py-2 d-flex align-items-center gap-2">
+              <i class="fas fa-map-marker-alt text-warning"></i>
+              <small class="fw-bold">Actualizacion por Plaza</small>
+            </div>
+            <div class="card-body py-3">
+              <canvas id="barPlazaChart"></canvas>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header bg-primary text-white">
-      <h5 class="mb-0">
-        <i class="fas fa-list"></i> Archivos por Computadora
-      </h5>
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center flex-wrap">
+        <button class="btn btn-success btn-sm" id="btn_run_lista" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> LISTA</button>
+        <button class="btn btn-info btn-sm" id="btn_run_promocion" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> PROMOCION</button>
+        <button class="btn btn-warning btn-sm" id="btn_run_oferta" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> OFERTA</button>
+        <button class="btn btn-danger btn-sm" id="btn_run_combo" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> COMBO</button>
+        <button class="btn btn-secondary btn-sm" id="btn_bitacora" style="margin-bottom:2px; margin-top:2px;"><i class="fas fa-history"></i> Bitacora</button>
+      </div>
+      <div class="d-flex align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center" style="gap: .25rem;">
+          <label for="pageSizeSelect" class="mb-0 small text-white">Mostrar</label>
+          <select id="pageSizeSelect" class="form-control form-control-sm" style="width: auto;">
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+        <div id="paginationControls" class="d-flex align-items-center flex-wrap gap-2 d-none">
+          <small class="text-white" id="paginationInfo"></small>
+          <nav><ul class="pagination pagination-sm mb-0" id="paginationNumbers"></ul></nav>
+        </div>
+        <button type="button" class="btn-card-minimize" title="Minimizar">
+          <i class="fas fa-minus"></i>
+        </button>
+      </div>
     </div>
     <div class="card-body p-0">
       <div id="tableLoading" class="text-center py-4">
         <i class="fas fa-spinner fa-spin fa-2x"></i>
         <p class="mt-2">Cargando datos...</p>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive table-scroll">
         <table class="table table-sm table-hover table-striped mb-0" id="filesTable">
           <thead class="table-dark">
             <tr>
@@ -212,10 +227,6 @@
           </tbody>
         </table>
       </div>
-      <div id="pagination" class="d-flex justify-content-between align-items-center mt-2 p-2 d-none flex-wrap gap-2">
-        <small class="text-muted" id="paginationInfo"></small>
-        <nav><ul class="pagination pagination-sm mb-0" id="paginationNumbers"></ul></nav>
-      </div>
     </div>
   </div>
 </div>
@@ -225,14 +236,14 @@
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title"><i class="fas fa-play-circle"></i> Confirmar Ejecucion</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
       </div>
       <div class="modal-body">
         <p id="confirmModalMessage" class="mb-2"></p>
         <div id="confirmModalList" class="mb-0" style="max-height:300px; overflow-y:auto;"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
         <button type="button" class="btn btn-primary btn-sm" id="confirmEjecutarBtn"><i class="fas fa-play"></i> Ejecutar</button>
       </div>
     </div>
@@ -244,7 +255,7 @@
     <div class="modal-content">
       <div class="modal-header bg-secondary text-white">
         <h5 class="modal-title"><i class="fas fa-history"></i> Bitacora de Ejecuciones</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
       </div>
       <div class="modal-body">
         <div id="bitacoraLoading" class="text-center py-4">
@@ -254,7 +265,7 @@
         <div id="bitacoraContent" class="d-none"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>
@@ -265,7 +276,7 @@
     <div class="modal-content">
       <div class="modal-header bg-info text-white">
         <h5 class="modal-title"><i class="fas fa-eye"></i> Historial de Hash</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
       </div>
       <div class="modal-body">
         <div id="historialLoading" class="text-center py-4">
@@ -275,7 +286,7 @@
         <div id="historialContent" class="d-none"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>
@@ -312,6 +323,27 @@
 #filesTable { font-size: 0.75rem; }
 #filesTable thead th { white-space: nowrap; font-size: 0.7rem; }
 #filesTable tbody td { font-size: 0.75rem; vertical-align: middle; }
+.table-scroll { max-height: 55vh; overflow-y: auto; }
+.table-scroll #filesTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #343a40;
+  color: #fff;
+}
+#paginationNumbers .page-link { padding: 0.15rem 0.45rem; }
+.btn-card-minimize {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: .65;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.btn-card-minimize:hover { opacity: 1; }
+.btn-card-minimize:focus { outline: none; box-shadow: none; }
 .pct-bar { height: 6px; border-radius: 3px; background: #dee2e6; overflow: hidden; }
 .pct-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
 </style>
@@ -395,11 +427,37 @@ function removeFromSelection(id) {
 }
 
 var currentPage = 0;
-var pageSize = 50;
+var pageSize = 10;
 var totalRecords = 0;
 var sortColumn = 'nombre_instalacion';
 var sortDirection = 'asc';
 var selectedComputerIds = new Set();
+var plazaGroupsMap = @json($plazaGroups ?? []);
+
+function updateGroupVisibility() {
+  var selectedPlazas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
+  if (selectedPlazas.length === 0) {
+    $('.group-item').show();
+    return;
+  }
+  var allowed = {};
+  selectedPlazas.forEach(function(p) {
+    (plazaGroupsMap[p] || []).forEach(function(gid) { allowed[gid] = true; });
+  });
+  $('.group-item').each(function() {
+    var $cb = $(this).find('.group-checkbox');
+    var gid = parseInt($cb.val(), 10);
+    if (allowed[gid]) {
+      $(this).show();
+    } else {
+      $(this).hide();
+      $cb.prop('checked', false);
+    }
+  });
+  var visibleTotal = $('.group-checkbox:visible').length;
+  var visibleChecked = $('.group-checkbox:visible:checked').length;
+  $('#select_all_groups').prop('checked', visibleTotal > 0 && visibleTotal === visibleChecked);
+}
 
 function loadData() {
   var filters = getFilters();
@@ -517,7 +575,7 @@ function renderTable(json) {
 
   if (data.length === 0) {
     $tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No se encontraron archivos</td></tr>');
-    $('#pagination').addClass('d-none');
+    $('#paginationControls').addClass('d-none');
     return;
   }
 
@@ -561,10 +619,10 @@ function renderTable(json) {
 function updatePagination() {
   var totalPages = Math.ceil(totalRecords / pageSize);
   if (totalPages <= 1) {
-    $('#pagination').addClass('d-none');
+    $('#paginationControls').addClass('d-none');
     return;
   }
-  $('#pagination').removeClass('d-none');
+  $('#paginationControls').removeClass('d-none');
   var from = currentPage * pageSize + 1;
   var to = Math.min((currentPage + 1) * pageSize, totalRecords);
   $('#paginationInfo').text('Mostrando ' + from + ' a ' + to + ' de ' + totalRecords);
@@ -603,6 +661,7 @@ $(function() {
     $('#select_all_plazas').prop('checked', false);
     $('.group-checkbox').prop('checked', false);
     $('#select_all_groups').prop('checked', false);
+    updateGroupVisibility();
     $('#archivo_filter').val('');
     $('#computer_search').val('');
     $('#estado_filter').val('');
@@ -613,11 +672,16 @@ $(function() {
 
   $('#select_all_plazas').on('change', function() {
     $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+    updateGroupVisibility();
+    currentPage = 0;
     clearSelection();
+    loadData();
   });
   $('#select_all_groups').on('change', function() {
-    $('.group-checkbox').prop('checked', $(this).prop('checked'));
+    $('.group-checkbox:visible').prop('checked', $(this).prop('checked'));
+    currentPage = 0;
     clearSelection();
+    loadData();
   });
   $('#select_all_computers').on('change', function() {
     if ($(this).prop('checked')) {
@@ -651,10 +715,24 @@ $(function() {
       removeFromSelection(id);
     }
   });
-  $('.plaza-checkbox').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
+  $('.plaza-checkbox').on('change', function() { updateGroupVisibility(); currentPage = 0; clearSelection(); loadData(); });
   $('.group-checkbox').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
   $('#archivo_filter').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
   $('#estado_filter').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
+  $('#pageSizeSelect').on('change', function() {
+    pageSize = parseInt($(this).val(), 10) || 10;
+    currentPage = 0;
+    loadData();
+  });
+  $(document).on('click', '.btn-card-minimize', function() {
+    var $card = $(this).closest('.card');
+    var $body = $card.children('.card-body');
+    var $icon = $(this).find('i');
+    $body.slideToggle(200, function() {
+      window.dispatchEvent(new Event('resize'));
+    });
+    $icon.toggleClass('fa-minus fa-plus');
+  });
   $('#computer_search').on('keypress', function(e) {
     if (e.which === 13) { currentPage = 0; clearSelection(); loadData(); }
   });

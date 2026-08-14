@@ -12,6 +12,7 @@ Artisan::command('inspire', function () {
 
 Schedule::command('queue:work --stop-when-empty')->everyMinute();
 Schedule::command('computers:check-status --minutes=5')->everyFiveMinutes();
+Schedule::command('commands:recover-stuck --minutes=60')->everyFiveMinutes();
 Schedule::command('app:prune-computer-logs --days=3')->cron('0 0 */3 * *');
 Schedule::job(new ProcessScheduledDistributions)->everyMinute();
 Schedule::job(new ProcessScheduledReceptions)->everyMinute();

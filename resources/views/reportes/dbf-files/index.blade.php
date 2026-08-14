@@ -8,12 +8,15 @@
 @section('content')
 <div class="container-fluid">
   <div class="card bg-light mb-3">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <h5 class="mb-0">
         <i class="fas fa-filter"></i> Filtros
       </h5>
+      <button type="button" id="btn_toggle_filters" class="btn-card-minimize" title="Minimizar filtros">
+        <i class="fas fa-minus"></i>
+      </button>
     </div>
-    <div class="card-body">
+    <div class="card-body" id="filtersBody">
       <div class="row g-2">
         <div class="col-6 col-md-2">
           <label class="form-label small mb-1">Plazas</label>
@@ -38,7 +41,7 @@
               <label for="select_all_groups" class="form-check-label font-weight-bold"><strong>Todos</strong></label>
             </div>
             @foreach($groups as $group)
-            <div class="form-check">
+            <div class="form-check group-item">
               <input type="checkbox" name="group_id[]" value="{{ $group->id }}" id="group_{{ $group->id }}" class="form-check-input group-checkbox">
               <label for="group_{{ $group->id }}" class="form-check-label">{{ $group->name }}</label>
             </div>
@@ -60,13 +63,9 @@
           <select id="archivo_filter" class="form-control form-control-sm">
             <option value="">Todos los archivos</option>
             @foreach($archivos as $archivo)
-            <option value="{{ $archivo }}">{{ $archivo }}</option>
+            <option value="{{ $archivo }}" data-cats="{{ implode(',', $archivoCategorias[$archivo] ?? []) }}">{{ $archivo }}</option>
             @endforeach
           </select>
-        </div>
-        <div class="col-6 col-md-2">
-          <label class="form-label small mb-1">Hash MD5</label>
-          <input type="text" id="hash_filter" class="form-control form-control-sm" placeholder="Ej. 8B7060">
         </div>
         <div class="col-6 col-md-2">
           <label class="form-label small mb-1">Buscar Computadora</label>
@@ -107,17 +106,27 @@
   </div>
 
   <div class="card" id="computersCard">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap">
-      <h5 class="mb-0">
-        <i class="fas fa-desktop"></i> Computadoras
-      </h5>
+    <div class="card-header bg-primary text-white d-flex justify-content-end align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center" style="gap: .25rem;">
+        <label for="pageSizeSelect" class="mb-0 small text-white">Mostrar</label>
+        <select id="pageSizeSelect" class="form-control form-control-sm" style="width: auto;">
+          <option value="10" selected>10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div id="paginationControls" class="d-flex align-items-center flex-wrap gap-2 d-none">
+        <small class="text-white" id="paginationInfo"></small>
+        <nav><ul class="pagination pagination-sm mb-0" id="paginationNumbers"></ul></nav>
+      </div>
     </div>
     <div class="card-body p-0">
       <div id="computersLoading" class="text-center py-4">
         <i class="fas fa-spinner fa-spin fa-2x"></i>
         <p class="mt-2">Cargando computadoras...</p>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive table-scroll">
         <table class="table table-sm table-hover table-striped mb-0" id="computersTable">
           <thead class="table-dark">
             <tr>
@@ -138,10 +147,6 @@
           <tbody id="computersTableBody">
           </tbody>
         </table>
-      </div>
-      <div id="computersPagination" class="d-flex justify-content-between align-items-center mt-2 p-2 d-none flex-wrap gap-2">
-        <small class="text-muted" id="paginationInfo"></small>
-        <nav><ul class="pagination pagination-sm mb-0" id="paginationNumbers"></ul></nav>
       </div>
     </div>
   </div>
@@ -170,6 +175,27 @@
 
 #computersTable { font-size: 0.8rem; }
 #computersTable thead th { white-space: nowrap; font-size: 0.75rem; }
+.table-scroll { max-height: 55vh; overflow-y: auto; }
+.table-scroll #computersTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #343a40;
+  color: #fff;
+}
+#paginationNumbers .page-link { padding: 0.15rem 0.45rem; }
+.btn-card-minimize {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: .65;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.btn-card-minimize:hover { opacity: 1; }
+.btn-card-minimize:focus { outline: none; box-shadow: none; }
 #computersTable tbody tr.file-row { background-color: #f8f9fa !important; }
 #computersTable tbody tr.file-row td { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
 .file-table { width: 100%; font-size: 0.7rem; }
@@ -221,14 +247,64 @@ function getFilters() {
   if (grupos.length) d.group_id = grupos;
   if ($('#file_category_filter').val()) d.file_category = $('#file_category_filter').val();
   if ($('#archivo_filter').val()) d.archivo = $('#archivo_filter').val();
-  if ($('#hash_filter').val()) d.hash = $('#hash_filter').val();
   if ($('#computer_search').val()) d.search = $('#computer_search').val();
   if ($('#estado_filter').val()) d.estado = $('#estado_filter').val();
   return d;
 }
 
+var plazaGroupsMap = @json($plazaGroups ?? []);
+var archivoOptions = [];
+$('#archivo_filter option').each(function() {
+  archivoOptions.push({
+    value: $(this).attr('value'),
+    label: $(this).text(),
+    cats: ($(this).attr('data-cats') || '').split(',').filter(Boolean)
+  });
+});
+
+function updateGroupVisibility() {
+  var selectedPlazas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
+  if (selectedPlazas.length === 0) {
+    $('.group-item').show();
+    return;
+  }
+  var allowed = {};
+  selectedPlazas.forEach(function(p) {
+    (plazaGroupsMap[p] || []).forEach(function(gid) { allowed[gid] = true; });
+  });
+  $('.group-item').each(function() {
+    var $cb = $(this).find('.group-checkbox');
+    var gid = parseInt($cb.val(), 10);
+    if (allowed[gid]) {
+      $(this).show();
+    } else {
+      $(this).hide();
+      $cb.prop('checked', false);
+    }
+  });
+  var visibleTotal = $('.group-checkbox:visible').length;
+  var visibleChecked = $('.group-checkbox:visible:checked').length;
+  $('#select_all_groups').prop('checked', visibleTotal > 0 && visibleTotal === visibleChecked);
+}
+
+function updateArchivoOptions() {
+  var cat = $('#file_category_filter').val();
+  var $sel = $('#archivo_filter');
+  var current = $sel.val();
+  $sel.empty();
+  archivoOptions.forEach(function(opt) {
+    if (opt.value === '' || !cat || opt.cats.indexOf(cat) !== -1) {
+      $sel.append(new Option(opt.label, opt.value));
+    }
+  });
+  var stillThere = current !== '' && $sel.find('option').filter(function() {
+    return $(this).attr('value') === current;
+  }).length > 0;
+  $sel.val(stillThere ? current : '');
+}
+
 var currentPage = 0;
-var pageSize = 50;
+var pageSize = 10;
 var totalRecords = 0;
 var lastJson = null;
 var sortColumn = 'nombre_instalacion';
@@ -292,7 +368,7 @@ function renderTable(json) {
 
   if (data.length === 0) {
     $tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No se encontraron computadoras</td></tr>');
-    $('#computersPagination').addClass('d-none');
+    $('#paginationControls').addClass('d-none');
     return;
   }
 
@@ -342,13 +418,13 @@ function renderTable(json) {
 function updatePagination() {
   var totalPages = Math.ceil(totalRecords / pageSize);
   if (totalPages <= 1) {
-    $('#computersPagination').addClass('d-none');
+    $('#paginationControls').addClass('d-none');
     return;
   }
-  $('#computersPagination').removeClass('d-none');
+  $('#paginationControls').removeClass('d-none');
   var from = currentPage * pageSize + 1;
   var to = Math.min((currentPage + 1) * pageSize, totalRecords);
-  $('#paginationInfo').text('Mostrando ' + from + ' a ' + to + ' de ' + totalRecords + ' computadoras');
+  $('#paginationInfo').text('Mostrando ' + from + ' a ' + to + ' de ' + totalRecords);
 
   var $ul = $('#paginationNumbers').empty();
   var startPage = Math.max(0, currentPage - 2);
@@ -386,9 +462,10 @@ $(function() {
     $('.group-checkbox').prop('checked', false);
     $('#select_all_plazas').prop('checked', false);
     $('#select_all_groups').prop('checked', false);
+    updateGroupVisibility();
     $('#file_category_filter').val('');
+    updateArchivoOptions();
     $('#archivo_filter').val('');
-    $('#hash_filter').val('');
     $('#computer_search').val('');
     $('#estado_filter').val('');
     currentPage = 0;
@@ -397,24 +474,42 @@ $(function() {
 
   $('#select_all_plazas').on('change', function() {
     $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+    updateGroupVisibility();
+    currentPage = 0;
+    loadData();
   });
   $('#select_all_groups').on('change', function() {
-    $('.group-checkbox').prop('checked', $(this).prop('checked'));
+    $('.group-checkbox:visible').prop('checked', $(this).prop('checked'));
+    currentPage = 0;
+    loadData();
   });
-  $('.plaza-checkbox, .group-checkbox').on('change', function() {
-    currentPage = 0; loadData();
+  $('.plaza-checkbox').on('change', function() {
+    updateGroupVisibility();
+    currentPage = 0;
+    loadData();
+  });
+  $('.group-checkbox').on('change', function() {
+    currentPage = 0;
+    loadData();
   });
   $('#archivo_filter').on('change', function() {
     currentPage = 0; loadData();
   });
   $('#file_category_filter').on('change', function() {
+    updateArchivoOptions();
     currentPage = 0; loadData();
   });
   $('#estado_filter').on('change', function() {
     currentPage = 0; loadData();
   });
-  $('#hash_filter').on('keypress', function(e) {
-    if (e.which === 13) { currentPage = 0; loadData(); }
+  $('#pageSizeSelect').on('change', function() {
+    pageSize = parseInt($(this).val(), 10) || 10;
+    currentPage = 0;
+    loadData();
+  });
+  $('#btn_toggle_filters').on('click', function() {
+    $('#filtersBody').slideToggle(200);
+    $(this).find('i').toggleClass('fa-minus fa-plus');
   });
   $('#computer_search').on('keypress', function(e) {
     if (e.which === 13) { currentPage = 0; loadData(); }
@@ -425,13 +520,11 @@ $(function() {
     var gruposSeleccionados = $('.group-checkbox:checked').map(function() { return $(this).val(); }).get();
     var fileCategory = $('#file_category_filter').val();
     var archivo = $('#archivo_filter').val();
-    var hash = $('#hash_filter').val();
     var params = new URLSearchParams();
     plazasSeleccionadas.forEach(function(val) { params.append('plaza[]', val); });
     gruposSeleccionados.forEach(function(val) { params.append('group_id[]', val); });
     if (fileCategory) params.append('file_category', fileCategory);
     if (archivo) params.append('archivo', archivo);
-    if (hash) params.append('hash', hash);
     params.append('_t', Date.now());
     window.open("{{ url('/reportes/dbf-files/export') }}?" + params.toString(), '_blank');
   });

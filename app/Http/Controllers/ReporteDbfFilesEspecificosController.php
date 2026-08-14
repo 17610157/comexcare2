@@ -56,13 +56,52 @@ class ReporteDbfFilesEspecificosController extends Controller
 
         $archivos = self::SPECIFIC_FILES;
 
+        $archivoGrupos = $this->getArchivoGrupos();
+
         $groups = Group::orderBy('name')->get();
 
+        $plazaGroups = Computer::whereNotNull('group_id')
+            ->whereNotNull('plaza')
+            ->select('plaza', 'group_id')
+            ->distinct()
+            ->get()
+            ->groupBy('plaza')
+            ->map(fn ($rows) => $rows->pluck('group_id')->map(fn ($id) => (int) $id)->values())
+            ->toArray();
+
         return response()
-            ->view('reportes.dbf-files-especificos.index', compact('plazas', 'archivos', 'groups'))
+            ->view('reportes.dbf-files-especificos.index', compact('plazas', 'archivos', 'archivoGrupos', 'groups', 'plazaGroups'))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
+    }
+
+    private function getArchivoGrupos(): array
+    {
+        $grupos = [];
+        $grouped = [];
+        foreach (self::TIPO_MAP as $tipo => $cfg) {
+            $grupos[strtoupper($tipo)] = $cfg['dbf'];
+            $grouped = array_merge($grouped, $cfg['dbf']);
+        }
+        $otros = array_values(array_diff(self::SPECIFIC_FILES, $grouped));
+        if (! empty($otros)) {
+            $grupos['OTROS'] = $otros;
+        }
+
+        return $grupos;
+    }
+
+    private function resolveArchivoFilter($archivoInput): ?array
+    {
+        $archivoInput = strtoupper(trim((string) $archivoInput));
+        if ($archivoInput === '') {
+            return null;
+        }
+
+        $grupos = $this->getArchivoGrupos();
+
+        return isset($grupos[$archivoInput]) ? $grupos[$archivoInput] : [$archivoInput];
     }
 
     private function getRbfHashLookup(): array
@@ -185,6 +224,7 @@ class ReporteDbfFilesEspecificosController extends Controller
         $allComputers = $query->orderBy('nombre_instalacion')->get();
 
         $archivoInput = $request->query('archivo') ?? $request->input('archivo');
+        $archivoAllowed = $this->resolveArchivoFilter($archivoInput);
         $rbfLookup = $this->getRbfHashLookup();
 
         $flatRows = [];
@@ -199,7 +239,7 @@ class ReporteDbfFilesEspecificosController extends Controller
             foreach ($dbfFiles as $file) {
                 $fileName = $file['name'] ?? 'N/A';
 
-                if (! empty($archivoInput) && strtoupper($fileName) !== strtoupper($archivoInput)) {
+                if ($archivoAllowed !== null && ! in_array(strtoupper($fileName), $archivoAllowed)) {
                     continue;
                 }
 
@@ -681,6 +721,7 @@ class ReporteDbfFilesEspecificosController extends Controller
             $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
             $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
             $archivoInput = $request->query('archivo') ?? $request->input('archivo', '');
+            $archivoAllowed = $this->resolveArchivoFilter($archivoInput);
 
             $query = Computer::with('group');
 
@@ -704,7 +745,7 @@ class ReporteDbfFilesEspecificosController extends Controller
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
             ];
 
-            $callback = function () use ($computers, $rbfLookup, $archivoInput) {
+            $callback = function () use ($computers, $rbfLookup, $archivoAllowed) {
                 $output = fopen('php://output', 'w');
 
                 fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
@@ -721,7 +762,7 @@ class ReporteDbfFilesEspecificosController extends Controller
                     foreach ($dbfFiles as $dbfFile) {
                         $fileName = $dbfFile['name'] ?? 'N/A';
 
-                        if (! empty($archivoInput) && strtoupper($fileName) !== strtoupper($archivoInput)) {
+                        if ($archivoAllowed !== null && ! in_array(strtoupper($fileName), $archivoAllowed)) {
                             continue;
                         }
 

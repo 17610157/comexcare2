@@ -23,10 +23,19 @@ class ReporteDbfFilesController extends Controller
             ->filter()
             ->values();
 
-        $archivos = $this->getUniqueFiles();
+        [$archivos, $archivoCategorias] = $this->getUniqueFiles();
+
+        $plazaGroups = Computer::whereNotNull('group_id')
+            ->whereNotNull('plaza')
+            ->select('plaza', 'group_id')
+            ->distinct()
+            ->get()
+            ->groupBy('plaza')
+            ->map(fn ($rows) => $rows->pluck('group_id')->map(fn ($id) => (int) $id)->values())
+            ->toArray();
 
         return response()
-            ->view('reportes.dbf-files.index', compact('plazas', 'groups', 'archivos'))
+            ->view('reportes.dbf-files.index', compact('plazas', 'groups', 'archivos', 'archivoCategorias', 'plazaGroups'))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
@@ -39,19 +48,32 @@ class ReporteDbfFilesController extends Controller
             ->get();
 
         $archivos = [];
+        $categorias = [];
         foreach ($computers as $computer) {
             $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
             foreach ($dbfFiles as $file) {
                 $name = $file['name'] ?? null;
-                if ($name && ! in_array($name, $archivos)) {
+                if (! $name) {
+                    continue;
+                }
+                if (! in_array($name, $archivos)) {
                     $archivos[] = $name;
+                }
+                if ($this->isValidDbfFile($file)) {
+                    $cat = $this->getFileCategory($file);
+                    if (! isset($categorias[$name])) {
+                        $categorias[$name] = [];
+                    }
+                    if (! in_array($cat, $categorias[$name])) {
+                        $categorias[$name][] = $cat;
+                    }
                 }
             }
         }
 
         sort($archivos);
 
-        return $archivos;
+        return [$archivos, $categorias];
     }
 
     private function getRbfHashLookup(): array
@@ -371,7 +393,7 @@ class ReporteDbfFilesController extends Controller
                     'pvsi_bepartners_fecha' => $computer->pvsi_bepartners_fecha ?? null,
                     'pvsi_bepartners_hora' => $computer->pvsi_bepartners_hora ?? null,
                 ];
-            });
+            })->values();
 
             $perPlaza = [];
             foreach ($plazaStats as $plaza => $stats) {

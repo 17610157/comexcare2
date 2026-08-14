@@ -8,10 +8,13 @@
 @section('content')
 <div class="container-fluid">
   <div class="card bg-light mb-3">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <h5 class="mb-0">
         <i class="fas fa-filter"></i> Filtros
       </h5>
+      <button type="button" class="btn-card-minimize" title="Minimizar">
+        <i class="fas fa-minus"></i>
+      </button>
     </div>
     <div class="card-body">
       <div class="row g-2">
@@ -32,7 +35,7 @@
               <label for="select_all_groups" class="form-check-label font-weight-bold"><strong>Todos</strong></label>
             </div>
             @foreach($groups as $group)
-            <div class="form-check">
+            <div class="form-check group-item">
               <input type="checkbox" name="group_id[]" value="{{ $group->id }}" id="group_{{ $group->id }}" class="form-check-input group-checkbox">
               <label for="group_{{ $group->id }}" class="form-check-label">{{ $group->name }}</label>
             </div>
@@ -102,61 +105,83 @@
     </div>
   </div>
 
-  <div class="row g-2 mb-3">
-    <div class="col-sm-6 col-md">
-      <div class="card text-bg-light h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statTotal">0</span>
-          <small class="text-muted">Total Archivos</small>
-        </div>
-      </div>
+  <div class="card mb-3" id="statsCard">
+    <div class="card-header py-2 d-flex align-items-center gap-2">
+      <i class="fas fa-chart-bar text-info"></i>
+      <small class="fw-bold">Estadísticas</small>
+      <button type="button" class="btn-card-minimize ms-auto" title="Minimizar"><i class="fas fa-minus"></i></button>
     </div>
-    <div class="col-sm-6 col-md">
-      <div class="card text-bg-success h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statConciliado">0</span>
-          <small>Conciliado</small>
+    <div class="card-body py-2">
+      <div class="row g-2">
+        <div class="col-sm-6 col-md">
+          <div class="card text-bg-light h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statTotal">0</span>
+              <small class="text-muted">Total Archivos</small>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-md">
-      <div class="card text-bg-warning h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statParcialOk">0</span>
-          <small>Parcial OK</small>
+        <div class="col-sm-6 col-md">
+          <div class="card text-bg-success h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statConciliado">0</span>
+              <small>Conciliado</small>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-md">
-      <div class="card text-bg-danger h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statParcialError">0</span>
-          <small>Parcial Error</small>
+        <div class="col-sm-6 col-md">
+          <div class="card text-bg-warning h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statParcialOk">0</span>
+              <small>Parcial OK</small>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-md">
-      <div class="card text-bg-secondary h-100">
-        <div class="card-body py-2 px-3 text-center">
-          <span class="d-block fs-4 fw-bold" id="statSinConciliar">0</span>
-          <small>Sin Conciliar</small>
+        <div class="col-sm-6 col-md">
+          <div class="card text-bg-danger h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statParcialError">0</span>
+              <small>Parcial Error</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md">
+          <div class="card text-bg-secondary h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statSinConciliar">0</span>
+              <small>Sin Conciliar</small>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header bg-primary text-white">
-      <h5 class="mb-0">
-        <i class="fas fa-list"></i> Archivos QuickBCK por Computadora
-      </h5>
+    <div class="card-header bg-primary text-white d-flex justify-content-end align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center" style="gap: .25rem;">
+        <label for="pageSizeSelect" class="mb-0 small text-white">Mostrar</label>
+        <select id="pageSizeSelect" class="form-control form-control-sm" style="width: auto;">
+          <option value="10" selected>10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div id="paginationControls" class="d-flex align-items-center flex-wrap gap-2 d-none">
+        <small class="text-white" id="paginationInfo"></small>
+        <nav><ul class="pagination pagination-sm mb-0" id="paginationNumbers"></ul></nav>
+      </div>
+      <button type="button" class="btn-card-minimize" title="Minimizar">
+        <i class="fas fa-minus"></i>
+      </button>
     </div>
     <div class="card-body p-0">
       <div id="tableLoading" class="text-center py-4">
         <i class="fas fa-spinner fa-spin fa-2x"></i>
         <p class="mt-2">Cargando datos...</p>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive table-scroll">
         <table class="table table-sm table-hover table-striped mb-0" id="filesTable">
           <thead class="table-dark">
             <tr>
@@ -177,10 +202,6 @@
           </tbody>
         </table>
       </div>
-      <div id="pagination" class="d-flex justify-content-between align-items-center mt-2 p-2 d-none flex-wrap gap-2">
-        <small class="text-muted" id="paginationInfo"></small>
-        <nav><ul class="pagination pagination-sm mb-0" id="paginationNumbers"></ul></nav>
-      </div>
     </div>
   </div>
 </div>
@@ -196,6 +217,27 @@
 #filesTable { font-size: 0.72rem; }
 #filesTable thead th { white-space: nowrap; font-size: 0.7rem; }
 #filesTable tbody td { font-size: 0.72rem; vertical-align: middle; }
+.table-scroll { max-height: 55vh; overflow-y: auto; }
+.table-scroll #filesTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #343a40;
+  color: #fff;
+}
+#paginationNumbers .page-link { padding: 0.15rem 0.45rem; }
+.btn-card-minimize {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: .65;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.btn-card-minimize:hover { opacity: 1; }
+.btn-card-minimize:focus { outline: none; box-shadow: none; }
 </style>
 @endsection
 
@@ -261,10 +303,28 @@ function getFilters() {
 }
 
 var currentPage = 0;
-var pageSize = 50;
+var pageSize = 10;
 var totalRecords = 0;
 var sortColumn = 'nombre_instalacion';
 var sortDirection = 'asc';
+
+var plazaGroupsMap = @json($plazaGroups);
+
+function updateGroupVisibility() {
+  var selectedPlazas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
+  var visibleGroupIds = {};
+  selectedPlazas.forEach(function(p) {
+    (plazaGroupsMap[p] || []).forEach(function(id) { visibleGroupIds[id] = true; });
+  });
+  $('.group-item').each(function() {
+    var id = parseInt($(this).find('.group-checkbox').val(), 10);
+    var visible = selectedPlazas.length === 0 || visibleGroupIds[id];
+    $(this).toggle(visible);
+    if (!visible) $(this).find('.group-checkbox').prop('checked', false);
+  });
+  var selectedVisible = $('.group-checkbox:checked').filter(function() { return $(this).closest('.group-item').is(':visible'); }).length;
+  $('#select_all_groups').prop('checked', selectedVisible > 0 && selectedVisible === $('.group-item:visible').length);
+}
 
 function loadData() {
   var filters = getFilters();
@@ -312,7 +372,7 @@ function renderTable(json) {
 
   if (data.length === 0) {
     $tbody.html('<tr><td colspan="11" class="text-center py-4 text-muted">No se encontraron archivos QuickBCK</td></tr>');
-    $('#pagination').addClass('d-none');
+    $('#paginationControls').addClass('d-none');
     return;
   }
 
@@ -358,10 +418,10 @@ function renderTable(json) {
 function updatePagination() {
   var totalPages = Math.ceil(totalRecords / pageSize);
   if (totalPages <= 1) {
-    $('#pagination').addClass('d-none');
+    $('#paginationControls').addClass('d-none');
     return;
   }
-  $('#pagination').removeClass('d-none');
+  $('#paginationControls').removeClass('d-none');
   var from = currentPage * pageSize + 1;
   var to = Math.min((currentPage + 1) * pageSize, totalRecords);
   $('#paginationInfo').text('Mostrando ' + from + ' a ' + to + ' de ' + totalRecords);
@@ -384,6 +444,7 @@ function updatePagination() {
 }
 
 $(function() {
+  updateGroupVisibility();
   loadData();
 
   $('#btn_search').on('click', function() { currentPage = 0; loadData(); });
@@ -403,20 +464,52 @@ $(function() {
     $('#archivo_filter').val('');
     $('#computer_search').val('');
     $('.estado-checkbox').prop('checked', false);
+    updateGroupVisibility();
     currentPage = 0;
     loadData();
   });
 
   $('#select_all_plazas').on('change', function() {
     $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+    updateGroupVisibility();
+    currentPage = 0;
+    loadData();
   });
   $('#select_all_groups').on('change', function() {
-    $('.group-checkbox').prop('checked', $(this).prop('checked'));
+    $('.group-item:visible .group-checkbox').prop('checked', $(this).prop('checked'));
+    currentPage = 0;
+    loadData();
   });
-  $('.plaza-checkbox').on('change', function() { currentPage = 0; loadData(); });
-  $('.group-checkbox').on('change', function() { currentPage = 0; loadData(); });
+  $('.plaza-checkbox').on('change', function() {
+    updateGroupVisibility();
+    var selected = $('.plaza-checkbox:checked').length;
+    $('#select_all_plazas').prop('checked', selected > 0 && selected === $('.plaza-checkbox').length);
+    currentPage = 0;
+    loadData();
+  });
+  $('.group-checkbox').on('change', function() {
+    var selectedVisible = $('.group-checkbox:checked').filter(function() { return $(this).closest('.group-item').is(':visible'); }).length;
+    $('#select_all_groups').prop('checked', selectedVisible > 0 && selectedVisible === $('.group-item:visible').length);
+    currentPage = 0;
+    loadData();
+  });
   $('#archivo_filter').on('change', function() { currentPage = 0; loadData(); });
   $('.estado-checkbox').on('change', function() { currentPage = 0; loadData(); });
+  $('#pageSizeSelect').on('change', function() {
+    pageSize = parseInt($(this).val(), 10) || 10;
+    currentPage = 0;
+    loadData();
+  });
+  $(document).on('click', '.btn-card-minimize', function() {
+    var $btn = $(this);
+    var $card = $btn.closest('.card');
+    var $body = $card.children('.card-body');
+    if ($body.length) {
+      $body.slideToggle(function() {
+        $btn.find('i').toggleClass('fa-minus fa-plus');
+      });
+    }
+  });
   $('#computer_search').on('keypress', function(e) {
     if (e.which === 13) { currentPage = 0; loadData(); }
   });

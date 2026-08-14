@@ -259,7 +259,7 @@
                 <span>|</span>
                 <span>👤 Equipo de Desarrollo</span>
                 <span>|</span>
-                <span>📊 56+ Commits Registrados</span>
+                <span>📊 128 Commits Registrados</span>
             </div>
         </div>
 
@@ -275,15 +275,15 @@
             <h3>Resumen Ejecutivo de Actividades</h3>
             <div class="stats">
                 <div class="stat">
-                    <div class="stat-number">12+</div>
+                    <div class="stat-number">14</div>
                     <div class="stat-label">Días de Trabajo</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">56+</div>
+                    <div class="stat-number">128</div>
                     <div class="stat-label">Commits</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">30+</div>
+                    <div class="stat-number">40+</div>
                     <div class="stat-label">Screenshots</div>
                 </div>
                 <div class="stat">
@@ -314,6 +314,7 @@
                 <li><a href="#dia-2026-08-11">Martes 11 de Agosto, 2026</a> <span class="toc-time">Creación archivos sistema</span></li>
                 <li><a href="#dia-2026-08-12">Miércoles 12 de Agosto, 2026</a> <span class="toc-time">15:37 - 15:59 hrs</span></li>
                 <li><a href="#dia-2026-08-13">Jueves 13 de Agosto, 2026</a> <span class="toc-time">Cambios no commiteados (working tree)</span></li>
+                <li><a href="#dia-2026-08-14">Viernes 14 de Agosto, 2026</a> <span class="toc-time">16:30 - 17:10 hrs</span></li>
                 <li><a href="#galeria">📸 Galería de Módulos y Reportes</a></li>
             </ul>
         </div>
@@ -1508,6 +1509,164 @@
         </div>
 
         <!-- ============================================================ -->
+        <!-- DÍA 14: 14 AGOSTO 2026 -->
+        <!-- ============================================================ -->
+        <div id="dia-2026-08-14" class="day-section page-break">
+            <div class="day-header">
+                <div class="day-title"><span class="icon">📅</span> Viernes 14 de Agosto, 2026</div>
+                <div class="time-badge horario">🕐 16:30 - 17:10 hrs</div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Reporte DBF Files - Filtros dinámicos por categoría, plaza-grupo y rediseño de la tabla
+                </div>
+                <div class="change-desc">
+                    Se mejoró el reporte general de archivos DBF: el filtro de archivos ahora se vincula dinámicamente 
+                    con la categoría seleccionada (se ocultan/muestran los archivos según su categoría). Se añadió el mapa 
+                    <code>plazaGroups</code> para que los grupos de computadoras se filtren automáticamente según las plazas 
+                    seleccionadas (y viceversa al seleccionar "Todos"). Se eliminó el filtro de Hash MD5. 
+                    La tabla ahora tiene encabezado fijo (sticky), scroll interno, selector de registros por página (10/25/50/100) 
+                    en el encabezado de la tarjeta, y la tarjeta de filtros es minimizable.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  app/Http/Controllers/ReporteDbfFilesController.php
+    - archivoCategorias: mapeo archivo → categorías válidas para el filtro dinámico
+    - plazaGroups: mapa plaza → IDs de grupo para filtrado cruzado
+    - getUniqueFiles(): ahora retorna [archivos, categorías]
+    - data(): resultados con ->values() para consistencia
+
+  resources/views/reportes/dbf-files/index.blade.php
+    - Filtro Archivo con data-cats por categoría (updateArchivoOptions)
+    - Filtro plaza ↔ grupo sincronizado (updateGroupVisibility)
+    - Eliminado filtro Hash MD5
+    - Selector "Mostrar" (10/25/50/100) y paginación en el header
+    - Encabezado de tabla fijo (sticky) con scroll interno (.table-scroll)
+    - Tarjeta de filtros minimizable (btn_toggle_filters)
+                </div>
+                <div class="screenshots-grid">
+                    <div class="screenshot-card">
+                        <img src="screenshots/40-dbf-files.png" alt="Reporte DBF Files mejorado">
+                        <div class="screenshot-caption">Reporte DBF Files - Filtros dinámicos, sticky header y paginación</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Reporte DBF Files Específicos - Filtro de archivo agrupado por tipo + UI compacta
+                </div>
+                <div class="change-desc">
+                    El filtro de archivo del reporte específico ahora agrupa los archivos por tipo (LISTA, PROMOCION, OFERTA, 
+                    COMBO y OTROS) mediante <code>archivoGrupos</code>; al seleccionar un grupo se expande internamente a sus 
+                    archivos DBF (<code>resolveArchivoFilter</code>). Se integró el mapa <code>plazaGroups</code> para el filtro 
+                    cruzado plaza ↔ grupo. Se reorganizó la UI: estadísticas y gráficas dentro de una tarjeta minimizable, 
+                    botones de ejecución (LISTA/PROMOCION/OFERTA/COMBO/Bitácora) en el encabezado de la tabla, selector de 
+                    registros por página, encabezado fijo y scroll interno.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  app/Http/Controllers/ReporteDbfFilesEspecificosController.php
+    - getArchivoGrupos(): agrupa SPECIFIC_FILES por tipo (LISTA/PROMOCION/OFERTA/COMBO/OTROS)
+    - resolveArchivoFilter(): expande el grupo a sus archivos DBF
+    - plazaGroups: mapa plaza → grupos
+    - Aplicado en data() y export()
+
+  resources/views/reportes/dbf-files-especificos/index.blade.php
+    - Select de archivo agrupado por tipo
+    - Filtro plaza ↔ grupo sincronizado
+    - Estadísticas y gráficas en tarjeta minimizable
+    - Botones de ejecución en el header de la tabla
+    - Selector de páginas y paginación en el header
+    - Encabezado fijo (sticky) y scroll interno
+                </div>
+                <div class="screenshots-grid">
+                    <div class="screenshot-card">
+                        <img src="screenshots/41-dbf-files-especificos.png" alt="Reporte DBF Files Específicos">
+                        <div class="screenshot-caption">Reporte DBF Files Específicos - Filtro agrupado por tipo</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Reporte DBF Files QuickBCK - Filtro plaza ↔ grupo y rediseño de la tabla
+                </div>
+                <div class="change-desc">
+                    Se agregó el mapa <code>plazaGroups</code> al reporte de QuickBCK para sincronizar los grupos de computadoras 
+                    con las plazas seleccionadas. Las estadísticas de conciliación ahora se muestran en una tarjeta minimizable. 
+                    La tabla incluye encabezado fijo, scroll interno, selector de registros por página (10/25/50/100) 
+                    y paginación movida al encabezado de la tarjeta.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  app/Http/Controllers/ReporteDbfFilesQuickbckController.php
+    - plazaGroups: mapa plaza → grupos para filtrado cruzado
+
+  resources/views/reportes/dbf-files-quickbck/index.blade.php
+    - Filtro plaza ↔ grupo sincronizado
+    - Estadísticas en tarjeta minimizable
+    - Selector de páginas y paginación en el header
+    - Encabezado fijo (sticky) y scroll interno
+                </div>
+                <div class="screenshots-grid">
+                    <div class="screenshot-card">
+                        <img src="screenshots/42-dbf-files-quickbck.png" alt="Reporte DBF Files QuickBCK">
+                        <div class="screenshot-caption">Reporte DBF Files QuickBCK - Filtros sincronizados y rediseño</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-chore">CHORE</span>
+                    Nuevo dashboard.html de previsualización
+                </div>
+                <div class="change-desc">
+                    Se agregó <code>dashboard.html</code> en la raíz del proyecto: una previsualización estática/independiente 
+                    del dashboard para revisión sin necesidad de sesión. (Archivo nuevo sin versionar previamente).
+                </div>
+                <div class="file-list">
+<strong>Nuevo:</strong>
+  dashboard.html
+                </div>
+                <div class="screenshots-grid">
+                    <div class="screenshot-card">
+                        <img src="screenshots/43-dashboard.png" alt="dashboard.html">
+                        <div class="screenshot-caption">Previsualización dashboard.html</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-fix">FIX</span>
+                    Nuevo comando para recuperar comandos atascados (commands:recover-stuck)
+                </div>
+                <div class="change-desc">
+                    Se agregó el comando <code>commands:recover-stuck</code> que marca como fallidos los comandos que permanecen 
+                    en estado <code>pending</code>/<code>sent</code>/<code>running</code> sin actualización durante la ventana configurada 
+                    (por defecto 60 minutos). Añade una nota de timeout a la respuesta y registra <code>completed_at</code>. 
+                    Se programó en el scheduler para ejecutarse cada 5 minutos.
+                </div>
+                <div class="file-list">
+<strong>Nuevo:</strong>
+  app/Console/Commands/RecoverStuckCommands.php
+    - Signature: commands:recover-stuck {--minutes=60}
+    - Marca comandos atascados como failed con nota de timeout y exit_code -1
+
+<strong>Modificado:</strong>
+  routes/console.php
+    - Schedule::command('commands:recover-stuck --minutes=60')->everyFiveMinutes()
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
         <!-- PANTALLAS ADICIONALES DE REPORTES -->
         <!-- ============================================================ -->
         <div id="galeria" class="day-section page-break">
@@ -1579,6 +1738,18 @@
                         <div class="screenshot-caption">Reporte DBF Files (mejorado Agosto 2026)</div>
                     </div>
                     <div class="screenshot-card">
+                        <img src="screenshots/40-dbf-files.png" alt="DBF Files 14-ago">
+                        <div class="screenshot-caption">Reporte DBF Files (14 Ago 2026)</div>
+                    </div>
+                    <div class="screenshot-card">
+                        <img src="screenshots/41-dbf-files-especificos.png" alt="DBF Específicos 14-ago">
+                        <div class="screenshot-caption">Reporte DBF Files Específicos (14 Ago 2026)</div>
+                    </div>
+                    <div class="screenshot-card">
+                        <img src="screenshots/42-dbf-files-quickbck.png" alt="DBF QuickBCK 14-ago">
+                        <div class="screenshot-caption">Reporte DBF Files QuickBCK (14 Ago 2026)</div>
+                    </div>
+                    <div class="screenshot-card">
                         <img src="screenshots/23-vales.png" alt="Vales">
                         <div class="screenshot-caption">Reporte de Vales</div>
                     </div>
@@ -1645,7 +1816,7 @@
         <!-- FOOTER -->
         <div class="footer">
             <p><strong>Bitácora generada automáticamente</strong> a partir del historial de Git y timestamps de filesystem del proyecto COMEXCARE.</p>
-            <p>Total de commits analizados: 56+ | Período: Abril - Agosto 2026 | Archivos nuevos/modificados Agosto: 70+</p>
+            <p>Total de commits analizados: 128 | Período: Abril - Agosto 2026 | Archivos nuevos/modificados Agosto: 70+</p>
             <p style="margin-top: 10px; font-size: 0.85em;">
                 Para guardar como PDF: usa el botón "Imprimir / Guardar como PDF" o presiona Ctrl+P y selecciona "Guardar como PDF".
             </p>
