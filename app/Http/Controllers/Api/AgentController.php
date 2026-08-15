@@ -15,6 +15,7 @@ use App\Models\DistributionTarget;
 use App\Models\Group;
 use App\Models\MonitoredFile;
 use App\Models\ReceptionTarget;
+use App\Services\DashboardStatsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -247,6 +248,8 @@ class AgentController extends Controller
 
                 return Computer::create($createData);
             });
+
+            DashboardStatsService::touch();
 
             if (! $computer) {
                 return response()->json([
@@ -520,6 +523,8 @@ class AgentController extends Controller
 
         $computer->update($updateData);
 
+        DashboardStatsService::touch();
+
         // Process logs from the agent
         if ($request->filled('logs')) {
             $logCount = 0;
@@ -580,6 +585,8 @@ class AgentController extends Controller
 
         foreach ($commands as $command) {
             $command->update(['status' => 'sent', 'sent_at' => now()]);
+
+            DashboardStatsService::touch();
 
             $data = is_array($command->data) ? $command->data : json_decode($command->data, true);
 
@@ -850,6 +857,8 @@ class AgentController extends Controller
                         if ($completedCount + $failedCount === $totalCount) {
                             $distribution->update(['status' => $completedCount === $totalCount ? 'completed' : 'failed']);
                         }
+
+                        DashboardStatsService::touch();
                     }
                 }
             }
@@ -880,6 +889,8 @@ class AgentController extends Controller
                     if ($completedCount + $failedCount === $totalCount) {
                         $reception->update(['status' => $completedCount === $totalCount ? 'completed' : 'failed']);
                     }
+
+                    DashboardStatsService::touch();
                 }
             }
         }

@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Listeners\DashboardJobFailedListener;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -70,5 +72,7 @@ class AppServiceProvider extends ServiceProvider
 
             return in_array($user->getRoleNames()->first(), ['super_admin', 'administrativo']);
         });
+
+        Queue::failing(DashboardJobFailedListener::class);
     }
 }

@@ -21,7 +21,7 @@ async function start() {
         await redisPublisher.connect();
         console.log('Connected to Redis');
 
-        await redisSubscriber.subscribe('laravel_database_distributions', (message) => {
+        await redisSubscriber.subscribe('laravel-database-distributions', (message) => {
             try {
                 const data = JSON.parse(message);
                 console.log('Received broadcast:', data);
@@ -36,17 +36,27 @@ async function start() {
             }
         });
 
-        await redisSubscriber.subscribe('private-distribution', (message) => {
+        await redisSubscriber.pSubscribe('laravel-database-private-distribution.*', (message, channel) => {
             try {
                 const data = JSON.parse(message);
-                console.log('Received private broadcast:', data);
+                console.log('Received private broadcast:', channel);
 
-                const distributionId = data.distribution_id;
+                const distributionId = channel.split('.').pop();
                 if (distributionId) {
                     io.to(`distribution.${distributionId}`).emit('distribution.progress', data);
                 }
             } catch (e) {
                 console.error('Error processing private broadcast:', e);
+            }
+        });
+
+        await redisSubscriber.subscribe('laravel-database-dashboard', (message) => {
+            try {
+                const data = JSON.parse(message);
+                io.to('dashboard').emit('stats.updated', data.data || {});
+                console.log('Dashboard stats update broadcast');
+            } catch (e) {
+                console.error('Error processing dashboard broadcast:', e);
             }
         });
 

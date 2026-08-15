@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuthorizationToken;
 use App\Models\FileListAuthorization;
+use App\Services\DashboardStatsService;
 use Illuminate\Http\Request;
 
 class AuthorizationController extends Controller
@@ -87,6 +88,8 @@ class AuthorizationController extends Controller
             ->where('id', '!=', $authToken->id)
             ->whereNull('used_at')
             ->update(['used_at' => now()]);
+
+        DashboardStatsService::touch();
 
         return response()->json([
             'message' => 'Registro autorizado exitosamente.',

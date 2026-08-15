@@ -1667,6 +1667,95 @@
         </div>
 
         <!-- ============================================================ -->
+        <!-- DÍA 13: 15 AGOSTO 2026 -->
+        <!-- ============================================================ -->
+        <div id="dia-2026-08-15" class="day-section page-break">
+            <div class="day-header">
+                <div class="day-title"><span class="icon">📅</span> Sábado 15 de Agosto, 2026</div>
+                <div class="time-badge horario">🕐 Dashboard en tiempo real (WebSockets)</div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Dashboard principal interactivo en tiempo real
+                </div>
+                <div class="change-desc">
+                    Se rediseñó por completo la vista <code>/home</code> del panel de control: ahora muestra KPIs por dominio
+                    (flota de computadoras, distribuciones, recepciones, agente, autorizaciones, monitoreo y sistema),
+                    gráficas con Chart.js 4 (computadoras por plaza, versiones de agente/PVSI, estados de distribución
+                    y recepción), tablas recientes con barras de progreso y filtros de plaza y ventana en línea.
+                    Los datos se actualizan en tiempo real mediante WebSockets (Laravel Broadcast + Redis + servidor
+                    socket.io en el puerto 6001) con respaldo de sondeo automático.
+                </div>
+                <div class="file-list">
+<strong>Nuevo:</strong>
+  app/Services/DashboardStatsService.php
+    - Unifica todas las estadísticas del dashboard (computers, distributions, receptions, agent,
+      authorizations, monitoring, system) con filtro por plaza y ventana en línea (5/15/30/60/360/1440 min)
+    - Static touch(): emite broadcast con debounce vía Cache (5 s) para no saturar Redis
+    - Manejo de booleanos PostgreSQL (general = 1, is_active = true)
+
+  app/Events/DashboardStatsUpdated.php
+    - Evento ShouldBroadcast en canal público 'dashboard', evento 'stats.updated'
+
+  app/Listeners/DashboardJobFailedListener.php
+    - Dispara actualización del dashboard cuando falla un job de la cola
+
+<strong>Modificados:</strong>
+  app/Http/Controllers/HomeController.php
+    - index() y stats() delegan en DashboardStatsService; soporta ?plaza= y ?window=
+
+  app/Http/Controllers/Api/AgentController.php
+    - touch() en register, heartbeat, getCommands y report (tras DistributionProgressUpdated)
+
+  app/Http/Controllers/AuthorizationController.php
+    - touch() al invalidar/usar token de autorización
+
+  app/Http/Controllers/ReceptionController.php
+    - touch() en store, stop, start y retryTarget
+
+  app/Providers/AppServiceProvider.php
+    - Registro de Queue::failing() -> DashboardJobFailedListener
+
+  resources/views/home.blade.php
+    - Rediseño completo: filtros (plaza, ventana en línea, refrescar), badges de estado WS,
+      KPIs (small-box/info-box), 5 gráficas Chart.js 4 (CDN diferido), tablas recientes con progreso,
+      actualización en vivo vía socket.io (salas dashboard + distributions) y sondeo de respaldo
+    - Optimización de carga: los datos se pintan de inmediato (sin esperar CDNs) y Chart.js
+      no bloquea el render (defer + re-render al cargar)
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-fix">FIX</span>
+                    Relay de WebSockets corregido (prefijo de canal Redis)
+                </div>
+                <div class="change-desc">
+                    El servidor socket.io suscribía canales Redis con el nombre incorrecto
+                    (<code>laravel_database_dashboard</code>), pero Laravel publica con el prefijo de phpredis
+                    (<code>laravel-database-dashboard</code>), por lo que nunca se recibían los broadcasts.
+                    Se corrigieron las suscripciones y se agregó patrón para canales privados de distribución.
+                    Se cambió BROADCAST_CONNECTION de <code>log</code> a <code>redis</code> en el .env
+                    (configuración local, no versionada).
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  socket-server.cjs
+    - Suscripciones: laravel-database-dashboard, laravel-database-distributions
+    - pSubscribe: laravel-database-private-distribution.* (distribuciones privadas)
+
+  socket-io.service
+    - Corrección de ruta de ejecución (/var/www/comexcare) para systemd
+
+<strong>Configuración local (.env, no versionada):</strong>
+  BROADCAST_CONNECTION=redis
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
         <!-- PANTALLAS ADICIONALES DE REPORTES -->
         <!-- ============================================================ -->
         <div id="galeria" class="day-section page-break">

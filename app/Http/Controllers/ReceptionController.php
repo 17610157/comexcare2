@@ -7,6 +7,7 @@ use App\Models\Computer;
 use App\Models\Group;
 use App\Models\Reception;
 use App\Models\ReceptionTarget;
+use App\Services\DashboardStatsService;
 use Illuminate\Http\Request;
 
 class ReceptionController extends Controller
@@ -140,6 +141,8 @@ class ReceptionController extends Controller
             $reception->update(['status' => 'in_progress']);
         }
 
+        DashboardStatsService::touch();
+
         return redirect()->route('admin.reception.index')->with('success', 'Recepción creada correctamente');
     }
 
@@ -180,6 +183,7 @@ class ReceptionController extends Controller
     public function stop(Reception $reception)
     {
         $reception->update(['status' => 'stopped']);
+        DashboardStatsService::touch();
 
         return redirect()->route('admin.reception.index')->with('success', 'Recepción detenida. Ya no se enviarán más comandos.');
     }
@@ -187,6 +191,7 @@ class ReceptionController extends Controller
     public function start(Reception $reception)
     {
         $reception->update(['status' => 'pending']);
+        DashboardStatsService::touch();
 
         return redirect()->route('admin.reception.index')->with('success', 'Recepción iniciada correctamente.');
     }
@@ -216,6 +221,8 @@ class ReceptionController extends Controller
                 ],
             ]);
         }
+
+        DashboardStatsService::touch();
 
         return redirect()->back()->with('success', 'Comando reenviado correctamente.');
     }
