@@ -69,8 +69,21 @@ class ReporteDbfFilesEspecificosController extends Controller
             ->map(fn ($rows) => $rows->pluck('group_id')->map(fn ($id) => (int) $id)->values())
             ->toArray();
 
+        $typePlazaMap = Group::whereNotNull('type')
+            ->where('type', '!=', '')
+            ->select('id', 'type')
+            ->get()
+            ->groupBy('type')
+            ->map(fn ($groups) => Computer::whereIn('id', $groups->pluck('id'))
+                ->whereNotNull('plaza')
+                ->pluck('plaza')
+                ->unique()
+                ->values()
+                ->toArray())
+            ->toArray();
+
         return response()
-            ->view('reportes.dbf-files-especificos.index', compact('plazas', 'archivos', 'archivoGrupos', 'groups', 'plazaGroups'))
+            ->view('reportes.dbf-files-especificos.index', compact('plazas', 'archivos', 'archivoGrupos', 'groups', 'plazaGroups', 'typePlazaMap'))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
@@ -192,6 +205,21 @@ class ReporteDbfFilesEspecificosController extends Controller
         return date('Y-m-d', $timestamp) === date('Y-m-d');
     }
 
+    private function isModifiedThisMonth($modified): bool
+    {
+        $modified = trim((string) $modified);
+        if ($modified === '') {
+            return false;
+        }
+
+        $timestamp = strtotime($modified);
+        if ($timestamp === false) {
+            return false;
+        }
+
+        return date('Y-m', $timestamp) === date('Y-m');
+    }
+
     private function filterSpecificFiles(array $dbfFiles): array
     {
         return array_values(array_filter($dbfFiles, fn ($f) => in_array(strtoupper($f['name'] ?? ''), self::SPECIFIC_FILES)));
@@ -206,6 +234,12 @@ class ReporteDbfFilesEspecificosController extends Controller
         $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
         if (is_array($plazaInput) && count($plazaInput) > 0) {
             $query->whereIn('plaza', $plazaInput);
+        }
+
+        $typeInput = $request->query('type') ?? $request->input('type', []);
+        if (is_array($typeInput) && count($typeInput) > 0) {
+            $typeGroupIds = Group::whereIn('type', $typeInput)->pluck('id');
+            $query->whereIn('group_id', $typeGroupIds);
         }
 
         $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
@@ -250,7 +284,7 @@ class ReporteDbfFilesEspecificosController extends Controller
 
                 if ($isMatched) {
                     $rbfStatus = 'actualizado';
-                } elseif ($this->isModifiedToday($file['modified'] ?? '')) {
+                } elseif ($this->isModifiedToday($file['modified'] ?? '') || $this->isModifiedThisMonth($file['modified'] ?? '')) {
                     $rbfStatus = 'cambio_manual';
                 } else {
                     $rbfStatus = 'desactualizado';
@@ -444,6 +478,12 @@ class ReporteDbfFilesEspecificosController extends Controller
                 $plazaInput = $request->input('plaza', []);
                 if (is_array($plazaInput) && count($plazaInput) > 0) {
                     $query->whereIn('plaza', $plazaInput);
+                }
+
+                $typeInput = $request->input('type', []);
+                if (is_array($typeInput) && count($typeInput) > 0) {
+                    $typeGroupIds = Group::whereIn('type', $typeInput)->pluck('id');
+                    $query->whereIn('group_id', $typeGroupIds);
                 }
 
                 $groupInput = $request->input('group_id', []);
@@ -727,6 +767,12 @@ class ReporteDbfFilesEspecificosController extends Controller
 
             if (is_array($plazaInput) && count($plazaInput) > 0) {
                 $query->whereIn('plaza', $plazaInput);
+            }
+
+            $typeInput = $request->query('type') ?? $request->input('type', []);
+            if (is_array($typeInput) && count($typeInput) > 0) {
+                $typeGroupIds = Group::whereIn('type', $typeInput)->pluck('id');
+                $query->whereIn('group_id', $typeGroupIds);
             }
 
             if (is_array($groupInput) && count($groupInput) > 0) {

@@ -34,8 +34,21 @@ class ReporteDbfFilesController extends Controller
             ->map(fn ($rows) => $rows->pluck('group_id')->map(fn ($id) => (int) $id)->values())
             ->toArray();
 
+        $typePlazaMap = Group::whereNotNull('type')
+            ->where('type', '!=', '')
+            ->select('id', 'type')
+            ->get()
+            ->groupBy('type')
+            ->map(fn ($groups) => Computer::whereIn('id', $groups->pluck('id'))
+                ->whereNotNull('plaza')
+                ->pluck('plaza')
+                ->unique()
+                ->values()
+                ->toArray())
+            ->toArray();
+
         return response()
-            ->view('reportes.dbf-files.index', compact('plazas', 'groups', 'archivos', 'archivoCategorias', 'plazaGroups'))
+            ->view('reportes.dbf-files.index', compact('plazas', 'groups', 'archivos', 'archivoCategorias', 'plazaGroups', 'typePlazaMap'))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0');
@@ -198,6 +211,12 @@ class ReporteDbfFilesController extends Controller
             $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
             if (is_array($plazaInput) && count($plazaInput) > 0) {
                 $query->whereIn('plaza', $plazaInput);
+            }
+
+            $typeInput = $request->query('type') ?? $request->input('type', []);
+            if (is_array($typeInput) && count($typeInput) > 0) {
+                $typeGroupIds = Group::whereIn('type', $typeInput)->pluck('id');
+                $query->whereIn('group_id', $typeGroupIds);
             }
 
             $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
@@ -511,6 +530,12 @@ class ReporteDbfFilesController extends Controller
                 $query->whereIn('plaza', $plazaInput);
             }
 
+            $typeInput = $request->query('type') ?? $request->input('type', []);
+            if (is_array($typeInput) && count($typeInput) > 0) {
+                $typeGroupIds = Group::whereIn('type', $typeInput)->pluck('id');
+                $query->whereIn('group_id', $typeGroupIds);
+            }
+
             if (is_array($groupInput) && count($groupInput) > 0) {
                 $query->whereIn('group_id', $groupInput);
             }
@@ -658,6 +683,12 @@ class ReporteDbfFilesController extends Controller
 
         if (is_array($plazaInput) && count($plazaInput) > 0) {
             $query->whereIn('plaza', $plazaInput);
+        }
+
+        $typeInput = $request->query('type') ?? $request->input('type', []);
+        if (is_array($typeInput) && count($typeInput) > 0) {
+            $typeGroupIds = \App\Models\Group::whereIn('type', $typeInput)->pluck('id');
+            $query->whereIn('group_id', $typeGroupIds);
         }
 
         if (is_array($groupInput) && count($groupInput) > 0) {

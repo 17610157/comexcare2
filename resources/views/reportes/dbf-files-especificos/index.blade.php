@@ -19,7 +19,7 @@
     <div class="card-body">
       <div class="row g-2">
         <div class="col-6 col-md-2">
-          <label class="form-label small mb-1">Archivo</label>
+          <label class="form-label small mb-1">Categorias de Archivo</label>
           <select id="archivo_filter" class="form-control form-control-sm">
             <option value="">Todos los archivos</option>
             @foreach($archivoGrupos as $grupo => $files)
@@ -27,17 +27,26 @@
             @endforeach
           </select>
         </div>
+        <div class="col-6 col-md-2 d-none" id="archivo_individual_wrapper">
+          <label class="form-label small mb-1">Archivo específico</label>
+          <select id="archivo_individual" class="form-control form-control-sm">
+            <option value="">Todos de esta categoría</option>
+          </select>
+        </div>
         <div class="col-6 col-md-2">
-          <label class="form-label small mb-1">Grupos</label>
+          <label class="form-label small mb-1">Tipos de Grupo</label>
           <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
             <div class="form-check">
-              <input type="checkbox" id="select_all_groups" class="form-check-input">
-              <label for="select_all_groups" class="form-check-label font-weight-bold"><strong>Todos</strong></label>
+              <input type="checkbox" id="select_all_types" class="form-check-input">
+              <label for="select_all_types" class="form-check-label font-weight-bold"><strong>Todos</strong></label>
             </div>
-            @foreach($groups as $group)
-            <div class="form-check group-item">
-              <input type="checkbox" name="group_id[]" value="{{ $group->id }}" id="group_{{ $group->id }}" class="form-check-input group-checkbox">
-              <label for="group_{{ $group->id }}" class="form-check-label">{{ $group->name }}</label>
+            @php
+            $groupTypes = $groups->pluck('type')->filter()->unique()->sort()->values();
+            @endphp
+            @foreach($groupTypes as $type)
+            <div class="form-check group-type-item">
+              <input type="checkbox" name="type[]" value="{{ $type }}" id="type_{{ $type }}" class="form-check-input group-type-checkbox">
+              <label for="type_{{ $type }}" class="form-check-label">{{ ucfirst($type) }}</label>
             </div>
             @endforeach
           </div>
@@ -385,9 +394,10 @@ function getFilters() {
   var d = {};
   var plazas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
   if (plazas.length) d.plaza = plazas;
-  var grupos = $('.group-checkbox:checked').map(function() { return $(this).val(); }).get();
-  if (grupos.length) d.group_id = grupos;
-  if ($('#archivo_filter').val()) d.archivo = $('#archivo_filter').val();
+  var tipos = $('.group-type-checkbox:checked').map(function() { return $(this).val(); }).get();
+  if (tipos.length) d.type = tipos;
+  if ($('#archivo_individual').val()) d.archivo = $('#archivo_individual').val();
+  else if ($('#archivo_filter').val()) d.archivo = $('#archivo_filter').val();
   if ($('#computer_search').val()) d.search = $('#computer_search').val();
   if ($('#estado_filter').val()) d.estado = $('#estado_filter').val();
   return d;
@@ -433,30 +443,31 @@ var sortColumn = 'nombre_instalacion';
 var sortDirection = 'asc';
 var selectedComputerIds = new Set();
 var plazaGroupsMap = @json($plazaGroups ?? []);
+var typePlazaMap = @json($typePlazaMap ?? []);
+var typeGroupsMap = @json($groups->groupBy('type')->map(fn ($g) => $g->pluck('id')->values()->toArray())->filter()->toArray());
+var archivoGruposMap = @json($archivoGrupos ?? []);
 
 function updateGroupVisibility() {
-  var selectedPlazas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
-  if (selectedPlazas.length === 0) {
-    $('.group-item').show();
+  var visAll = $('.group-type-item').length;
+  var visChecked = $('.group-type-item .group-type-checkbox:checked').length;
+  $('#select_all_types').prop('checked', visAll > 0 && visAll === visChecked);
+}
+
+function updateArchivoIndividual() {
+  var val = $('#archivo_filter').val().toUpperCase();
+  var $wrap = $('#archivo_individual_wrapper');
+  var $sel = $('#archivo_individual');
+  $sel.empty().append('<option value="">Todos de esta categoría</option>');
+  if (!val || !archivoGruposMap[val]) {
+    $wrap.addClass('d-none');
+    $sel.val('');
     return;
   }
-  var allowed = {};
-  selectedPlazas.forEach(function(p) {
-    (plazaGroupsMap[p] || []).forEach(function(gid) { allowed[gid] = true; });
+  var files = archivoGruposMap[val];
+  files.forEach(function(f) {
+    $sel.append('<option value="' + f + '">' + f + '</option>');
   });
-  $('.group-item').each(function() {
-    var $cb = $(this).find('.group-checkbox');
-    var gid = parseInt($cb.val(), 10);
-    if (allowed[gid]) {
-      $(this).show();
-    } else {
-      $(this).hide();
-      $cb.prop('checked', false);
-    }
-  });
-  var visibleTotal = $('.group-checkbox:visible').length;
-  var visibleChecked = $('.group-checkbox:visible:checked').length;
-  $('#select_all_groups').prop('checked', visibleTotal > 0 && visibleTotal === visibleChecked);
+  $wrap.removeClass('d-none');
 }
 
 function loadData() {
@@ -645,6 +656,7 @@ function updatePagination() {
 }
 
 $(function() {
+  updateGroupVisibility();
   loadData();
 
   $('#btn_search').on('click', function() { currentPage = 0; clearSelection(); loadData(); });
@@ -657,12 +669,15 @@ $(function() {
   });
 
   $('#btn_reset_filters').on('click', function() {
+    $('.group-type-checkbox').prop('checked', false);
+    $('#select_all_types').prop('checked', false);
     $('.plaza-checkbox').prop('checked', false);
+    $('.plaza-checkbox').closest('.form-check').show();
     $('#select_all_plazas').prop('checked', false);
-    $('.group-checkbox').prop('checked', false);
-    $('#select_all_groups').prop('checked', false);
     updateGroupVisibility();
     $('#archivo_filter').val('');
+    $('#archivo_individual').val('');
+    $('#archivo_individual_wrapper').addClass('d-none');
     $('#computer_search').val('');
     $('#estado_filter').val('');
     currentPage = 0;
@@ -670,15 +685,16 @@ $(function() {
     loadData();
   });
 
-  $('#select_all_plazas').on('change', function() {
-    $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+  $('#select_all_types').on('change', function() {
+    $('.group-type-item:visible .group-type-checkbox').prop('checked', $(this).prop('checked'));
     updateGroupVisibility();
     currentPage = 0;
     clearSelection();
     loadData();
   });
-  $('#select_all_groups').on('change', function() {
-    $('.group-checkbox:visible').prop('checked', $(this).prop('checked'));
+  $('#select_all_plazas').on('change', function() {
+    $('.plaza-checkbox:visible').prop('checked', $(this).prop('checked'));
+    updateGroupVisibility();
     currentPage = 0;
     clearSelection();
     loadData();
@@ -715,9 +731,31 @@ $(function() {
       removeFromSelection(id);
     }
   });
-  $('.plaza-checkbox').on('change', function() { updateGroupVisibility(); currentPage = 0; clearSelection(); loadData(); });
-  $('.group-checkbox').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
-  $('#archivo_filter').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
+  $('.plaza-checkbox').on('change', function() {
+    updateGroupVisibility();
+    var visAll = $('.plaza-checkbox:visible').length;
+    var visChecked = $('.plaza-checkbox:visible:checked').length;
+    $('#select_all_plazas').prop('checked', visAll > 0 && visAll === visChecked);
+    currentPage = 0;
+    clearSelection();
+    loadData();
+  });
+  $('.group-type-checkbox').on('change', function() {
+    var visAll = $('.group-type-item:visible').length;
+    var visChecked = $('.group-type-item:visible .group-type-checkbox:checked').length;
+    $('#select_all_types').prop('checked', visAll > 0 && visAll === visChecked);
+    updateGroupVisibility();
+    currentPage = 0;
+    clearSelection();
+    loadData();
+  });
+  $('#archivo_filter').on('change', function() {
+    updateArchivoIndividual();
+    currentPage = 0;
+    clearSelection();
+    loadData();
+  });
+  $('#archivo_individual').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
   $('#estado_filter').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
   $('#pageSizeSelect').on('change', function() {
     pageSize = parseInt($(this).val(), 10) || 10;
@@ -895,11 +933,11 @@ $(function() {
 
   $('#btn_export').on('click', function() {
     var plazasSeleccionadas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
-    var gruposSeleccionados = $('.group-checkbox:checked').map(function() { return $(this).val(); }).get();
-    var archivo = $('#archivo_filter').val();
+    var tiposSeleccionados = $('.group-type-checkbox:checked').map(function() { return $(this).val(); }).get();
+    var archivo = $('#archivo_individual').val() || $('#archivo_filter').val();
     var params = new URLSearchParams();
     plazasSeleccionadas.forEach(function(val) { params.append('plaza[]', val); });
-    gruposSeleccionados.forEach(function(val) { params.append('group_id[]', val); });
+    tiposSeleccionados.forEach(function(val) { params.append('type[]', val); });
     if (archivo) params.append('archivo', archivo);
     params.append('_t', Date.now());
     window.open("{{ url('/reportes/dbf-files-especificos/export') }}?" + params.toString(), '_blank');

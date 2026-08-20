@@ -28,16 +28,19 @@
           </select>
         </div>
         <div class="col-6 col-md-2">
-          <label class="form-label small mb-1">Grupos</label>
+          <label class="form-label small mb-1">Tipos de Grupo</label>
           <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
             <div class="form-check">
-              <input type="checkbox" id="select_all_groups" class="form-check-input">
-              <label for="select_all_groups" class="form-check-label font-weight-bold"><strong>Todos</strong></label>
+              <input type="checkbox" id="select_all_types" class="form-check-input">
+              <label for="select_all_types" class="form-check-label font-weight-bold"><strong>Todos</strong></label>
             </div>
-            @foreach($groups as $group)
-            <div class="form-check group-item">
-              <input type="checkbox" name="group_id[]" value="{{ $group->id }}" id="group_{{ $group->id }}" class="form-check-input group-checkbox">
-              <label for="group_{{ $group->id }}" class="form-check-label">{{ $group->name }}</label>
+            @php
+            $groupTypes = $groups->pluck('type')->filter()->unique()->sort()->values();
+            @endphp
+            @foreach($groupTypes as $type)
+            <div class="form-check group-type-item">
+              <input type="checkbox" name="type[]" value="{{ $type }}" id="type_{{ $type }}" class="form-check-input group-type-checkbox">
+              <label for="type_{{ $type }}" class="form-check-label">{{ ucfirst($type) }}</label>
             </div>
             @endforeach
           </div>
@@ -292,9 +295,9 @@ function formatAgentModifiedDate(modified) {
 function getFilters() {
   var d = {};
   var plazas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
+  var tipos = $('.group-type-checkbox:checked').map(function() { return $(this).val(); }).get();
   if (plazas.length) d.plaza = plazas;
-  var grupos = $('.group-checkbox:checked').map(function() { return $(this).val(); }).get();
-  if (grupos.length) d.group_id = grupos;
+  if (tipos.length) d.type = tipos;
   if ($('#archivo_filter').val()) d.archivo = $('#archivo_filter').val();
   if ($('#computer_search').val()) d.search = $('#computer_search').val();
   var estados = $('.estado-checkbox:checked').map(function() { return $(this).val(); }).get();
@@ -309,21 +312,13 @@ var sortColumn = 'nombre_instalacion';
 var sortDirection = 'asc';
 
 var plazaGroupsMap = @json($plazaGroups);
+var typePlazaMap = @json($typePlazaMap);
+var typeGroupsMap = @json($groups->groupBy('type')->map(fn ($g) => $g->pluck('id')->values()->toArray())->filter()->toArray());
 
 function updateGroupVisibility() {
-  var selectedPlazas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
-  var visibleGroupIds = {};
-  selectedPlazas.forEach(function(p) {
-    (plazaGroupsMap[p] || []).forEach(function(id) { visibleGroupIds[id] = true; });
-  });
-  $('.group-item').each(function() {
-    var id = parseInt($(this).find('.group-checkbox').val(), 10);
-    var visible = selectedPlazas.length === 0 || visibleGroupIds[id];
-    $(this).toggle(visible);
-    if (!visible) $(this).find('.group-checkbox').prop('checked', false);
-  });
-  var selectedVisible = $('.group-checkbox:checked').filter(function() { return $(this).closest('.group-item').is(':visible'); }).length;
-  $('#select_all_groups').prop('checked', selectedVisible > 0 && selectedVisible === $('.group-item:visible').length);
+  var visAll = $('.group-type-item').length;
+  var visChecked = $('.group-type-item .group-type-checkbox:checked').length;
+  $('#select_all_types').prop('checked', visAll > 0 && visAll === visChecked);
 }
 
 function loadData() {
@@ -457,10 +452,11 @@ $(function() {
   });
 
   $('#btn_reset_filters').on('click', function() {
+    $('.group-type-checkbox').prop('checked', false);
+    $('#select_all_types').prop('checked', false);
     $('.plaza-checkbox').prop('checked', false);
+    $('.plaza-checkbox').closest('.form-check').show();
     $('#select_all_plazas').prop('checked', false);
-    $('.group-checkbox').prop('checked', false);
-    $('#select_all_groups').prop('checked', false);
     $('#archivo_filter').val('');
     $('#computer_search').val('');
     $('.estado-checkbox').prop('checked', false);
@@ -469,27 +465,31 @@ $(function() {
     loadData();
   });
 
-  $('#select_all_plazas').on('change', function() {
-    $('.plaza-checkbox').prop('checked', $(this).prop('checked'));
+  $('#select_all_types').on('change', function() {
+    $('.group-type-item:visible .group-type-checkbox').prop('checked', $(this).prop('checked'));
     updateGroupVisibility();
     currentPage = 0;
     loadData();
   });
-  $('#select_all_groups').on('change', function() {
-    $('.group-item:visible .group-checkbox').prop('checked', $(this).prop('checked'));
+  $('#select_all_plazas').on('change', function() {
+    $('.plaza-checkbox:visible').prop('checked', $(this).prop('checked'));
+    updateGroupVisibility();
     currentPage = 0;
     loadData();
   });
   $('.plaza-checkbox').on('change', function() {
     updateGroupVisibility();
-    var selected = $('.plaza-checkbox:checked').length;
-    $('#select_all_plazas').prop('checked', selected > 0 && selected === $('.plaza-checkbox').length);
+    var visAll = $('.plaza-checkbox:visible').length;
+    var visChecked = $('.plaza-checkbox:visible:checked').length;
+    $('#select_all_plazas').prop('checked', visAll > 0 && visAll === visChecked);
     currentPage = 0;
     loadData();
   });
-  $('.group-checkbox').on('change', function() {
-    var selectedVisible = $('.group-checkbox:checked').filter(function() { return $(this).closest('.group-item').is(':visible'); }).length;
-    $('#select_all_groups').prop('checked', selectedVisible > 0 && selectedVisible === $('.group-item:visible').length);
+  $('.group-type-checkbox').on('change', function() {
+    var visAll = $('.group-type-item:visible').length;
+    var visChecked = $('.group-type-item:visible .group-type-checkbox:checked').length;
+    $('#select_all_types').prop('checked', visAll > 0 && visAll === visChecked);
+    updateGroupVisibility();
     currentPage = 0;
     loadData();
   });
@@ -516,11 +516,11 @@ $(function() {
 
   $('#btn_export').on('click', function() {
     var plazasSeleccionadas = $('.plaza-checkbox:checked').map(function() { return $(this).val(); }).get();
-    var gruposSeleccionados = $('.group-checkbox:checked').map(function() { return $(this).val(); }).get();
+    var tiposSeleccionados = $('.group-type-checkbox:checked').map(function() { return $(this).val(); }).get();
     var archivo = $('#archivo_filter').val();
     var params = new URLSearchParams();
     plazasSeleccionadas.forEach(function(val) { params.append('plaza[]', val); });
-    gruposSeleccionados.forEach(function(val) { params.append('group_id[]', val); });
+    tiposSeleccionados.forEach(function(val) { params.append('type[]', val); });
     if (archivo) params.append('archivo', archivo);
     params.append('_t', Date.now());
     window.open("{{ url('/reportes/dbf-files-quickbck/export') }}?" + params.toString(), '_blank');
