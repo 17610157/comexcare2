@@ -2,7 +2,7 @@
 @section('title', 'Archivos DBF - Computadoras')
 
 @section('content_header')
-<h1>Dashboard Archivos DBF</h1>
+<h1>Dashboard de Archivos</h1>
 @stop
 
 @section('content')
@@ -75,6 +75,14 @@
           <input type="text" id="computer_search" class="form-control form-control-sm" placeholder="Nombre o IP">
         </div>
         <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Conexión</label>
+          <select id="conexion_filter" class="form-control form-control-sm">
+            <option value="">Todas</option>
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
           <label class="form-label small mb-1">Estado Actualizacion</label>
           <select id="estado_filter" class="form-control form-control-sm">
             <option value="">Todos</option>
@@ -144,6 +152,7 @@
               <th>MD5</th>
               <th>Ruta RBF</th>
               <th>Hash RBF</th>
+              <th>Mod. RBF</th>
               <th>Estado Archivo</th>
             </tr>
           </thead>
@@ -249,6 +258,7 @@ function getFilters() {
   if ($('#file_category_filter').val()) d.file_category = $('#file_category_filter').val();
   if ($('#archivo_filter').val()) d.archivo = $('#archivo_filter').val();
   if ($('#computer_search').val()) d.search = $('#computer_search').val();
+  if ($('#conexion_filter').val()) d.conexion = $('#conexion_filter').val();
   if ($('#estado_filter').val()) d.estado = $('#estado_filter').val();
   return d;
 }
@@ -386,6 +396,7 @@ function renderTable(json) {
         '<td style="word-break:break-all;"><code style="font-size:0.65rem;">' + (file.hash_md5 ? file.hash_md5.slice(-5) : '') + '</code></td>' +
         '<td style="word-break:break-all;">' + (file.rbf_path || '') + '</td>' +
         '<td style="word-break:break-all;"><code style="font-size:0.65rem;">' + (file.rbf_hash || '') + '</code></td>' +
+        '<td style="white-space:nowrap;">' + (file.rbf_last_modified || '<span class="text-muted">-</span>') + '</td>' +
         '<td class="text-center">' + rbfStatus + '</td>' +
       '</tr>');
       rows++;
@@ -393,7 +404,7 @@ function renderTable(json) {
   });
 
   if (rows === 0) {
-    $tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No se encontraron archivos</td></tr>');
+    $tbody.html('<tr><td colspan="13" class="text-center py-4 text-muted">No se encontraron archivos</td></tr>');
   }
 
   updatePagination();
@@ -453,6 +464,7 @@ $(function() {
     updateArchivoOptions();
     $('#archivo_filter').val('');
     $('#computer_search').val('');
+    $('#conexion_filter').val('');
     $('#estado_filter').val('');
     currentPage = 0;
     loadData();
@@ -493,6 +505,7 @@ $(function() {
     updateArchivoOptions();
     currentPage = 0; loadData();
   });
+  $('#conexion_filter').on('change', function() { currentPage = 0; loadData(); });
   $('#estado_filter').on('change', function() {
     currentPage = 0; loadData();
   });

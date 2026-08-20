@@ -24,3 +24,4 @@ Schedule::command('notas-completas:sync-cache --last-days=60')->dailyAt('11:00')
 Schedule::command('compras-directo:sync-cache --last-days=60')->dailyAt('11:00');
 
 Schedule::command('rbf-file-hashes:sync')->everyThirtyMinutes();
+Schedule::command('rbf-config-status:sync')->hourly();

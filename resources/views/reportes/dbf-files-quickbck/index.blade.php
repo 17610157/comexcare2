@@ -60,11 +60,19 @@
             @endforeach
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
           <label class="form-label small mb-1">Buscar Computadora</label>
           <input type="text" id="computer_search" class="form-control form-control-sm" placeholder="Nombre o IP">
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Conexión</label>
+          <select id="conexion_filter" class="form-control form-control-sm">
+            <option value="">Todas</option>
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
           <label class="form-label small mb-1">Conciliación</label>
           <div class="border rounded p-2" style="max-height: 100px; overflow-y: auto;">
             <div class="form-check">
@@ -190,12 +198,13 @@
             <tr>
               <th style="cursor:pointer" data-sort="nombre_instalacion">Computadora <i class="fas fa-sort"></i></th>
               <th style="cursor:pointer" data-sort="plaza">Plaza <i class="fas fa-sort"></i></th>
+              <th style="cursor:pointer" data-sort="status" class="text-center">Conexión <i class="fas fa-sort"></i></th>
               <th style="cursor:pointer" data-sort="archivo">Archivo <i class="fas fa-sort"></i></th>
               <th class="text-center">Tamano</th>
               <th>MD5 Pvsi</th>
               <th>Fecha Pvsi</th>
               <th>MD5 Quick</th>
-              <th>Fecha Quick</th>
+              <th>Modificación</th>
               <th>MD5 RBF</th>
               <th>Fecha RBF</th>
               <th style="cursor:pointer" data-sort="status_conciliacion" class="text-center">Conciliación <i class="fas fa-sort"></i></th>
@@ -300,6 +309,7 @@ function getFilters() {
   if (tipos.length) d.type = tipos;
   if ($('#archivo_filter').val()) d.archivo = $('#archivo_filter').val();
   if ($('#computer_search').val()) d.search = $('#computer_search').val();
+  if ($('#conexion_filter').val()) d.conexion = $('#conexion_filter').val();
   var estados = $('.estado-checkbox:checked').map(function() { return $(this).val(); }).get();
   if (estados.length) d.estado = estados;
   return d;
@@ -366,7 +376,7 @@ function renderTable(json) {
   $tbody.empty();
 
   if (data.length === 0) {
-    $tbody.html('<tr><td colspan="11" class="text-center py-4 text-muted">No se encontraron archivos QuickBCK</td></tr>');
+    $tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No se encontraron archivos QuickBCK</td></tr>');
     $('#paginationControls').addClass('d-none');
     return;
   }
@@ -389,11 +399,15 @@ function renderTable(json) {
 
     var size = row.tamano !== null ? row.tamano + ' KB' : 'N/A';
     var modified = formatAgentModifiedDate(row.modificacion || '');
+    var connectionDot = row.status === 'online'
+      ? '<span class="d-inline-block align-middle" style="width:10px;height:10px;border-radius:50%;background:#28a745;" title="Online"></span>'
+      : '<span class="d-inline-block align-middle" style="width:10px;height:10px;border-radius:50%;background:#dc3545;" title="Offline"></span>';
 
     $tbody.append(
       '<tr>' +
         '<td><strong>' + (row.nombre_instalacion || 'N/A') + '</strong></td>' +
         '<td>' + (row.plaza || 'N/A') + '</td>' +
+        '<td class="text-center">' + connectionDot + '</td>' +
         '<td><strong>' + (row.archivo || 'N/A') + '</strong></td>'  +
         '<td class="text-center">' + size + '</td>' +
         '<td>' + hashDisplay(row.pvsi_md5, row.pvsi_matched, row.status_conciliacion) + '</td>' +
@@ -459,6 +473,7 @@ $(function() {
     $('#select_all_plazas').prop('checked', false);
     $('#archivo_filter').val('');
     $('#computer_search').val('');
+    $('#conexion_filter').val('');
     $('.estado-checkbox').prop('checked', false);
     updateGroupVisibility();
     currentPage = 0;
@@ -494,6 +509,7 @@ $(function() {
     loadData();
   });
   $('#archivo_filter').on('change', function() { currentPage = 0; loadData(); });
+  $('#conexion_filter').on('change', function() { currentPage = 0; loadData(); });
   $('.estado-checkbox').on('change', function() { currentPage = 0; loadData(); });
   $('#pageSizeSelect').on('change', function() {
     pageSize = parseInt($(this).val(), 10) || 10;

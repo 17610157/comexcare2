@@ -2,7 +2,7 @@
 @section('title', 'Archivos DBF Especificos')
 
 @section('content_header')
-<h1>Archivos DBF Especificos</h1>
+<h1>Reporte de Archivos de Precios </h1>
 @stop
 
 @section('content')
@@ -69,6 +69,14 @@
         <div class="col-6 col-md-3">
           <label class="form-label small mb-1">Buscar Computadora</label>
           <input type="text" id="computer_search" class="form-control form-control-sm" placeholder="Nombre o IP">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Conexión</label>
+          <select id="conexion_filter" class="form-control form-control-sm">
+            <option value="">Todas</option>
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+          </select>
         </div>
         <div class="col-6 col-md-2">
           <label class="form-label small mb-1">Estado</label>
@@ -229,6 +237,7 @@
               <th>MD5</th>
               <th>Ruta RBF</th>
               <th>Hash RBF</th>
+              <th>Mod. RBF</th>
               <th style="cursor:pointer" data-sort="rbf_matched" class="text-center">Estado <i class="fas fa-sort"></i></th>
             </tr>
           </thead>
@@ -399,6 +408,7 @@ function getFilters() {
   if ($('#archivo_individual').val()) d.archivo = $('#archivo_individual').val();
   else if ($('#archivo_filter').val()) d.archivo = $('#archivo_filter').val();
   if ($('#computer_search').val()) d.search = $('#computer_search').val();
+  if ($('#conexion_filter').val()) d.conexion = $('#conexion_filter').val();
   if ($('#estado_filter').val()) d.estado = $('#estado_filter').val();
   return d;
 }
@@ -585,7 +595,7 @@ function renderTable(json) {
   $tbody.empty();
 
   if (data.length === 0) {
-    $tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No se encontraron archivos</td></tr>');
+    $tbody.html('<tr><td colspan="13" class="text-center py-4 text-muted">No se encontraron archivos</td></tr>');
     $('#paginationControls').addClass('d-none');
     return;
   }
@@ -617,6 +627,7 @@ function renderTable(json) {
         '<td><code style="font-size:0.65rem;">' + (row.md5 ? row.md5.slice(-5) : '') + '</code></td>' +
         '<td style="word-break:break-all;max-width:200px;">' + (row.rbf_path || '') + '</td>' +
         '<td><code style="font-size:0.65rem;">' + (row.rbf_hash || '') + '</code></td>' +
+        '<td style="white-space:nowrap;">' + (row.rbf_last_modified || '<span class="text-muted">-</span>') + '</td>' +
         '<td class="text-center"><div class="d-inline-flex align-items-center gap-1">' + statusBadge + '<button type="button" class="btn btn-outline-secondary btn-xs btn-historial" data-computer-id="' + computerId + '" data-archivo="' + (row.archivo || '') + '" title="Ver historial de hash (3 días)" style="padding:0 4px;"><i class="fas fa-eye"></i></button></div></td>' +
       '</tr>'
     );
@@ -679,6 +690,7 @@ $(function() {
     $('#archivo_individual').val('');
     $('#archivo_individual_wrapper').addClass('d-none');
     $('#computer_search').val('');
+    $('#conexion_filter').val('');
     $('#estado_filter').val('');
     currentPage = 0;
     clearSelection();
@@ -757,6 +769,7 @@ $(function() {
   });
   $('#archivo_individual').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
   $('#estado_filter').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
+  $('#conexion_filter').on('change', function() { currentPage = 0; clearSelection(); loadData(); });
   $('#pageSizeSelect').on('change', function() {
     pageSize = parseInt($(this).val(), 10) || 10;
     currentPage = 0;

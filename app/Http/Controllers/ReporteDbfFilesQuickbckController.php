@@ -390,6 +390,11 @@ class ReporteDbfFilesQuickbckController extends Controller
                 $flatRows = array_values(array_filter($flatRows, fn ($row) => in_array($row['status_conciliacion'], $estados)));
             }
 
+            $conexionInput = $request->query('conexion') ?? '';
+            if (! empty($conexionInput) && in_array($conexionInput, ['online', 'offline'])) {
+                $flatRows = array_values(array_filter($flatRows, fn ($row) => $row['status'] === $conexionInput));
+            }
+
             $total = count($flatRows);
 
             $sortMap = [

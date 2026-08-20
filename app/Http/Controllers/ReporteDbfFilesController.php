@@ -345,6 +345,14 @@ class ReporteDbfFilesController extends Controller
                 })->values();
             }
 
+            $conexionInput = $request->query('conexion') ?? '';
+            if (! empty($conexionInput) && in_array($conexionInput, ['online', 'offline'])) {
+                $allComputers = $allComputers->filter(function ($computer) use ($conexionInput) {
+                    $isOnline = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5;
+                    return $conexionInput === 'online' ? $isOnline : ! $isOnline;
+                })->values();
+            }
+
             $total = $allComputers->count();
 
             $allComputers = $allComputers->sortBy(function ($computer) use ($computerMatchMap, $sortColumn) {
@@ -379,6 +387,7 @@ class ReporteDbfFilesController extends Controller
                     $rbfRecord = $rbfLookup[$key] ?? null;
                     $file['rbf_path'] = $rbfRecord ? $rbfRecord->path : null;
                     $file['rbf_hash'] = $rbfRecord ? $rbfRecord->hash : null;
+                    $file['rbf_last_modified'] = $rbfRecord?->last_modified?->format('Y-m-d H:i:s');
                     $file['rbf_matched'] = $rbfRecord !== null;
 
                     unset($file['checksum']);
@@ -560,6 +569,7 @@ class ReporteDbfFilesController extends Controller
                     $rbfRecord = $rbfLookup[$key] ?? null;
                     $file['rbf_path'] = $rbfRecord ? $rbfRecord->path : null;
                     $file['rbf_hash'] = $rbfRecord ? $rbfRecord->hash : null;
+                    $file['rbf_last_modified'] = $rbfRecord?->last_modified?->format('Y-m-d H:i:s');
 
                     return $file;
                 }, $dbfFiles);

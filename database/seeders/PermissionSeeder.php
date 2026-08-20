@@ -283,6 +283,9 @@ class PermissionSeeder extends Seeder
             // DBF Files QuickBCK Conciliación
             'dbf-files-quickbck.ver',
 
+            // RBF Config Status
+            'reportes.rbf-config-status.ver',
+
             // Agent Defaults
             'agent-defaults.ver',
             'agent-defaults.crear',

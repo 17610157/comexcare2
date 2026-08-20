@@ -56,6 +56,7 @@ class RoleSeeder extends Seeder
             'agent-defaults.ver', 'agent-defaults.crear', 'agent-defaults.editar', 'agent-defaults.eliminar',
             'monitored-files.ver', 'monitored-files.crear', 'monitored-files.editar', 'monitored-files.eliminar',
             'rbf-file-hashes.ver', 'rbf-file-hashes.crear', 'rbf-file-hashes.eliminar',
+            'reportes.rbf-config-status.ver',
             'modules.ver', 'modules.crear', 'modules.editar', 'modules.eliminar',
             'authorizable-emails.ver', 'authorizable-emails.crear', 'authorizable-emails.editar', 'authorizable-emails.eliminar',
             'authorization-report.ver',

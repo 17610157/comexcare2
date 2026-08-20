@@ -23,6 +23,7 @@ use App\Http\Controllers\ReporteApiDemoController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteDbfFilesController;
 use App\Http\Controllers\ReporteDbfFilesEspecificosController;
+use App\Http\Controllers\ReporteRbfConfigStatusController;
 use App\Http\Controllers\ReporteDbfFilesQuickbckController;
 use App\Http\Controllers\ReporteDesgloseController;
 use App\Http\Controllers\ReporteDistribucionesController;
@@ -309,6 +310,12 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.authorization-report.data')->middleware('can:reportes.ver');
     Route::get('authorization-report/export', [AuthorizationReportController::class, 'export'])
         ->name('reportes.authorization-report.export')->middleware('can:reportes.ver');
+
+    // Reporte de Estado RBF
+    Route::get('rbf-config-status', [ReporteRbfConfigStatusController::class, 'index'])
+        ->name('reportes.rbf-config-status')->middleware('can:reportes.rbf-config-status.ver');
+    Route::get('rbf-config-status/data', [ReporteRbfConfigStatusController::class, 'data'])
+        ->name('reportes.rbf-config-status.data')->middleware('can:reportes.rbf-config-status.ver');
 
 });
 

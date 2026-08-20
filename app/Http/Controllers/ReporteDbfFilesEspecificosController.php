@@ -6,6 +6,7 @@ use App\Models\Command;
 use App\Models\Computer;
 use App\Models\ComputerLog;
 use App\Models\Group;
+use App\Models\RbfConfigStatus;
 use App\Models\RbfFileHash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,17 @@ class ReporteDbfFilesEspecificosController extends Controller
         'promocion' => ['dbf' => ['PROMARTS.DBF', 'ARCERO.DBF'], 'bat' => 'DAPROMO.BAT'],
         'oferta' => ['dbf' => ['OFERTAS.DBF'], 'bat' => 'DAOFERTA.BAT'],
         'combo' => ['dbf' => ['PCOMB.DBF', 'PDCOMB.DBF'], 'bat' => 'DACOMBO.BAT'],
+    ];
+
+    private const FILE_TO_SERVICE = [
+        'LISTA.DBF' => ['servicio' => 'lista', 'config_col' => 'li'],
+        'CABLISTA.DBF' => ['servicio' => 'lista', 'config_col' => 'li'],
+        'OFERTAS.DBF' => ['servicio' => 'oferta', 'config_col' => 'of'],
+        'PROMARTS.DBF' => ['servicio' => 'promo', 'config_col' => 'pr'],
+        'ARCERO.DBF' => ['servicio' => 'promo', 'config_col' => 'pr'],
+        'PCOMB.DBF' => ['servicio' => 'combo', 'config_col' => 'co'],
+        'PDCOMB.DBF' => ['servicio' => 'combo', 'config_col' => 'co'],
+        'CLIECATP.DBF' => ['servicio' => 'dbf', 'config_col' => 'db'],
     ];
 
     public function index(Request $request)
@@ -127,6 +139,35 @@ class ReporteDbfFilesEspecificosController extends Controller
         }
 
         return $map;
+    }
+
+    private function buildRbfConfigHashLookup(): array
+    {
+        $configs = RbfConfigStatus::all()->keyBy(fn ($r) => strtolower($r->pl).'|'.strtolower($r->ca));
+        $hashesByPlaza = RbfFileHash::all()->groupBy(fn ($r) => strtolower($r->plaza ?? ''));
+
+        $lookup = [];
+        foreach ($configs as $configKey => $config) {
+            $plaza = strtolower($config->pl);
+            $plazaHashes = $hashesByPlaza[$plaza] ?? collect();
+
+            $configArr = $config->toArray();
+
+            foreach (self::FILE_TO_SERVICE as $fileName => $serviceInfo) {
+                $zona = strtolower($configArr[$serviceInfo['config_col']] ?? '');
+                if ($zona === '' || $zona === 'vacio') {
+                    continue;
+                }
+
+                $hashRecord = $plazaHashes->first(fn ($h) => strtolower($h->servicio ?? '') === $serviceInfo['servicio'] && strtolower($h->zona ?? '') === $zona && strtolower($h->name ?? '') === strtolower($fileName));
+
+                if ($hashRecord) {
+                    $lookup[$configKey.'|'.strtolower($fileName)] = $hashRecord;
+                }
+            }
+        }
+
+        return $lookup;
     }
 
     private function formatAgentModifiedTime($modified)
@@ -260,6 +301,7 @@ class ReporteDbfFilesEspecificosController extends Controller
         $archivoInput = $request->query('archivo') ?? $request->input('archivo');
         $archivoAllowed = $this->resolveArchivoFilter($archivoInput);
         $rbfLookup = $this->getRbfHashLookup();
+        $configHashLookup = $this->buildRbfConfigHashLookup();
 
         $flatRows = [];
         foreach ($allComputers as $computer) {
@@ -270,6 +312,8 @@ class ReporteDbfFilesEspecificosController extends Controller
                 continue;
             }
 
+            $configKey = strtolower($computer->plaza ?? '').'|'.strtolower($computer->short_key ?? '');
+
             foreach ($dbfFiles as $file) {
                 $fileName = $file['name'] ?? 'N/A';
 
@@ -277,17 +321,28 @@ class ReporteDbfFilesEspecificosController extends Controller
                     continue;
                 }
 
-                $key = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
-                $rbfRecord = $rbfLookup[$key] ?? null;
-                $isMatched = $rbfRecord !== null;
+                $rbfRecord = $configHashLookup[$configKey.'|'.strtolower($fileName)] ?? null;
+
+                if (! $rbfRecord) {
+                    $hashKey = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
+                    $rbfRecord = $rbfLookup[$hashKey] ?? null;
+                }
+
+                $localHash = strtoupper(substr($file['hash_md5'] ?? '', -5));
+                $rbfHash = strtoupper($rbfRecord->hash ?? '');
+                $hashMatch = $rbfRecord !== null && $localHash === $rbfHash;
                 $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
 
-                if ($isMatched) {
-                    $rbfStatus = 'actualizado';
-                } elseif ($this->isModifiedToday($file['modified'] ?? '') || $this->isModifiedThisMonth($file['modified'] ?? '')) {
+                if (! $rbfRecord) {
                     $rbfStatus = 'cambio_manual';
+                } elseif ($hashMatch) {
+                    $rbfStatus = 'actualizado';
                 } else {
-                    $rbfStatus = 'desactualizado';
+                    $localModified = strtotime($file['modified'] ?? '');
+                    $rbfModified = $rbfRecord->last_modified ? strtotime($rbfRecord->last_modified) : 0;
+                    $rbfStatus = ($localModified > 0 && $rbfModified > 0 && $localModified > $rbfModified)
+                        ? 'cambio_manual'
+                        : 'desactualizado';
                 }
 
                 $flatRows[] = [
@@ -303,7 +358,8 @@ class ReporteDbfFilesEspecificosController extends Controller
                     'md5' => $file['hash_md5'] ?? '',
                     'rbf_path' => $rbfRecord?->path,
                     'rbf_hash' => $rbfRecord?->hash,
-                    'rbf_matched' => $isMatched,
+                    'rbf_last_modified' => $rbfRecord?->last_modified?->format('Y-m-d H:i:s'),
+                    'rbf_matched' => $hashMatch,
                     'rbf_status' => $rbfStatus,
                 ];
             }
@@ -312,6 +368,11 @@ class ReporteDbfFilesEspecificosController extends Controller
         $estadoInput = $request->query('estado') ?? $request->input('estado', '');
         if (! empty($estadoInput) && in_array($estadoInput, ['actualizado', 'desactualizado', 'cambio_manual'])) {
             $flatRows = array_values(array_filter($flatRows, fn ($row) => $row['rbf_status'] === $estadoInput));
+        }
+
+        $conexionInput = $request->query('conexion') ?? $request->input('conexion', '');
+        if (! empty($conexionInput) && in_array($conexionInput, ['online', 'offline'])) {
+            $flatRows = array_values(array_filter($flatRows, fn ($row) => $row['status'] === $conexionInput));
         }
 
         return $flatRows;
@@ -503,6 +564,7 @@ class ReporteDbfFilesEspecificosController extends Controller
             $allComputers = $query->orderBy('nombre_instalacion')->get();
 
             $rbfLookup = $this->getRbfHashLookup();
+            $configHashLookup = $this->buildRbfConfigHashLookup();
 
             $matchingComputers = [];
             foreach ($allComputers as $computer) {
@@ -513,6 +575,8 @@ class ReporteDbfFilesEspecificosController extends Controller
                     continue;
                 }
 
+                $configKey = strtolower($computer->plaza ?? '').'|'.strtolower($computer->short_key ?? '');
+
                 foreach ($dbfFiles as $file) {
                     $fileName = $file['name'] ?? '';
 
@@ -520,10 +584,18 @@ class ReporteDbfFilesEspecificosController extends Controller
                         continue;
                     }
 
-                    $key = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
-                    $isMatched = isset($rbfLookup[$key]);
+                    $rbfRecord = $configHashLookup[$configKey.'|'.strtolower($fileName)] ?? null;
 
-                    if (! $isMatched) {
+                    if (! $rbfRecord) {
+                        $hashKey = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
+                        $rbfRecord = $rbfLookup[$hashKey] ?? null;
+                    }
+
+                    $localHash = strtoupper(substr($file['hash_md5'] ?? '', -5));
+                    $rbfHash = strtoupper($rbfRecord->hash ?? '');
+                    $hashMatch = $rbfRecord !== null && $localHash === $rbfHash;
+
+                    if (! $hashMatch) {
                         $matchingComputers[] = [
                             'id' => $computer->id,
                             'nombre_instalacion' => $computer->nombre_instalacion,
@@ -782,6 +854,7 @@ class ReporteDbfFilesEspecificosController extends Controller
             $computers = $query->orderBy('nombre_instalacion')->get();
 
             $rbfLookup = $this->getRbfHashLookup();
+            $configHashLookup = $this->buildRbfConfigHashLookup();
 
             $filename = 'Reporte_DBF_Especificos_'.date('Ymd_His');
 
@@ -791,7 +864,7 @@ class ReporteDbfFilesEspecificosController extends Controller
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
             ];
 
-            $callback = function () use ($computers, $rbfLookup, $archivoAllowed) {
+            $callback = function () use ($computers, $rbfLookup, $configHashLookup, $archivoAllowed) {
                 $output = fopen('php://output', 'w');
 
                 fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
@@ -805,6 +878,8 @@ class ReporteDbfFilesEspecificosController extends Controller
                     $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
                     $dbfFiles = $this->filterSpecificFiles($dbfFiles);
 
+                    $configKey = strtolower($computer->plaza ?? '').'|'.strtolower($computer->short_key ?? '');
+
                     foreach ($dbfFiles as $dbfFile) {
                         $fileName = $dbfFile['name'] ?? 'N/A';
 
@@ -812,8 +887,25 @@ class ReporteDbfFilesEspecificosController extends Controller
                             continue;
                         }
 
-                        $key = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($dbfFile['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
-                        $rbfRecord = $rbfLookup[$key] ?? null;
+                        $rbfRecord = $configHashLookup[$configKey.'|'.strtolower($fileName)] ?? null;
+
+                        if (! $rbfRecord) {
+                            $hashKey = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($dbfFile['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
+                            $rbfRecord = $rbfLookup[$hashKey] ?? null;
+                        }
+
+                        $localHash = strtoupper(substr($dbfFile['hash_md5'] ?? '', -5));
+                        $rbfHash = strtoupper($rbfRecord->hash ?? '');
+                        $hashMatch = $rbfRecord !== null && $localHash === $rbfHash;
+
+                        if ($this->isModifiedThisMonth($dbfFile['modified'] ?? '')) {
+                            $estado = 'Cambio Manual';
+                        } elseif ($hashMatch) {
+                            $estado = 'Actualizado';
+                        } else {
+                            $estado = 'Desactualizado';
+                        }
+
                         $sizeKb = isset($dbfFile['size']) ? round($dbfFile['size'] / 1024, 2).' KB' : '';
                         $modified = $this->excelTextValue($this->formatAgentModifiedTime($dbfFile['modified'] ?? ''));
 
@@ -827,7 +919,7 @@ class ReporteDbfFilesEspecificosController extends Controller
                             $dbfFile['hash_md5'] ?? '',
                             $rbfRecord?->path ?? '',
                             $rbfRecord?->hash ?? '',
-                            $rbfRecord !== null ? 'Actualizado' : 'Desactualizado',
+                            $estado,
                         ]);
                     }
                 }
