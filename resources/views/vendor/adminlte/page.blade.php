@@ -98,6 +98,9 @@
     .modal-content label { color:#cbd5e1; }
     .modal-content .text-muted { color:#94a3b8 !important; }
     .modal-content .bg-white { background:#0e1729 !important; color:#fff; }
+    .list-group-item { background:#0f172a; border-color:rgba(148,163,184,.12); color:#cbd5e1; }
+    .list-group-item:hover, .list-group-item:focus { background:rgba(59,130,246,.1); color:#fff; }
+    .list-group-item-action { color:#cbd5e1; }
 
     /* ===== SweetAlert2 oscuro ===== */
     .swal2-popup { background:#0e1729 !important; color:#fff !important; border:1px solid rgba(148,163,184,.18); border-radius:14px !important; }
