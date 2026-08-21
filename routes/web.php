@@ -52,6 +52,7 @@ Route::get('/', function () {
 
 Route::get('/home', [HomeController::class, 'index'])->middleware('auth')->name('home');
 Route::get('/home/stats', [HomeController::class, 'stats'])->middleware('auth')->name('home.stats');
+Route::get('/home/server-stats', [HomeController::class, 'serverStats'])->middleware('auth')->name('home.server-stats');
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);

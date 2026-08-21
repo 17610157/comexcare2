@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\DashboardStatsService;
+use App\Services\ServerMetricsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -33,5 +34,10 @@ class HomeController extends Controller
         $window = (int) $request->input('window', 5);
 
         return response()->json(app(DashboardStatsService::class)->all($plaza, $window));
+    }
+
+    public function serverStats(): JsonResponse
+    {
+        return response()->json(ServerMetricsService::collect());
     }
 }

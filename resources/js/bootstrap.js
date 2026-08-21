@@ -10,12 +10,9 @@ import io from 'socket.io-client';
 
 window.io = io;
 
-const echoPort = window.Laravel?.broadcastingPort || 6001;
-const echoHost = window.Laravel?.broadcastingHost || window.location.hostname;
-
 window.Echo = new Echo({
     broadcaster: 'socket.io',
-    host: echoHost + ':' + echoPort,
+    host: window.location.origin,
     transports: ['websocket', 'polling'],
     auth: {
         headers: {
