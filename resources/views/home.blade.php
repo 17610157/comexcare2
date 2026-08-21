@@ -136,6 +136,78 @@
     .dist-table .progress { height: 6px; background: rgba(148,163,184,.15); border-radius: 999px; margin: 0; }
     .dist-table .progress-bar { border-radius: 999px; }
 
+    /* ===== Mapa de equipos ===== */
+    [data-card-id="map"] .card-body { position: relative; overflow: hidden; }
+    #map-equipos {
+        position: absolute; inset: 0;
+        background: transparent;
+        border-radius: 10px; overflow: hidden;
+    }
+    .leaflet-container { background: rgba(11,18,32,0) !important; font-family: inherit; }
+    .map-region { transition: fill-opacity .2s ease; cursor: pointer; }
+    .map-region:hover { fill-opacity: .95 !important; stroke: #93c5fd !important; }
+    .map-legend {
+        position: absolute; left: 8px; bottom: 8px; z-index: 500;
+        display: flex; flex-direction: column; gap: 3px;
+        background: rgba(14,23,41,.85); border: 1px solid rgba(148,163,184,.18);
+        border-radius: 8px; padding: 6px 9px; font-size: .62rem; color: #cbd5e1;
+        pointer-events: none;
+    }
+    .map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .map-legend i.swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+    /* ===== Cards arrastrables ===== */
+    .dash-card .card-header { cursor: grab; user-select: none; touch-action: none; }
+    .dash-card .card-header:active { cursor: grabbing; }
+    .sortable-ghost {
+        opacity: .35;
+        border: 1px dashed #60a5fa !important;
+        background: rgba(96,165,250,.08) !important;
+    }
+    .sortable-chosen { box-shadow: 0 16px 40px rgba(0,0,0,.55) !important; }
+    .drag-hint { color:#475569; font-size:.65rem; margin-left:auto; margin-right:8px; }
+
+    /* ===== Modal detalle equipos por región ===== */
+    #regionModal .modal-body { padding: .5rem .75rem; }
+    .region-list { max-height: 320px; overflow-y: auto; }
+    .region-plaza-label {
+        font-size: .66rem; text-transform: uppercase; letter-spacing: .06em;
+        color: #60a5fa; font-weight: 700; margin: 8px 4px 4px;
+    }
+    .region-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 4px 8px; border-radius: 7px;
+        border: 1px solid rgba(148,163,184,.1);
+        background: rgba(148,163,184,.04);
+        margin-bottom: 4px; font-size: .76rem; color: #e2e8f0;
+    }
+    .region-item .st-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+    .region-item.online .st-dot { background: #34d399; box-shadow: 0 0 6px rgba(52,211,153,.7); }
+    .region-item.offline .st-dot { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,.6); }
+    .region-item small { color: #64748b; margin-left: auto; }
+
+    /* ===== Popup del mapa ===== */
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+        background: #0e1729 !important; color: #fff !important;
+        border-radius: 10px !important;
+        box-shadow: 0 12px 34px rgba(0,0,0,.55) !important;
+    }
+    .leaflet-popup-content-wrapper { border: 1px solid rgba(148,163,184,.25) !important; }
+    .leaflet-popup-content { margin: 10px 14px !important; font-size: .78rem; min-width: 170px; }
+    .leaflet-container a.leaflet-popup-close-button { color: #94a3b8 !important; }
+    .map-pop-title { font-weight: 700; font-size: .84rem; color: #fff; margin-bottom: 2px; }
+    .map-pop-sub { color: #94a3b8; font-size: .68rem; margin-bottom: 6px; }
+    .map-pop-row { display: flex; justify-content: space-between; gap: 14px; }
+    .map-pop-row b { font-variant-numeric: tabular-nums; }
+    .btn-ver-equipos {
+        margin-top: 8px; width: 100%;
+        background: rgba(59,130,246,.15); color: #93c5fd;
+        border: 1px solid rgba(59,130,246,.45); border-radius: 7px;
+        font-size: .72rem; font-weight: 600; padding: 4px 0; cursor: pointer;
+        transition: background .15s ease;
+    }
+    .btn-ver-equipos:hover { background: rgba(59,130,246,.32); color: #fff; }
+
     /* ===== Responsive ===== */
     @media (max-width: 1500px) {
         .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -156,7 +228,7 @@
 <div class="dash-grid fade-in">
 
     {{-- Servidor en tiempo real --}}
-    <div class="card dash-card">
+    <div class="card dash-card" data-card-id="server">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-server text-success"></i> Servidor en Tiempo Real</h3>
             <div class="card-tools">
@@ -209,7 +281,7 @@
     </div>
 
     {{-- Flota y agente --}}
-    <div class="card dash-card">
+    <div class="card dash-card" data-card-id="fleet">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-desktop"></i> Flota y Agente</h3>
             <div class="card-tools"><span class="badge badge-secondary" id="fleet-window-label"></span></div>
@@ -254,7 +326,7 @@
     </div>
 
     {{-- Computadoras por plaza --}}
-    <div class="card dash-card">
+    <div class="card dash-card" data-card-id="plaza">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-network-wired"></i> Computadoras por Plaza</h3>
         </div>
@@ -264,7 +336,7 @@
     </div>
 
     {{-- Monitoreo y sistema --}}
-    <div class="card dash-card">
+    <div class="card dash-card" data-card-id="monitoring">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-shield-alt"></i> Monitoreo y Sistema</h3>
         </div>
@@ -307,7 +379,7 @@
     </div>
 
     {{-- Versiones PVSI --}}
-    <div class="card dash-card">
+    <div class="card dash-card" data-card-id="pvsi">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-file-code"></i> Versiones PVSI Instaladas</h3>
         </div>
@@ -317,7 +389,7 @@
     </div>
 
     {{-- Distribuciones --}}
-    <div class="card dash-card">
+    <div class="card dash-card" data-card-id="distributions">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-download"></i> Distribuciones</h3>
             <div class="card-tools">
@@ -362,6 +434,37 @@
         </div>
     </div>
 
+    {{-- Mapa de equipos --}}
+    <div class="card dash-card" data-card-id="map">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-map-marked-alt"></i> Mapa de Equipos</h3>
+            <div class="card-tools"><span class="drag-hint" title="Arrastra para reordenar"><i class="fas fa-arrows-alt"></i></span></div>
+        </div>
+        <div class="card-body d-flex flex-column">
+            <div id="map-equipos"><div class="map-legend">
+                <span><i class="swatch" style="background:#059669"></i> &gt; 80% en línea</span>
+                <span><i class="swatch" style="background:#b45309"></i> 50–80% en línea</span>
+                <span><i class="swatch" style="background:#dc2626"></i> &lt; 50% en línea</span>
+                <span><i class="swatch" style="background:#334155"></i> Sin equipos</span>
+            </div></div>
+        </div>
+    </div>
+
+</div>
+
+{{-- Modal detalle de equipos por región --}}
+<div class="modal fade" id="regionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable modal-sm-plus">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-map-marker-alt"></i> <span id="region-modal-title">Equipos</span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="region-list" class="region-list"><div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i></div></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @stop
@@ -372,6 +475,9 @@
 </script>
 @vite(['resources/js/app.js'])
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer id="chartjs-cdn"></script>
+<link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}">
+<script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
+<script src="{{ asset('vendor/sortablejs/sortable.min.js') }}"></script>
 <script>
 (function () {
     'use strict';
@@ -724,9 +830,9 @@
         });
         wsSocket.on('disconnect', function () { setWsStatus(false); });
         wsSocket.on('connect_error', function () { setWsStatus(false); });
-        wsSocket.on('stats.updated', function () { lastWsEvent = Date.now(); setWsStatus(true); debounceRefresh(); });
-        wsSocket.on('distribution.progress', function () { lastWsEvent = Date.now(); debounceRefresh(); });
-        wsSocket.on('server.metrics', renderServerMetrics);
+        wsSocket.on('stats.updated', function () { lastWsEvent = Date.now(); setWsStatus(true); debounceRefresh(); window.dispatchEvent(new CustomEvent('dash:data-refresh')); });
+        wsSocket.on('distribution.progress', function () { lastWsEvent = Date.now(); debounceRefresh(); window.dispatchEvent(new CustomEvent('dash:data-refresh')); });
+        wsSocket.on('server.metrics', function () { renderServerMetrics.apply(null, arguments); window.dispatchEvent(new CustomEvent('dash:srv-metrics')); });
     }
 
     (function initWhenReady(attempts) {
@@ -984,6 +1090,218 @@
     }
 
     init();
+})();
+</script>
+<script>
+(function () {
+    'use strict';
+
+    /* ===== Orden persistente de las cards ===== */
+    var ORDER_KEY = 'dash-card-order';
+    var grid = document.querySelector('.dash-grid');
+
+    if (grid && window.Sortable) {
+        try {
+            var saved = JSON.parse(localStorage.getItem(ORDER_KEY) || '[]');
+            saved.forEach(function (id) {
+                var el = grid.querySelector('[data-card-id="' + id + '"]');
+                if (el) grid.appendChild(el);
+            });
+        } catch (e) {}
+
+        Sortable.create(grid, {
+            animation: 180,
+            handle: '.card-header',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            onEnd: function () {
+                localStorage.setItem(ORDER_KEY, JSON.stringify(
+                    Array.prototype.map.call(grid.children, function (c) { return c.getAttribute('data-card-id'); })
+                ));
+            }
+        });
+    }
+
+    /* ===== Mapa de equipos ===== */
+    var MAP_COLORS = [
+        { min: 80, color: '#059669' },
+        { min: 50, color: '#b45309' },
+        { min: 0,  color: '#dc2626' }
+    ];
+
+    var map = null;
+    var regionLayers = {};
+    var regionStats = {};
+
+    function colorFor(pctOnline) {
+        for (var i = 0; i < MAP_COLORS.length; i++) {
+            if (pctOnline >= MAP_COLORS[i].min) return MAP_COLORS[i].color;
+        }
+        return '#334155';
+    }
+
+    function initMap() {
+        if (map || !window.L || !document.getElementById('map-equipos')) return;
+        map = L.map('map-equipos', {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false
+        });
+
+        Promise.all([
+            fetch('{{ asset("vendor/geojson/mx.json") }}').then(function (r) { return r.json(); }),
+            fetch('{{ asset("vendor/geojson/gtm.json") }}').then(function (r) { return r.json(); }),
+            fetch('{{ asset("vendor/geojson/nic.json") }}').then(function (r) { return r.json(); })
+        ]).then(function (all) {
+            var features = [];
+            all.forEach(function (gj) { features = features.concat(gj.features); });
+            var layer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
+                style: baseStyle,
+                onEachFeature: attachRegion
+            }).addTo(map);
+            map.fitBounds(layer.getBounds(), { padding: [4, 4] });
+            fetchMapStats();
+        });
+    }
+
+    function baseStyle(feature) {
+        return {
+            color: 'rgba(148,163,184,.35)',
+            weight: .8,
+            fillColor: '#334155',
+            fillOpacity: .55
+        };
+    }
+
+    function attachRegion(feature, layer) {
+        var name = feature.properties && feature.properties.name;
+        regionLayers[String(name).toLowerCase()] = layer;
+        applyStatToLayer(layer);
+        layer.on('click', function () {
+            var st = layer._regionStats;
+            if (!st) return;
+            layer.bindPopup(popupHtml(st), { closeButton: true }).openPopup();
+        });
+    }
+
+    function applyStatToLayer(layer) {
+        var st = layer._regionStats;
+        var pct = st && st.total > 0 ? Math.round((st.online / st.total) * 100) : -1;
+        layer.setStyle({
+            fillColor: pct < 0 ? '#334155' : colorFor(pct),
+            fillOpacity: pct < 0 ? .3 : .7
+        });
+    }
+
+    function popupHtml(st) {
+        var pct = st.total > 0 ? Math.round((st.online / st.total) * 100) : 0;
+        return '<div class="map-pop-title">' + esc(st.name) + '</div>' +
+               '<div class="map-pop-sub">' + esc(st.country) + '</div>' +
+               '<div class="map-pop-row"><span>🟢 Prendidos</span><b style="color:#34d399">' + st.online + '</b></div>' +
+               '<div class="map-pop-row"><span>🔴 Apagados</span><b style="color:#f87171">' + st.offline + '</b></div>' +
+               '<div class="map-pop-row"><span>Total</span><b>' + st.total + '</b></div>' +
+               '<div class="map-pop-row"><span>% en línea</span><b style="color:#60a5fa">' + pct + '%</b></div>' +
+               '<button type="button" class="btn-ver-equipos" data-region="' + esc(st.id) + '" data-region-name="' + esc(st.name) + '">Ver equipos</button>';
+    }
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
+
+    var statsTimer = null;
+
+    function fetchMapStats() {
+        fetch('{{ route('home.map-stats') }}', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+            .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .then(function (data) {
+                var byGeo = {};
+                (data.regions || []).forEach(function (rg) {
+                    regionStats[rg.id] = rg;
+                    (rg.geo_names || []).forEach(function (gn) { byGeo[String(gn).toLowerCase()] = rg; });
+                });
+                Object.keys(regionLayers).forEach(function (key) {
+                    var rg = byGeo[key];
+                    if (!rg) return;
+                    var layer = regionLayers[key];
+                    layer._regionStats = rg;
+                    applyStatToLayer(layer);
+                });
+                renderUnassigned(data.unassigned);
+            })
+            .catch(function () {});
+    }
+
+    function renderUnassigned(u) {
+        var card = document.querySelector('[data-card-id="map"] .card-title');
+        if (!card || !u) return;
+        var badge = document.getElementById('unassigned-badge');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.id = 'unassigned-badge';
+            badge.className = 'badge badge-secondary ml-2';
+            badge.style.cssText = 'font-size:.6rem;cursor:pointer;vertical-align:middle;';
+            badge.title = 'Equipos sin plaza asignada — clic para ver detalle';
+            badge.addEventListener('click', function () { openRegionModal('sin_ubicacion', 'Sin ubicación'); });
+            card.parentNode.appendChild(badge);
+        }
+        badge.textContent = 'Sin ubicación: ' + u.total;
+    }
+
+    function openRegionModal(regionId, regionName) {
+        document.getElementById('region-modal-title').textContent = regionName;
+        var list = document.getElementById('region-list');
+        list.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i></div>';
+        jQuery('#regionModal').modal('show');
+
+        fetch('{{ route('home.map-computers') }}?region=' + encodeURIComponent(regionId), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+            .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .then(function (data) {
+                var html = '';
+                var lastPlaza = null;
+                (data.computers || []).forEach(function (c) {
+                    var plaza = c.plaza || 'Sin plaza';
+                    if (plaza !== lastPlaza) {
+                        html += '<div class="region-plaza-label">' + esc(plaza) + '</div>';
+                        lastPlaza = plaza;
+                    }
+                    html += '<div class="region-item ' + (c.online ? 'online' : 'offline') + '">' +
+                            '<span class="st-dot"></span>' + esc(c.name) +
+                            '<small>' + (c.online ? 'En línea' : 'Apagado') + '</small></div>';
+                });
+                list.innerHTML = html || '<div class="text-center text-muted py-3">Sin equipos</div>';
+            })
+            .catch(function () {
+                list.innerHTML = '<div class="text-center text-muted py-3">Error al cargar</div>';
+            });
+    }
+
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.btn-ver-equipos');
+        if (!btn) return;
+        openRegionModal(btn.getAttribute('data-region'), btn.getAttribute('data-region-name'));
+    });
+
+    window.addEventListener('dash:data-refresh', function () {
+        clearTimeout(statsTimer);
+        statsTimer = setTimeout(fetchMapStats, 600);
+    });
+    setInterval(fetchMapStats, 15000);
+
+    if (document.readyState === 'complete') {
+        initMap();
+    } else {
+        window.addEventListener('load', initMap);
+    }
 })();
 </script>
 @stop

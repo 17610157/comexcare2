@@ -18,6 +18,7 @@ use App\Http\Controllers\ModulesController;
 use App\Http\Controllers\MonitoredFilesController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RbfFileHashesController;
+use App\Http\Controllers\RbfPlazaTimeConfigController;
 use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\ReporteApiDemoController;
 use App\Http\Controllers\ReporteComprasDirectoController;
@@ -53,6 +54,8 @@ Route::get('/', function () {
 Route::get('/home', [HomeController::class, 'index'])->middleware('auth')->name('home');
 Route::get('/home/stats', [HomeController::class, 'stats'])->middleware('auth')->name('home.stats');
 Route::get('/home/server-stats', [HomeController::class, 'serverStats'])->middleware('auth')->name('home.server-stats');
+Route::get('/home/map-stats', [HomeController::class, 'mapStats'])->middleware('auth')->name('home.map-stats');
+Route::get('/home/map-computers', [HomeController::class, 'mapComputers'])->middleware('auth')->name('home.map-computers');
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
@@ -389,6 +392,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::get('rbf-file-hashes/data', [RbfFileHashesController::class, 'data'])->name('rbf-file-hashes.data')->middleware('can:rbf-file-hashes.ver');
     Route::post('rbf-file-hashes', [RbfFileHashesController::class, 'store'])->name('rbf-file-hashes.store')->middleware('can:rbf-file-hashes.crear');
     Route::delete('rbf-file-hashes/{rbf_file_hash}', [RbfFileHashesController::class, 'destroy'])->name('rbf-file-hashes.destroy')->middleware('can:rbf-file-hashes.eliminar');
+
+    // RBF Plaza Time Configs - Ajuste de last_modified por plaza
+    Route::get('rbf-plaza-time-configs', [RbfPlazaTimeConfigController::class, 'index'])->name('rbf-plaza-time-configs.index')->middleware('can:rbf-plaza-time.ver');
+    Route::get('rbf-plaza-time-configs/data', [RbfPlazaTimeConfigController::class, 'data'])->name('rbf-plaza-time-configs.data')->middleware('can:rbf-plaza-time.ver');
+    Route::post('rbf-plaza-time-configs', [RbfPlazaTimeConfigController::class, 'store'])->name('rbf-plaza-time-configs.store')->middleware('can:rbf-plaza-time.crear');
+    Route::post('rbf-plaza-time-configs/sincronizar', [RbfPlazaTimeConfigController::class, 'sincronizar'])->name('rbf-plaza-time-configs.sincronizar')->middleware('can:rbf-plaza-time.sincronizar');
+    Route::put('rbf-plaza-time-configs/{rbf_plaza_time_config}', [RbfPlazaTimeConfigController::class, 'update'])->name('rbf-plaza-time-configs.update')->middleware('can:rbf-plaza-time.editar');
+    Route::delete('rbf-plaza-time-configs/{rbf_plaza_time_config}', [RbfPlazaTimeConfigController::class, 'destroy'])->name('rbf-plaza-time-configs.destroy')->middleware('can:rbf-plaza-time.eliminar');
 
     // User Plaza Tienda - Solo super_admin
     Route::middleware('can:admin.usuarios.ver')->group(function () {

@@ -273,6 +273,13 @@ class PermissionSeeder extends Seeder
             'rbf-file-hashes.crear',
             'rbf-file-hashes.eliminar',
 
+            // RBF Plaza Time Configs
+            'rbf-plaza-time.ver',
+            'rbf-plaza-time.crear',
+            'rbf-plaza-time.editar',
+            'rbf-plaza-time.eliminar',
+            'rbf-plaza-time.sincronizar',
+
             // DBF Files
             'dbf-files.ver',
 

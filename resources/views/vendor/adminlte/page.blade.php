@@ -4,6 +4,7 @@
 @inject('preloaderHelper', 'JeroenNoten\LaravelAdminLte\Helpers\PreloaderHelper')
 
 @section('adminlte_css')
+<link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
 <style>
     /* ===== Tema oscuro global Comexcare ===== */
     body { background:#0b1220 !important; color:#e2e8f0; }
@@ -165,6 +166,35 @@
 @stop
 
 @section('adminlte_js')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.querySelector('[data-lte-toggle="fullscreen"]');
+        if (!btn) return;
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var maxim = btn.querySelector('[data-lte-icon="maximize"]');
+            var minim = btn.querySelector('[data-lte-icon="minimize"]');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(function () {
+                    if (maxim) maxim.classList.add('d-none');
+                    if (minim) minim.classList.remove('d-none');
+                }).catch(function () {});
+            } else {
+                document.exitFullscreen().then(function () {
+                    if (maxim) maxim.classList.remove('d-none');
+                    if (minim) minim.classList.add('d-none');
+                }).catch(function () {});
+            }
+        });
+        document.addEventListener('fullscreenchange', function () {
+            var maxim = btn.querySelector('[data-lte-icon="maximize"]');
+            var minim = btn.querySelector('[data-lte-icon="minimize"]');
+            var on = Boolean(document.fullscreenElement);
+            if (maxim) maxim.classList.toggle('d-none', on);
+            if (minim) minim.classList.toggle('d-none', !on);
+        });
+    });
+</script>
     @stack('js')
     @yield('js')
 @stop

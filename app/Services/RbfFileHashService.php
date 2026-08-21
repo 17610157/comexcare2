@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\RbfFileHash;
+use App\Models\RbfPlazaTimeConfig;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -40,6 +42,7 @@ class RbfFileHashService
         }
 
         $lastSync = $data['last_sync'] ?? now();
+        $offsetsByPlaza = RbfPlazaTimeConfig::offsetsByPlaza();
         $records = [];
 
         foreach ($data['files'] as $file) {
@@ -52,6 +55,10 @@ class RbfFileHashService
             $plaza = $segments >= 3 ? $parts[1] : null;
             $zona = $segments >= 4 ? $parts[2] : null;
 
+            $offsetHours = $plaza !== null
+                ? ($offsetsByPlaza[strtolower(trim($plaza))] ?? 0)
+                : 0;
+
             $records[] = [
                 'servicio' => $servicio,
                 'plaza' => $plaza,
@@ -59,7 +66,7 @@ class RbfFileHashService
                 'path' => $path,
                 'name' => strtoupper($file['name'] ?? ''),
                 'hash' => strtoupper(substr($file['hash'] ?? '', -5)),
-                'last_modified' => $file['last_modified'] ?? null,
+                'last_modified' => $this->adjustLastModified($file['last_modified'] ?? null, $offsetHours),
                 'last_sync' => $lastSync,
                 'manual' => 0,
                 'created_at' => now(),
@@ -83,5 +90,18 @@ class RbfFileHashService
             'success' => true,
             'count' => $count,
         ];
+    }
+
+    private function adjustLastModified(mixed $value, int $offsetHours): mixed
+    {
+        if ($offsetHours === 0 || $value === null || trim((string) $value) === '') {
+            return $value;
+        }
+
+        try {
+            return Carbon::parse($value)->addHours($offsetHours)->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return $value;
+        }
     }
 }

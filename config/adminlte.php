@@ -374,6 +374,12 @@ return [
             'can' => 'rbf-file-hashes.ver',
         ],
         [
+            'text' => 'Horarios por Plaza RBF',
+            'url' => 'admin/rbf-plaza-time-configs',
+            'icon' => 'fas fa-clock',
+            'can' => 'rbf-plaza-time.ver',
+        ],
+        [
             'text' => 'Listas de Archivos',
             'url' => 'admin/file-lists',
             'icon' => 'fas fa-list',

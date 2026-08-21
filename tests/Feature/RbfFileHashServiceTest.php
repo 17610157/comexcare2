@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\RbfFileHash;
+use App\Models\RbfPlazaTimeConfig;
 use App\Services\RbfFileHashService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Http;
@@ -27,7 +28,18 @@ beforeEach(function () {
         });
     }
 
+    if (! Schema::hasTable('rbf_plaza_time_configs')) {
+        Schema::create('rbf_plaza_time_configs', function (Blueprint $table) {
+            $table->id();
+            $table->string('plaza', 50)->unique();
+            $table->smallInteger('meridiano');
+            $table->smallInteger('zona_horaria')->default(0);
+            $table->timestamps();
+        });
+    }
+
     RbfFileHash::query()->truncate();
+    RbfPlazaTimeConfig::query()->truncate();
 });
 
 it('parses paths correctly for different depths', function () {
@@ -137,4 +149,63 @@ it('sets last_sync from the response', function () {
     $record = RbfFileHash::first();
     expect($record->last_sync->format('Y-m-d H:i:s'))->toBe('2026-07-03 14:08:00');
     expect($record->hash)->toBe('B7060');
+});
+
+it('applies plaza time offset to last_modified during sync', function () {
+    RbfPlazaTimeConfig::create(['plaza' => 'matro', 'meridiano' => 6, 'zona_horaria' => -1]);
+
+    Http::fake([
+        'rbf.camposreyeros.com/*' => Http::response([
+            'last_sync' => '2026-08-21 12:00:00',
+            'files' => [
+                ['path' => '/combo/matro/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF', 'hash' => '8B7060', 'last_modified' => '2026-08-20 14:00:00'],
+                ['path' => '/combo/bajac/norte/PCOMB.DBF', 'name' => 'PCOMB.DBF', 'hash' => '50BEFA', 'last_modified' => '2026-08-20 14:00:00'],
+            ],
+        ]),
+    ]);
+
+    $service = new RbfFileHashService;
+    $result = $service->fetchAndSync();
+
+    expect($result['success'])->toBeTrue();
+
+    $matro = RbfFileHash::where('path', '/combo/matro/norte/PCOMB.DBF')->first();
+    expect($matro->last_modified->format('Y-m-d H:i:s'))->toBe('2026-08-20 07:00:00');
+
+    $bajac = RbfFileHash::where('path', '/combo/bajac/norte/PCOMB.DBF')->first();
+    expect($bajac->last_modified->format('Y-m-d H:i:s'))->toBe('2026-08-20 14:00:00');
+});
+
+it('matches configured plazas case-insensitively', function () {
+    RbfPlazaTimeConfig::create(['plaza' => 'MATRO', 'meridiano' => 7, 'zona_horaria' => 0]);
+
+    Http::fake([
+        'rbf.camposreyeros.com/*' => Http::response([
+            'files' => [
+                ['path' => '/dbf/MaTrO/general/LISTA.DBF', 'name' => 'LISTA.DBF', 'hash' => 'ABC123', 'last_modified' => '2026-08-20 10:00:00'],
+            ],
+        ]),
+    ]);
+
+    (new RbfFileHashService)->fetchAndSync();
+
+    $record = RbfFileHash::where('path', '/dbf/MaTrO/general/LISTA.DBF')->first();
+    expect($record->last_modified->format('Y-m-d H:i:s'))->toBe('2026-08-20 03:00:00');
+});
+
+it('keeps original value when offset is zero', function () {
+    RbfPlazaTimeConfig::create(['plaza' => 'matro', 'meridiano' => 5, 'zona_horaria' => 5]);
+
+    Http::fake([
+        'rbf.camposreyeros.com/*' => Http::response([
+            'files' => [
+                ['path' => '/combo/matro/PDCOMB.DBF', 'name' => 'PDCOMB.DBF', 'hash' => 'DEF456', 'last_modified' => '2026-08-20 10:30:15'],
+            ],
+        ]),
+    ]);
+
+    (new RbfFileHashService)->fetchAndSync();
+
+    $record = RbfFileHash::first();
+    expect($record->last_modified->format('Y-m-d H:i:s'))->toBe('2026-08-20 10:30:15');
 });
