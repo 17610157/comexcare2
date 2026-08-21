@@ -84,8 +84,31 @@
     .text-muted { color:#64748b !important; }
     .badge-secondary { background:#334155; color:#e2e8f0; }
     .alert-dark, .alert-secondary { background:#1e293b; border-color:rgba(148,163,184,.2); color:#cbd5e1; }
-    .modal-content { background:#0e1729; border:1px solid rgba(148,163,184,.18); color:#e2e8f0; }
+    /* ===== Modales 100% oscuros ===== */
+    .modal-content,
+    .modal-header,
+    .modal-body,
+    .modal-footer { background:#0e1729 !important; color:#fff; }
+    .modal-content { border:1px solid rgba(148,163,184,.18); box-shadow:0 20px 60px rgba(0,0,0,.6); }
     .modal-header, .modal-footer { border-color:rgba(148,163,184,.12); }
+    .modal-title { color:#fff; font-weight:600; }
+    .modal-header .close, .modal-footer button.close { color:#cbd5e1; text-shadow:none; opacity:.85; }
+    .modal-header .close:hover { color:#fff; opacity:1; }
+    .modal-content .form-control, .modal-content .custom-select { background:#0f172a; color:#fff; border-color:rgba(148,163,184,.28); }
+    .modal-content label { color:#cbd5e1; }
+    .modal-content .text-muted { color:#94a3b8 !important; }
+    .modal-content .bg-white { background:#0e1729 !important; color:#fff; }
+
+    /* ===== SweetAlert2 oscuro ===== */
+    .swal2-popup { background:#0e1729 !important; color:#fff !important; border:1px solid rgba(148,163,184,.18); border-radius:14px !important; }
+    .swal2-title { color:#fff !important; }
+    .swal2-html-container, .swal2-content { color:#cbd5e1 !important; }
+    .swal2-popup .swal2-styled.swal2-confirm { background:#2563eb !important; box-shadow:none; }
+    .swal2-popup .swal2-styled.swal2-deny { background:#dc2626 !important; box-shadow:none; }
+    .swal2-popup .swal2-styled.swal2-cancel { background:#334155 !important; color:#fff !important; box-shadow:none; }
+    .swal2-popup .swal2-input, .swal2-popup .swal2-select, .swal2-popup .swal2-textarea { background:#0f172a; border:1px solid rgba(148,163,184,.28); color:#fff; }
+    .swal2-popup .swal2-validation-message { background:#1e293b; color:#fca5a5; }
+    .swal2-timer-progress-bar { background:#3b82f6; }
     .nav-pills .nav-link { color:#94a3b8; }
     .nav-pills .nav-link.active { background:#2563eb; }
     .callout { background:rgba(30,41,59,.5); border:1px solid rgba(148,163,184,.12); border-radius:10px; }
