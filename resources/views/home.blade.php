@@ -187,6 +187,17 @@
     .region-item small { color: #64748b; margin-left: auto; }
 
     /* ===== Popup del mapa ===== */
+    .leaflet-control-zoom {
+        border: none !important;
+        box-shadow: 0 6px 18px rgba(0,0,0,.45) !important;
+        border-radius: 8px !important; overflow: hidden;
+    }
+    .leaflet-bar a {
+        background: #0e1729 !important;
+        color: #cbd5e1 !important;
+        border-bottom: 1px solid rgba(148,163,184,.15) !important;
+    }
+    .leaflet-bar a:hover { background: #16213a !important; color: #fff !important; }
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {
         background: #0e1729 !important; color: #fff !important;
         border-radius: 10px !important;
@@ -1143,13 +1154,15 @@
     function initMap() {
         if (map || !window.L || !document.getElementById('map-equipos')) return;
         map = L.map('map-equipos', {
-            zoomControl: false,
+            zoomControl: true,
             attributionControl: false,
-            dragging: false,
-            scrollWheelZoom: false,
-            doubleClickZoom: false,
+            dragging: true,
+            scrollWheelZoom: true,
+            doubleClickZoom: true,
             boxZoom: false,
-            keyboard: false
+            keyboard: false,
+            minZoom: 2,
+            maxZoom: 12
         });
 
         Promise.all([
