@@ -212,16 +212,29 @@
     function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
     function ackEvent(id) {
-        fetch(base + '/ack', {
+        jsonFetch(base + '/ack', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
             body: JSON.stringify({ id: parseInt(id, 10) })
-        }).then(refreshNow);
+        }).then(refreshNow).catch(function () {});
     }
 
     function csrfToken() {
         var m = document.querySelector('meta[name="csrf-token"]');
         return m ? m.getAttribute('content') : (window.Laravel && window.Laravel.csrfToken) || '';
+    }
+
+    function jsonFetch(url, opts) {
+        opts = opts || {};
+        opts.headers = Object.assign({ 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, opts.headers || {});
+        return fetch(url, opts).then(function (r) {
+            return r.text().then(function (t) {
+                var j = null;
+                try { j = t ? JSON.parse(t) : null; } catch (e) {}
+                if (j === null) throw new Error('El servidor devolvió una respuesta inválida (HTTP ' + r.status + ')');
+                return j;
+            });
+        });
     }
 
     function refreshNow() { poll(); renderTabs(); }
@@ -257,8 +270,7 @@
 
     function poll() {
         if (document.hidden) return;
-        fetch(base + '/state', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-            .then(function (r) { return r.json(); })
+        jsonFetch(base + '/state', { credentials: 'same-origin' })
             .then(function (j) {
                 stateData = j;
                 var seenId = parseInt(localStorage.getItem(LS_SEEN) || '0', 10);
@@ -327,11 +339,11 @@
         var simBtn = pane.querySelector('#alerts-simulate-btn');
         simBtn.addEventListener('click', function () {
             simBtn.disabled = true;
-            fetch(base + '/simulate', {
+            jsonFetch(base + '/simulate', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
                 body: JSON.stringify({})
-            }).then(function (r) { return r.json(); })
-              .then(function () { setTimeout(refreshNow, 400); })
+            }).then(function () { setTimeout(refreshNow, 400); })
+              .catch(function () {})
               .finally(function () { simBtn.disabled = false; });
         });
     }
@@ -349,7 +361,7 @@
 
     function loadSounds(force) {
         if (soundsCache.length && !force) { fillSoundSelects(); return Promise.resolve(); }
-        return fetch(base + '/sounds').then(function (r) { return r.json(); }).then(function (j) {
+        return jsonFetch(base + '/sounds').then(function (j) {
             soundsCache = j.sounds || [];
             fillSoundSelects();
         });
@@ -364,11 +376,11 @@
         fd.append('_token', csrfToken());
         var label = input.parentElement;
         label.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> subiendo...';
-        fetch(base + '/sounds', { method: 'POST', body: fd })
-            .then(function (r) { return r.json().then(function (j) { return j.success ? j : Promise.reject(j); }); })
+        jsonFetch(base + '/sounds', { method: 'POST', body: fd })
+            .then(function (j) { if (!j.success) throw j; return j; })
             .then(function (j) { loadSounds(true); tr.querySelector('.cfg-sound').value = j.path; saveRule(tr, j.path); })
-            .catch(function (j) {
-                var msg = (j && j.errors && j.errors.sound && j.errors.sound.join('\n')) || (j && j.message) || 'Error al subir el archivo';
+            .catch(function (e) {
+                var msg = (e && e.errors && e.errors.sound && e.errors.sound.join('\n')) || (e && e.message) || 'Error al subir el archivo';
                 alert(msg);
             })
             .finally(function () { label.innerHTML = '<i class="bi bi-upload"></i> subir<input type="file" accept=".mp3,.wav,.ogg,audio/*" class="cfg-file" hidden>'; bindFile(label.querySelector('.cfg-file')); });
@@ -386,12 +398,11 @@
             cooldown_min: parseInt(tr.querySelector('.cfg-cooldown').value, 10) || 15,
             sound_path: forcedPath !== undefined ? forcedPath : tr.querySelector('.cfg-sound').value
         };
-        fetch(base + '/rules/' + id, {
+        jsonFetch(base + '/rules/' + id, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
             body: JSON.stringify(payload)
-        }).then(function (r) { return r.json(); })
-          .then(function (j) { if (stateData) { stateData.rules = stateData.rules.map(function (r) { return r.id === j.rule.id ? j.rule : r; }); } })
+        }).then(function (j) { if (stateData && j.rule) { stateData.rules = stateData.rules.map(function (r) { return r.id === j.rule.id ? j.rule : r; }); } })
           .catch(function () {});
     }
 
@@ -409,11 +420,11 @@
     });
 
     document.getElementById('alerts-ack-all').addEventListener('click', function () {
-        fetch(base + '/ack', {
+        jsonFetch(base + '/ack', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
             body: JSON.stringify({ all: true })
-        }).then(refreshNow);
+        }).then(refreshNow).catch(function () {});
     });
 
     document.querySelector('#alert-pill .ap-ack').addEventListener('click', function () {

@@ -154,6 +154,19 @@
     function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
     function csrf() { return (document.querySelector('meta[name="csrf-token"]') || {}).content || ''; }
 
+    function jsonFetch(url, opts) {
+        opts = opts || {};
+        opts.headers = Object.assign({ 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, opts.headers || {});
+        return fetch(url, opts).then(function (r) {
+            return r.text().then(function (t) {
+                var j = null;
+                try { j = t ? JSON.parse(t) : null; } catch (e) {}
+                if (j === null) throw new Error('El servidor devolvio una respuesta invalida (HTTP ' + r.status + ')');
+                return j;
+            });
+        });
+    }
+
     function fmtTime(iso) {
         if (!iso) return '';
         var d = new Date(iso);
@@ -211,7 +224,7 @@
     }
 
     function ackEvent(id) {
-        fetch(base + '/ack', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify({id:parseInt(id,10)}) }).then(poll);
+        jsonFetch(base + '/ack', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify({id:parseInt(id,10)}) }).then(poll).catch(function(){});
     }
 
     function fillSoundSelects() {
@@ -228,10 +241,10 @@
 
     function loadSounds(force) {
         if (soundsCache.length && !force) { fillSoundSelects(); return Promise.resolve(); }
-        return fetch(base + '/sounds').then(function (r) { return r.json(); }).then(function (j) {
+        return jsonFetch(base + '/sounds').then(function (j) {
             soundsCache = j.sounds || [];
             fillSoundSelects();
-        });
+        }).catch(function () {});
     }
 
     function saveRule(tr, forcedPath) {
@@ -241,9 +254,10 @@
             cooldown_min: parseInt(tr.querySelector('.cfg-cooldown').value, 10) || 15,
             sound_path: forcedPath !== undefined ? forcedPath : tr.querySelector('.cfg-sound').value
         };
-        return fetch(base + '/rules/' + tr.dataset.ruleId, {
+        return jsonFetch(base + '/rules/' + tr.dataset.ruleId, {
             method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify(payload)
-        }).then(function (r) { return r.json().then(function (j) { if (j.rule && j.rule.sound_path !== undefined) tr.querySelector('.cfg-sound').dataset.current = j.rule.sound_path || ''; return j; }); });
+        }).then(function (j) { if (j.rule && j.rule.sound_path !== undefined) tr.querySelector('.cfg-sound').dataset.current = j.rule.sound_path || ''; return j; })
+          .catch(function (e) { alert((e && e.message) || 'No se pudo guardar'); });
     }
 
     function uploadSound(input) {
@@ -255,16 +269,16 @@
         fd.append('_token', csrf());
         var label = input.parentElement;
         label.innerHTML = '<i class="bi bi-arrow-repeat"></i> subiendo...';
-        fetch(base + '/sounds', { method:'POST', body:fd })
-            .then(function (r) { return r.json().then(function (j) { return j.success ? j : Promise.reject(j); }); })
+        jsonFetch(base + '/sounds', { method:'POST', body:fd })
+            .then(function (j) { if (!j.success) throw j; return j; })
             .then(function (j) {
                 loadSounds(true).then(function () {
                     tr.querySelector('.cfg-sound').value = j.path;
                     saveRule(tr, j.path);
                 });
             })
-            .catch(function (j) {
-                var msg = (j && j.errors && j.errors.sound && j.errors.sound.join('\n')) || (j && j.message) || 'Error al subir el archivo';
+            .catch(function (e) {
+                var msg = (e && e.errors && e.errors.sound && e.errors.sound.join('\n')) || (e && e.message) || 'Error al subir el archivo';
                 alert(msg);
             })
             .finally(function () {
@@ -276,8 +290,7 @@
     function bindFile(inp) { inp.addEventListener('change', function () { uploadSound(inp); }); }
 
     function poll() {
-        fetch(base + '/state', { headers:{'Accept':'application/json'}, credentials:'same-origin' })
-            .then(function (r) { return r.json(); })
+        jsonFetch(base + '/state', { credentials:'same-origin' })
             .then(function (j) {
                 document.getElementById('stat-active').textContent = j.active_count;
                 document.getElementById('stat-history').textContent = j.history.length;
@@ -300,7 +313,7 @@
     setInterval(poll, 10000);
 
     document.getElementById('ack-all-btn').addEventListener('click', function () {
-        fetch(base + '/ack', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify({all:true}) }).then(poll);
+        jsonFetch(base + '/ack', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify({all:true}) }).then(poll).catch(function(){});
     });
 
     document.querySelectorAll('.cfg-file').forEach(bindFile);
@@ -321,8 +334,9 @@
     document.querySelectorAll('.cfg-sim').forEach(function (b) {
         b.addEventListener('click', function () {
             b.disabled = true;
-            fetch(base + '/simulate', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify({ rule_id: parseInt(b.closest('tr').dataset.ruleId, 10) }) })
+            jsonFetch(base + '/simulate', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify({ rule_id: parseInt(b.closest('tr').dataset.ruleId, 10) }) })
                 .then(function () { setTimeout(poll, 500); })
+                .catch(function (e) { alert((e && e.message) || 'No se pudo simular'); })
                 .finally(function () { b.disabled = false; });
         });
     });
@@ -330,8 +344,9 @@
     var simBtn = document.getElementById('alerts-simulate-btn');
     simBtn.addEventListener('click', function () {
         simBtn.disabled = true;
-        fetch(base + '/simulate', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify({}) })
+        jsonFetch(base + '/simulate', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf()}, body:JSON.stringify({}) })
             .then(function () { setTimeout(poll, 500); })
+            .catch(function (e) { alert((e && e.message) || 'No se pudo simular'); })
             .finally(function () { simBtn.disabled = false; });
     });
 })();
