@@ -314,6 +314,12 @@ return [
         ],
 
         [
+            'text' => 'Centro de Alertas',
+            'href' => '#',
+            'icon' => 'far fa-bell',
+        ],
+
+        [
             'text' => 'Usuarios',
             'url' => 'admin/usuarios',
             'icon' => 'fas fa-users',
