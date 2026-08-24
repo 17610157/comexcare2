@@ -141,7 +141,7 @@ class DashboardAlertController extends Controller
         abort_unless(Auth::user()?->can('alertas.configurar'), 403);
 
         $request->validate([
-            'sound' => ['required', 'file', 'mimes:mp3,wav,ogg', 'max:2048'],
+            'sound' => ['required', 'file', 'extensions:mp3,wav,ogg', 'max:2048'],
         ]);
 
         $file = $request->file('sound');

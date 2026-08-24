@@ -367,7 +367,10 @@
         fetch(base + '/sounds', { method: 'POST', body: fd })
             .then(function (r) { return r.json().then(function (j) { return j.success ? j : Promise.reject(j); }); })
             .then(function (j) { loadSounds(true); tr.querySelector('.cfg-sound').value = j.path; saveRule(tr, j.path); })
-            .catch(function (j) { alert((j && j.message) || 'Error al subir el archivo'); })
+            .catch(function (j) {
+                var msg = (j && j.errors && j.errors.sound && j.errors.sound.join('\n')) || (j && j.message) || 'Error al subir el archivo';
+                alert(msg);
+            })
             .finally(function () { label.innerHTML = '<i class="bi bi-upload"></i> subir<input type="file" accept=".mp3,.wav,.ogg,audio/*" class="cfg-file" hidden>'; bindFile(label.querySelector('.cfg-file')); });
     }
 
