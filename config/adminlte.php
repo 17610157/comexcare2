@@ -315,7 +315,7 @@ return [
 
         [
             'text' => 'Centro de Alertas',
-            'href' => '#',
+            'url' => '/alerts/page',
             'icon' => 'far fa-bell',
         ],
 

@@ -61,6 +61,7 @@ Route::get('/home/activity', [HomeController::class, 'activity'])->middleware('a
 Route::get('/home/fleet-health', [HomeController::class, 'fleetHealth'])->middleware('auth')->name('home.fleet-health');
 
 Route::middleware('auth')->prefix('alerts')->group(function () {
+    Route::get('/page', [DashboardAlertController::class, 'page'])->name('alerts.page');
     Route::get('/state', [DashboardAlertController::class, 'state'])->name('alerts.state');
     Route::post('/ack', [DashboardAlertController::class, 'ack'])->name('alerts.ack');
     Route::post('/simulate', [DashboardAlertController::class, 'simulate'])->name('alerts.simulate');

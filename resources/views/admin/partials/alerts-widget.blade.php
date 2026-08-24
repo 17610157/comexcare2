@@ -434,16 +434,5 @@
     setInterval(poll, POLL_MS);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
     updateMuteBtn();
-
-    document.querySelectorAll('.nav-sidebar a[href="#"]').forEach(function (a) {
-        if (!a.textContent.trim().includes('Centro de Alertas')) return;
-        a.setAttribute('href', 'javascript:void(0)');
-        a.addEventListener('click', function (ev) {
-            ev.preventDefault();
-            $('#alertsModal').modal('show');
-            loadSounds(false).then(function () { renderConfig(); });
-            renderTabs();
-        });
-    });
 })();
 </script>

@@ -16,6 +16,18 @@ class DashboardAlertController extends Controller
         $this->middleware('auth');
     }
 
+    public function page()
+    {
+        $canConfigure = Auth::user()?->can('alertas.configurar') ?? false;
+
+        return view('admin.alertas.index', [
+            'rules' => DashboardAlertRule::orderBy('id')->get(),
+            'eventsActive' => $this->eventsQuery()->whereNull('acknowledged_at')->orderByDesc('triggered_at')->limit(30)->get(),
+            'eventsHistory' => $this->eventsQuery()->orderByDesc('triggered_at')->limit(60)->get(),
+            'canConfigure' => $canConfigure,
+        ]);
+    }
+
     public function state(Request $request): JsonResponse
     {
         app(AlertService::class)->evaluateAndRecord();
