@@ -30,6 +30,7 @@ class PermissionSeeder extends Seeder
             'admin.permissions.eliminar',
             'admin.configuracion.ver',
             'admin.configuracion.editar',
+            'alertas.configurar',
 
             // Usuarios
             'usuarios.ver',

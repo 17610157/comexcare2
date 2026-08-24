@@ -3,10 +3,14 @@
 namespace App\Providers;
 
 use App\Listeners\DashboardJobFailedListener;
+use App\Models\User;
+use App\Observers\AdminAuditObserver;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -74,5 +78,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Queue::failing(DashboardJobFailedListener::class);
+
+        User::observe(AdminAuditObserver::class);
+        Role::observe(AdminAuditObserver::class);
+        Permission::observe(AdminAuditObserver::class);
     }
 }

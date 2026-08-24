@@ -219,6 +219,72 @@
     }
     .btn-ver-equipos:hover { background: rgba(59,130,246,.32); color: #fff; }
 
+    /* ===== Actividad de agentes ===== */
+    .act-rate {
+        font-size:.66rem; font-weight:800; color:#34d399;
+        background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.3);
+        padding:2px 8px; border-radius:999px; margin-right:6px;
+        font-variant-numeric:tabular-nums;
+    }
+    .act-filters { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:6px; flex:0 0 auto; }
+    .act-chip {
+        font-size:.62rem; font-weight:700; color:#94a3b8; cursor:pointer;
+        background:rgba(148,163,184,.07); border:1px solid rgba(148,163,184,.18);
+        border-radius:999px; padding:2px 9px; transition:all .15s ease;
+    }
+    .act-chip:hover { color:#e2e8f0; }
+    .act-chip.active { color:#fff; background:rgba(59,130,246,.25); border-color:#60a5fa; }
+    .activity-feed { flex:1 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
+    .feed-item {
+        display:flex; gap:8px; align-items:flex-start;
+        background:rgba(148,163,184,.04); border:1px solid rgba(148,163,184,.09);
+        border-radius:8px; padding:5px 8px; flex:0 0 auto;
+        cursor:pointer; transition:border-color .15s ease, background .15s ease;
+    }
+    .feed-item:hover { border-color:rgba(96,165,250,.45); background:rgba(59,130,246,.08); }
+    .actm-message {
+        margin:8px 0 0; padding:8px 10px;
+        background:#0f172a; border:1px solid rgba(148,163,184,.15);
+        border-radius:8px; color:#cbd5e1;
+        font-size:.68rem; line-height:1.5; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+        white-space:pre-wrap; word-break:break-word;
+        max-height:260px; overflow-y:auto;
+    }
+    .feed-item.fresh { animation:feedIn .5s ease both; }
+    @keyframes feedIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
+    .feed-item > i { font-size:.72rem; width:16px; text-align:center; margin-top:2px; }
+    .feed-item .fi-body { min-width:0; flex:1; }
+    .feed-item .fi-head b { font-size:.7rem; color:#f1f5f9; }
+    .feed-item .fi-head small { font-size:.58rem; color:#60a5fa; margin-left:5px; }
+    .feed-item p { margin:0; font-size:.64rem; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .feed-item time { font-size:.58rem; color:#64748b; white-space:nowrap; margin-top:2px; }
+    .kind-vales > i { color:#fbbf24; } .kind-rbf > i { color:#a78bfa; }
+    .kind-descargas > i { color:#38bdf8; } .kind-comandos > i { color:#34d399; }
+    .kind-sistema > i { color:#94a3b8; }
+
+    /* ===== Matriz de salud ===== */
+    .hm-counters { display:flex; gap:5px; align-items:center; }
+    .hm-counters .badge { font-size:.58rem; border-radius:999px; padding:2px 7px; }
+    .hm-matrix { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:2px; }
+    .hm-group { margin-bottom:7px; }
+    .hm-group-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; font-weight:700; margin-bottom:3px; }
+    .hm-group-label small { color:#475569; text-transform:none; letter-spacing:0; }
+    .hm-squares { display:flex; flex-wrap:wrap; gap:3px; }
+    .hm-square {
+        width:15px; height:15px; border-radius:4px; cursor:pointer;
+        transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .hm-square:hover { transform:scale(1.45); z-index:5; box-shadow:0 0 0 2px #93c5fd; position:relative; }
+    .s-ok   { background:#059669; box-shadow:inset 0 0 3px rgba(255,255,255,.25); }
+    .s-warn { background:#b45309; }
+    .s-crit { background:#dc2626; }
+    .s-off  { background:#334155; }
+
+    /* ===== Perfil PC (modal) ===== */
+    .pcp-score-bar { height:7px; border-radius:99px; background:rgba(148,163,184,.15); overflow:hidden; margin-top:4px; }
+    .pcp-score-fill { height:100%; border-radius:99px; transition:width .4s ease; }
+    .pcp-row { display:flex; justify-content:space-between; gap:10px; padding:4px 2px; font-size:.74rem; color:#cbd5e1; border-bottom:1px dashed rgba(148,163,184,.1); }
+
     /* ===== Responsive ===== */
     @media (max-width: 1500px) {
         .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -461,6 +527,49 @@
         </div>
     </div>
 
+    {{-- Actividad de agentes en vivo --}}
+    <div class="card dash-card" data-card-id="activity">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-wave-square text-info"></i> Actividad de Agentes</h3>
+            <div class="card-tools">
+                <span class="act-rate" id="act-rate">— /min</span>
+                <button type="button" class="btn btn-tool" id="act-pause" title="Pausar feed"><i class="fas fa-pause"></i></button>
+                <span class="drag-hint"><i class="fas fa-arrows-alt"></i></span>
+            </div>
+        </div>
+        <div class="card-body d-flex flex-column">
+            <div class="act-filters" id="act-filters">
+                <span class="act-chip active" data-kind="todo">Todo</span>
+                <span class="act-chip" data-kind="vales">Vales</span>
+                <span class="act-chip" data-kind="rbf">RBF</span>
+                <span class="act-chip" data-kind="descargas">Descargas</span>
+                <span class="act-chip" data-kind="comandos">Comandos</span>
+                <span class="act-chip" data-kind="sistema">Sistema</span>
+            </div>
+            <div class="activity-feed" id="activity-feed"></div>
+        </div>
+    </div>
+
+    {{-- Matriz de salud del parque --}}
+    <div class="card dash-card" data-card-id="health">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-th text-success"></i> Matriz de Salud</h3>
+            <div class="card-tools hm-counters">
+                <span class="badge badge-success" id="hm-c-ok">0</span>
+                <span class="badge badge-warning" id="hm-c-warn">0</span>
+                <span class="badge badge-danger" id="hm-c-crit">0</span>
+                <span class="badge badge-secondary" id="hm-c-off">0</span>
+                <span class="drag-hint"><i class="fas fa-arrows-alt"></i></span>
+            </div>
+        </div>
+        <div class="card-body d-flex flex-column">
+            <div class="act-filters" style="margin-bottom:5px;">
+                <span class="act-chip active" data-hplaza="">Todas las plazas</span>
+            </div>
+            <div class="hm-matrix" id="health-matrix"></div>
+        </div>
+    </div>
+
 </div>
 
 {{-- Modal detalle de equipos por región --}}
@@ -473,6 +582,43 @@
             </div>
             <div class="modal-body">
                 <div id="region-list" class="region-list"><div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal perfil de PC --}}
+<div class="modal fade" id="pcProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-desktop"></i> <span id="pcp-title">Equipo</span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="pcp-score-wrap">
+                    <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#94a3b8;">
+                        <span>Salud</span><b id="pcp-score-num">0</b>
+                    </div>
+                    <div class="pcp-score-bar"><div class="pcp-score-fill" id="pcp-score-fill" style="width:0%"></div></div>
+                </div>
+                <div id="pcp-rows" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal detalle de evento de actividad --}}
+<div class="modal fade" id="activityModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-wave-square"></i> <span id="actm-title">Evento</span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="actm-rows"></div>
+                <pre class="actm-message" id="actm-message"></pre>
             </div>
         </div>
     </div>
@@ -1143,6 +1289,11 @@
     var map = null;
     var regionLayers = {};
     var regionStats = {};
+    var cityMarkers = [];
+
+    var CITY_MARKERS = [
+        { id: 'guatemala', name: 'Ciudad de Guatemala', country: 'Guatemala', latlng: [14.6349, -90.5069] }
+    ];
 
     function colorFor(pctOnline) {
         for (var i = 0; i < MAP_COLORS.length; i++) {
@@ -1177,6 +1328,22 @@
                 onEachFeature: attachRegion
             }).addTo(map);
             map.fitBounds(layer.getBounds(), { padding: [4, 4] });
+
+            CITY_MARKERS.forEach(function (cm) {
+                var m = L.circleMarker(cm.latlng, {
+                    radius: 6, color: '#f8fafc', weight: 1.5,
+                    fillColor: '#38bdf8', fillOpacity: .95
+                }).addTo(map);
+                m._cityDef = cm;
+                m.bindTooltip(cm.name, { direction: 'top', offset: [0, -4] });
+                m.on('click', function () {
+                    var st = m._regionStats;
+                    if (!st) return;
+                    m.bindPopup(popupHtml(st), { closeButton: true }).openPopup();
+                });
+                cityMarkers.push(m);
+            });
+
             fetchMapStats();
         });
     }
@@ -1247,6 +1414,13 @@
                     layer._regionStats = rg;
                     applyStatToLayer(layer);
                 });
+                cityMarkers.forEach(function (m) {
+                    var st = regionStats[m._cityDef.id];
+                    if (!st) return;
+                    m._regionStats = st;
+                    var pct = st.total > 0 ? Math.round((st.online / st.total) * 100) : 0;
+                    m.setStyle({ fillColor: colorFor(pct) });
+                });
                 renderUnassigned(data.unassigned);
             })
             .catch(function () {});
@@ -1315,6 +1489,294 @@
     } else {
         window.addEventListener('load', initMap);
     }
+})();
+</script>
+<script>
+(function () {
+    'use strict';
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
+
+    /* ================= Actividad de agentes en vivo ================= */
+    var KIND_ICONS = {
+        vales: 'fa-coins',
+        rbf: 'fa-fingerprint',
+        descargas: 'fa-download',
+        comandos: 'fa-terminal',
+        sistema: 'fa-info-circle'
+    };
+
+    var actPaused = false;
+    var actLastId = 0;
+    var actFilter = 'todo';
+    var arrivals = [];
+    var actTimer = null;
+
+    var feedEl = document.getElementById('activity-feed');
+    var rateEl = document.getElementById('act-rate');
+    var pauseBtn = document.getElementById('act-pause');
+
+    if (pauseBtn) {
+        pauseBtn.addEventListener('click', function () {
+            actPaused = !actPaused;
+            pauseBtn.innerHTML = actPaused ? '<i class="fas fa-play"></i>' : '<i class="fas fa-pause"></i>';
+            pauseBtn.title = actPaused ? 'Reanudar feed' : 'Pausar feed';
+        });
+    }
+
+    var filtersEl = document.getElementById('act-filters');
+    if (filtersEl) {
+        filtersEl.addEventListener('click', function (e) {
+            var chip = e.target.closest('.act-chip');
+            if (!chip) return;
+            filtersEl.querySelectorAll('.act-chip').forEach(function (c) { c.classList.remove('active'); });
+            chip.classList.add('active');
+            actFilter = chip.getAttribute('data-kind');
+            applyFeedFilter();
+        });
+    }
+
+    function applyFeedFilter() {
+        if (!feedEl) return;
+        feedEl.querySelectorAll('.feed-item').forEach(function (item) {
+            item.style.display = (actFilter === 'todo' || item._kind === actFilter) ? '' : 'none';
+        });
+    }
+
+    function relAge(s) {
+        if (s == null) return '';
+        if (s < 5) return 'ahora';
+        if (s < 60) return s + 's';
+        if (s < 3600) return Math.floor(s / 60) + 'm';
+        if (s < 86400) return Math.floor(s / 3600) + 'h';
+        return Math.floor(s / 86400) + 'd';
+    }
+
+    function renderEvents(events, isFirst) {
+        var newOnes = events.filter(function (ev) { return ev.id > actLastId; });
+        if (!newOnes.length) return;
+
+        var frag = document.createDocumentFragment();
+        newOnes.sort(function (a, b) { return a.id - b.id; }).forEach(function (ev) {
+            var div = document.createElement('div');
+            div.className = 'feed-item kind-' + ev.kind + (isFirst ? '' : ' fresh');
+            div._kind = ev.kind;
+            div._evid = ev.id;
+            eventsById[ev.id] = ev;
+            div.innerHTML =
+                '<i class="fas ' + (KIND_ICONS[ev.kind] || 'fa-info-circle') + '"></i>' +
+                '<div class="fi-body"><div class="fi-head"><b>' + esc(ev.pc || 'PC') + '</b>' +
+                '<small>' + esc(ev.plaza || '') + '</small></div>' +
+                '<p title="' + esc(ev.message) + '">' + esc(ev.message) + '</p></div>' +
+                '<time>' + relAge(ev.age_s) + '</time>';
+            frag.appendChild(div);
+        });
+        feedEl.insertBefore(frag, feedEl.firstChild);
+
+        setTimeout(function () {
+            feedEl.querySelectorAll('.feed-item.fresh').forEach(function (el) { el.classList.remove('fresh'); });
+        }, 800);
+
+        while (feedEl.children.length > 40) {
+            var last = feedEl.lastChild;
+            if (last && last._evid != null) delete eventsById[last._evid];
+            feedEl.removeChild(last);
+        }
+
+        if (!isFirst) {
+            arrivals.push(Date.now());
+            if (arrivals.length > 600) arrivals.splice(0, arrivals.length - 600);
+        }
+        applyFeedFilter();
+    }
+
+    function fetchActivity() {
+        if (!feedEl || actPaused) return;
+        fetch('{{ route('home.activity') }}?limit=30', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+            .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .then(function (data) {
+                if (!data.events || !data.events.length) return;
+                var isFirst = actLastId === 0;
+                renderEvents(data.events, isFirst);
+                actLastId = Math.max(actLastId, data.events[0].id);
+            })
+            .catch(function () {});
+    }
+
+    setInterval(function () {
+        var cutoff = Date.now() - 60000;
+        while (arrivals.length && arrivals[0] < cutoff) arrivals.shift();
+        if (rateEl) rateEl.textContent = arrivals.length + ' /min';
+    }, 5000);
+
+    /* ================= Matriz de salud del parque ================= */
+    var healthData = [];
+    var healthPlaza = '';
+    var chipsBuilt = false;
+    var hmTimer = null;
+
+    var hmEl = document.getElementById('health-matrix');
+    var hmChipsRow = document.querySelector('[data-card-id="health"] .act-filters');
+
+    function stateLabel(st) {
+        return st === 'ok' ? 'Sano' : st === 'warn' ? 'Degradado' : st === 'crit' ? 'Crítico' : 'Apagado';
+    }
+
+    function fetchHealth() {
+        if (!hmEl) return;
+        fetch('{{ route('home.fleet-health') }}', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+            .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .then(function (data) {
+                if (!data.computers) return;
+                healthData = data.computers;
+                ['ok', 'warn', 'crit', 'off'].forEach(function (k) {
+                    var el = document.getElementById('hm-c-' + k);
+                    if (el) el.textContent = data.counts[k] || 0;
+                });
+                buildPlazaChips();
+                renderMatrix();
+            })
+            .catch(function () {});
+    }
+
+    function buildPlazaChips() {
+        if (chipsBuilt || !hmChipsRow) return;
+        chipsBuilt = true;
+        var seen = {};
+        healthData.forEach(function (pc) {
+            var pz = pc.plaza || 'Sin plaza';
+            if (seen[pz]) return;
+            seen[pz] = 1;
+            var chip = document.createElement('span');
+            chip.className = 'act-chip';
+            chip.setAttribute('data-hplaza', pz === 'Sin plaza' ? '__none__' : pz);
+            chip.textContent = pz;
+            hmChipsRow.appendChild(chip);
+        });
+        hmChipsRow.addEventListener('click', function (e) {
+            var chip = e.target.closest('.act-chip');
+            if (!chip) return;
+            hmChipsRow.querySelectorAll('.act-chip').forEach(function (c) { c.classList.remove('active'); });
+            chip.classList.add('active');
+            healthPlaza = chip.getAttribute('data-hplaza');
+            renderMatrix();
+        });
+    }
+
+    function renderMatrix() {
+        var groups = {};
+        healthData.forEach(function (pc) {
+            var pz = pc.plaza || 'Sin plaza';
+            (groups[pz] = groups[pz] || []).push(pc);
+        });
+        var html = '';
+        Object.keys(groups).sort().forEach(function (pz) {
+            if (healthPlaza && pz !== (healthPlaza === '__none__' ? 'Sin plaza' : healthPlaza)) return;
+            var pcs = groups[pz];
+            html += '<div class="hm-group"><div class="hm-group-label">' + esc(pz) +
+                ' <small>· ' + pcs.length + ' equipos</small></div><div class="hm-squares">';
+            pcs.forEach(function (pc) {
+                html += '<span class="hm-square s-' + pc.state + '" data-pcid="' + pc.id + '" title="' +
+                    esc(pc.name) + ' · ' + stateLabel(pc.state) + ' (' + pc.score + ')"></span>';
+            });
+            html += '</div></div>';
+        });
+        hmEl.innerHTML = html || '<div class="text-center text-muted py-3">Sin equipos</div>';
+    }
+
+    if (hmEl) {
+        hmEl.addEventListener('click', function (e) {
+            var sq = e.target.closest('.hm-square');
+            if (!sq) return;
+            var id = parseInt(sq.getAttribute('data-pcid'), 10);
+            var pc = null;
+            for (var i = 0; i < healthData.length; i++) {
+                if (healthData[i].id === id) { pc = healthData[i]; break; }
+            }
+            if (pc) openPcProfile(pc);
+        });
+    }
+
+    function openPcProfile(pc) {
+        var t = document.getElementById('pcp-title');
+        if (t) t.textContent = pc.name;
+        document.getElementById('pcp-score-num').textContent = pc.score;
+        var fill = document.getElementById('pcp-score-fill');
+        fill.style.width = pc.score + '%';
+        fill.style.background = pc.state === 'ok' ? '#059669' : pc.state === 'warn' ? '#b45309' : pc.state === 'crit' ? '#dc2626' : '#334155';
+
+        var d = pc.details || {};
+        var rows = [
+            ['Estado', pc.online ? '🟢 En línea' : '🔴 Apagado'],
+            ['Plaza', pc.plaza || '—'],
+            ['Agente', d.agente ? (d.agente + (d.agente_ok ? ' · ✓ actualizado' : ' · ✗ desactualizado')) : '— sin agente'],
+            ['BitLocker', d.bitlocker || '—'],
+            ['RAM', d.ram_gb != null ? d.ram_gb + ' GB' : '—'],
+            ['PVSI', d.pvsi || '—'],
+            ['Última conexión', d.last_seen || '—']
+        ];
+        document.getElementById('pcp-rows').innerHTML = rows.map(function (r) {
+            return '<div class="pcp-row"><span style="color:#94a3b8">' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>';
+        }).join('');
+        jQuery('#pcProfileModal').modal('show');
+    }
+
+    /* ================= Modal detalle de evento ================= */
+    var eventsById = {};
+
+    var KIND_LABELS = {
+        vales: 'Vales',
+        rbf: 'RBF',
+        descargas: 'Descargas',
+        comandos: 'Comandos',
+        sistema: 'Sistema'
+    };
+
+    if (feedEl) {
+        feedEl.addEventListener('click', function (e) {
+            var item = e.target.closest('.feed-item');
+            if (!item || item._evid == null) return;
+            var ev = eventsById[item._evid];
+            if (ev) openActivityModal(ev);
+        });
+    }
+
+    function openActivityModal(ev) {
+        var t = document.getElementById('actm-title');
+        if (t) t.textContent = ev.pc || 'Evento';
+        var rows = [
+            ['Tipo', KIND_LABELS[ev.kind] || ev.kind],
+            ['Nivel', ev.level || 'info'],
+            ['Plaza', ev.plaza || '—'],
+            ['Hace', relAge(ev.age_s)],
+            ['Fecha y hora', ev.at || '—']
+        ];
+        document.getElementById('actm-rows').innerHTML = rows.map(function (r) {
+            return '<div class="pcp-row"><span style="color:#94a3b8">' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>';
+        }).join('');
+        document.getElementById('actm-message').textContent = ev.message;
+        jQuery('#activityModal').modal('show');
+    }
+
+    window.addEventListener('dash:data-refresh', function () {
+        clearTimeout(actTimer);
+        actTimer = setTimeout(fetchActivity, 600);
+        clearTimeout(hmTimer);
+        hmTimer = setTimeout(fetchHealth, 1200);
+    });
+
+    setInterval(fetchActivity, 3000);
+    setInterval(fetchHealth, 10000);
+    fetchActivity();
+    fetchHealth();
 })();
 </script>
 @stop

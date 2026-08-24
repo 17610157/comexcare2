@@ -18,6 +18,7 @@ class RoleSeeder extends Seeder
             'admin.ver', 'admin.usuarios.ver', 'admin.usuarios.crear', 'admin.usuarios.editar', 'admin.usuarios.eliminar',
             'admin.roles.ver', 'admin.roles.crear', 'admin.roles.editar', 'admin.roles.eliminar',
             'admin.permissions.ver', 'admin.permissions.crear', 'admin.permissions.editar', 'admin.permissions.eliminar',
+            'alertas.configurar',
         ];
 
         $tiendasPermissions = ['tiendas.ver', 'tiendas.crear', 'tiendas.editar', 'tiendas.eliminar'];

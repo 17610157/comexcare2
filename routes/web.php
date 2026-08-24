@@ -12,6 +12,7 @@ use App\Http\Controllers\DistributionsController;
 use App\Http\Controllers\FileListsController;
 use App\Http\Controllers\FileReceptionController;
 use App\Http\Controllers\GroupsController;
+use App\Http\Controllers\DashboardAlertController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MetasMensualController;
 use App\Http\Controllers\ModulesController;
@@ -56,6 +57,17 @@ Route::get('/home/stats', [HomeController::class, 'stats'])->middleware('auth')-
 Route::get('/home/server-stats', [HomeController::class, 'serverStats'])->middleware('auth')->name('home.server-stats');
 Route::get('/home/map-stats', [HomeController::class, 'mapStats'])->middleware('auth')->name('home.map-stats');
 Route::get('/home/map-computers', [HomeController::class, 'mapComputers'])->middleware('auth')->name('home.map-computers');
+Route::get('/home/activity', [HomeController::class, 'activity'])->middleware('auth')->name('home.activity');
+Route::get('/home/fleet-health', [HomeController::class, 'fleetHealth'])->middleware('auth')->name('home.fleet-health');
+
+Route::middleware('auth')->prefix('alerts')->group(function () {
+    Route::get('/state', [DashboardAlertController::class, 'state'])->name('alerts.state');
+    Route::post('/ack', [DashboardAlertController::class, 'ack'])->name('alerts.ack');
+    Route::post('/simulate', [DashboardAlertController::class, 'simulate'])->name('alerts.simulate');
+    Route::patch('/rules/{rule}', [DashboardAlertController::class, 'updateRule'])->name('alerts.rules.update');
+    Route::get('/sounds', [DashboardAlertController::class, 'sounds'])->name('alerts.sounds');
+    Route::post('/sounds', [DashboardAlertController::class, 'uploadSound'])->name('alerts.sounds.upload');
+});
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AgentVersion;
 use App\Services\DashboardStatsService;
 use App\Services\ServerMetricsService;
 use Illuminate\Http\JsonResponse;
@@ -126,5 +127,114 @@ class HomeController extends Controller
                 ];
             })->values(),
         ]);
+    }
+
+    public function activity(Request $request): JsonResponse
+    {
+        $limit = min(50, max(10, (int) $request->input('limit', 30)));
+
+        $rows = DB::table('computer_logs as cl')
+            ->leftJoin('computers as c', 'c.id', '=', 'cl.computer_id')
+            ->orderByDesc('cl.id')
+            ->limit($limit)
+            ->get(['cl.id', 'cl.level', 'cl.message', 'cl.created_at', 'c.nombre_instalacion', 'c.computer_name', 'c.plaza']);
+
+        return response()->json([
+            'events' => $rows->map(function ($r) {
+                $msg = (string) $r->message;
+                $pc = null;
+                if (preg_match('/PC:([^\]\s]+)/', $msg, $m)) {
+                    $pc = $m[1];
+                }
+                return [
+                    'id' => $r->id,
+                    'kind' => self::classifyLog($msg),
+                    'level' => $r->level,
+                    'pc' => $pc ?: ($r->nombre_instalacion ?: $r->computer_name),
+                    'plaza' => $r->plaza,
+                    'message' => mb_substr($msg, 0, 1200),
+                    'age_s' => $r->created_at ? max(0, time() - strtotime($r->created_at)) : null,
+                    'at' => $r->created_at ? date('d/m/Y H:i:s', strtotime($r->created_at)) : null,
+                ];
+            })->values(),
+        ]);
+    }
+
+    public function fleetHealth(): JsonResponse
+    {
+        $activeAgentRow = AgentVersion::query()->get(['version', 'is_active'])->firstWhere('is_active', true);
+        $activeAgent = $activeAgentRow ? $activeAgentRow->version : null;
+
+        $pvsiStandard = DB::table('computers')
+            ->whereNotNull('pvsi_version')
+            ->selectRaw('pvsi_version::text as v, count(*) as c')
+            ->groupBy('pvsi_version')
+            ->orderByDesc('c')
+            ->value('v');
+
+        $threshold = now()->subMinutes(max(1, (int) config('dashboard.online_window_minutes', 5)));
+
+        $rows = DB::table('computers')
+            ->whereNull('deleted_at')
+            ->orderBy('plaza')
+            ->orderBy('nombre_instalacion')
+            ->selectRaw(
+                'id, computer_name, nombre_instalacion, plaza, last_seen, agent_version, bitlocker_status, total_ram, pvsi_version, (CASE WHEN last_seen >= ? THEN 1 ELSE 0 END) as is_online',
+                [$threshold]
+            )
+            ->get();
+
+        $computers = $rows->map(function ($c) use ($activeAgent, $pvsiStandard) {
+            $online = (bool) $c->is_online;
+            $agentOk = $c->agent_version !== null && $activeAgent !== null && $c->agent_version === $activeAgent;
+            $bl = json_decode((string) $c->bitlocker_status, true);
+            $bitlockerOk = is_array($bl) && in_array('Enabled', array_map('strval', array_values($bl)), true);
+            $ramGb = $c->total_ram !== null ? round(((int) $c->total_ram) / 1073741824, 1) : null;
+            $ramOk = $ramGb !== null && $ramGb >= 4;
+            $pvsiOk = $c->pvsi_version !== null && $pvsiStandard !== null && $c->pvsi_version === $pvsiStandard;
+
+            $score = ($online ? 40 : 0) + ($agentOk ? 20 : 0) + ($bitlockerOk ? 15 : 0) + ($pvsiOk ? 15 : 0) + ($ramOk ? 10 : 0);
+
+            return [
+                'id' => $c->id,
+                'name' => $c->nombre_instalacion ?: $c->computer_name,
+                'plaza' => $c->plaza,
+                'online' => $online,
+                'score' => $score,
+                'state' => !$online ? 'off' : ($score >= 80 ? 'ok' : ($score >= 50 ? 'warn' : 'crit')),
+                'details' => [
+                    'agente' => $c->agent_version,
+                    'agente_ok' => $agentOk,
+                    'bitlocker' => $bitlockerOk ? 'ON' : 'OFF',
+                    'ram_gb' => $ramGb,
+                    'pvsi' => $c->pvsi_version,
+                    'last_seen' => $c->last_seen,
+                ],
+            ];
+        })->values();
+
+        $counts = ['ok' => 0, 'warn' => 0, 'crit' => 0, 'off' => 0];
+        foreach ($computers as $pc) {
+            $counts[$pc['state']]++;
+        }
+
+        return response()->json(['counts' => $counts, 'computers' => $computers]);
+    }
+
+    protected static function classifyLog(string $msg): string
+    {
+        if (preg_match('/vale/i', $msg)) {
+            return 'vales';
+        }
+        if (preg_match('/rbf|hash/i', $msg)) {
+            return 'rbf';
+        }
+        if (preg_match('/download|descarga/i', $msg)) {
+            return 'descargas';
+        }
+        if (preg_match('/command|comando|ejecut|\.bat/i', $msg)) {
+            return 'comandos';
+        }
+        return 'sistema';
     }
 }

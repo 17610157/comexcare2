@@ -30,6 +30,15 @@
     .brand-text { color:#f1f5f9 !important; }
     .sidebar .user-panel { border-bottom:1px solid rgba(148,163,184,.08); }
 
+    /* ===== Scroll del sidebar visible ===== */
+    .main-sidebar { overflow-y: auto !important; }
+    .main-sidebar::-webkit-scrollbar { width: 8px; }
+    .main-sidebar::-webkit-scrollbar-thumb { background:#1e293b; border-radius:6px; }
+    .sidebar .os-scrollbar-vertical { opacity:.7 !important; visibility:visible !important; }
+    .sidebar .os-scrollbar-vertical .os-scrollbar-handle { background:#334155 !important; border-radius:6px; }
+    .sidebar .os-scrollbar-vertical .os-scrollbar-handle:hover,
+    .sidebar .os-scrollbar-vertical .os-scrollbar-handle.active { background:#60a5fa !important; }
+
     .content-wrapper { background:#0b1220 !important; }
     .main-footer { background:#0e1729 !important; border-top:1px solid rgba(148,163,184,.1); color:#64748b; }
     .breadcrumb { background:transparent; }
@@ -163,6 +172,9 @@
         @endif
 
     </div>
+
+    {{-- Widget global de alertas --}}
+    @include('admin.partials.alerts-widget')
 @stop
 
 @section('adminlte_js')
