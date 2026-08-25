@@ -124,6 +124,8 @@
     if (window.__dashAlertsInit) return;
     window.__dashAlertsInit = true;
 
+    function boot() {
+
     var base = (document.getElementById('alerts-widget') || {}).dataset?.url || '/alerts';
     var POLL_MS = 15000;
     var LS_MUTE = 'dash-alerts-muted';
@@ -448,5 +450,34 @@
     setInterval(poll, POLL_MS);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
     updateMuteBtn();
+
+        var modalEl = document.getElementById('alertsModal');
+
+        function closeModal() {
+            try { $(modalEl).modal('hide'); } catch (e) {}
+            setTimeout(function () {
+                if (!modalEl.classList.contains('show')) return;
+                modalEl.classList.remove('show', 'fade');
+                modalEl.style.display = 'none';
+                modalEl.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+                document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.parentNode.removeChild(b); });
+                try { $(modalEl).removeData('bs.modal'); } catch (e) {}
+            }, 450);
+        }
+
+        modalEl.querySelectorAll('[data-dismiss="modal"]').forEach(function (b) {
+            b.addEventListener('click', function (ev) { ev.preventDefault(); closeModal(); });
+        });
+        document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeModal(); });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
 })();
 </script>
