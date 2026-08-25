@@ -259,7 +259,7 @@
                 <span>|</span>
                 <span>👤 Equipo de Desarrollo</span>
                 <span>|</span>
-                <span>📊 128 Commits Registrados</span>
+                <span>📊 142 Commits Registrados</span>
             </div>
         </div>
 
@@ -275,11 +275,11 @@
             <h3>Resumen Ejecutivo de Actividades</h3>
             <div class="stats">
                 <div class="stat">
-                    <div class="stat-number">14</div>
+                    <div class="stat-number">18</div>
                     <div class="stat-label">Días de Trabajo</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">128</div>
+                    <div class="stat-number">142</div>
                     <div class="stat-label">Commits</div>
                 </div>
                 <div class="stat">
@@ -287,7 +287,7 @@
                     <div class="stat-label">Screenshots</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">15+</div>
+                    <div class="stat-number">20+</div>
                     <div class="stat-label">Módulos Afectados</div>
                 </div>
                 <div class="stat">
@@ -315,6 +315,10 @@
                 <li><a href="#dia-2026-08-12">Miércoles 12 de Agosto, 2026</a> <span class="toc-time">15:37 - 15:59 hrs</span></li>
                 <li><a href="#dia-2026-08-13">Jueves 13 de Agosto, 2026</a> <span class="toc-time">Cambios no commiteados (working tree)</span></li>
                 <li><a href="#dia-2026-08-14">Viernes 14 de Agosto, 2026</a> <span class="toc-time">16:30 - 17:10 hrs</span></li>
+                <li><a href="#dia-2026-08-20">Miércoles 20 de Agosto, 2026</a> <span class="toc-time">15:26 - 17:51 hrs</span></li>
+                <li><a href="#dia-2026-08-21">Jueves 21 de Agosto, 2026</a> <span class="toc-time">00:51 - 18:09 hrs</span></li>
+                <li><a href="#dia-2026-08-24">Domingo 24 de Agosto, 2026</a> <span class="toc-time">16:36 - 17:40 hrs</span></li>
+                <li><a href="#dia-2026-08-25">Lunes 25 de Agosto, 2026</a> <span class="toc-time">10:11 - 10:22 hrs</span></li>
                 <li><a href="#galeria">📸 Galería de Módulos y Reportes</a></li>
             </ul>
         </div>
@@ -1756,6 +1760,378 @@
         </div>
 
         <!-- ============================================================ -->
+        <!-- DÍA 15: 20 AGOSTO 2026 -->
+        <!-- ============================================================ -->
+        <div id="dia-2026-08-20" class="day-section page-break">
+            <div class="day-header">
+                <div class="day-title"><span class="icon">📅</span> Miércoles 20 de Agosto, 2026</div>
+                <div class="time-badge horario">🕐 15:26 - 17:51 hrs</div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-fix">FIX</span>
+                    Filtros de grupo: plazas siempre visibles, cascada tipo→datos
+                </div>
+                <div class="change-desc">
+                    Se corrigieron los filtros de grupo en los 3 reportes DBF Files (general, específicos y QuickBCK):
+                    las plazas ahora siempre se muestran independientemente del tipo seleccionado, y se implementó
+                    lógica cascada donde el tipo de plaza determina los datos disponibles en el selector de datos.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  app/Http/Controllers/ReporteDbfFilesController.php
+  app/Http/Controllers/ReporteDbfFilesEspecificosController.php
+  app/Http/Controllers/ReporteDbfFilesQuickbckController.php
+  resources/views/reportes/dbf-files/index.blade.php
+  resources/views/reportes/dbf-files-especificos/index.blade.php
+  resources/views/reportes/dbf-files-quickbck/index.blade.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Filtros de conexión online/offline en 3 reportes y módulo RBF Config Status
+                </div>
+                <div class="change-desc">
+                    Se agregaron filtros de estado de conexión (online/offline) en los reportes DBF Files, se añadió
+                    columna de modelo RBF, y se mejoró la lógica de estados. Se creó un nuevo módulo completo
+                    de RBF Config Status con modelo, servicio, migración, seeder de permisos/roles, controlador,
+                    vista con tabla y comandos de consola para sincronización automática vía scheduler.
+                </div>
+                <div class="file-list">
+<strong>Nuevos:</strong>
+  app/Console/Commands/SyncRbfConfigStatus.php
+    - Comando artisan para sincronizar el estado de configuración RBF
+  app/Http/Controllers/ReporteRbfConfigStatusController.php
+    - Controlador dedicado con vista index
+  app/Models/RbfConfigStatus.php
+    - Modelo Eloquent para la tabla rbf_config_statuses
+  app/Services/RbfConfigStatusService.php
+    - Servicio de lógica de negocio para estados RBF
+  database/migrations/2026_08_20_120000_create_rbf_config_statuses_table.php
+  resources/views/reportes/rbf-config-status/index.blade.php
+    - Vista con tabla paginada, filtros y exportación
+
+<strong>Modificados:</strong>
+  app/Http/Controllers/ReporteDbfFilesController.php
+  app/Http/Controllers/ReporteDbfFilesEspecificosController.php
+  app/Http/Controllers/ReporteDbfFilesQuickbckController.php
+  config/adminlte.php (menú lateral)
+  database/seeders/PermissionSeeder.php
+  database/seeders/RoleSeeder.php
+  routes/web.php
+  resources/views/reportes/dbf-files*/index.blade.php (3 archivos)
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- DÍA 16: 21 AGOSTO 2026 -->
+        <!-- ============================================================ -->
+        <div id="dia-2026-08-21" class="day-section page-break">
+            <div class="day-header">
+                <div class="day-title"><span class="icon">📅</span> Jueves 21 de Agosto, 2026</div>
+                <div class="time-badge horario">🕐 00:51 - 18:09 hrs</div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Dashboard dark con métricas del servidor en tiempo real
+                </div>
+                <div class="change-desc">
+                    Se implementó un dashboard completo en tema oscuro con métricas del servidor en tiempo real
+                    (CPU, RAM, disco, Uptime) y grilla uniforme de KPIs. Se creó el servicio
+                    <code>ServerMetricsService</code> para obtener métricas del sistema, y se agregó un endpoint
+                    WebSocket en el socket-server para broadcasts de métricas cada 5 segundos.
+                </div>
+                <div class="file-list">
+<strong>Nuevos:</strong>
+  app/Services/ServerMetricsService.php
+    - Servicio para métricas del servidor (CPU, RAM, disco, Uptime, procesos)
+  resources/views/vendor/adminlte/page.blade.php
+    - Layout base con tema oscuro, CSS global, favicon
+
+<strong>Modificados:</strong>
+  app/Http/Controllers/HomeController.php
+  resources/views/home.blade.php
+  resources/js/bootstrap.js
+  routes/web.php
+  socket-server.cjs
+    - Canal de métricas del servidor (server.metrics)
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Modales y SweetAlert2 en tema oscuro con textos blancos
+                </div>
+                <div class="change-desc">
+                    Se adaptaron todos los modales del sistema y SweetAlert2 para funcionar correctamente
+                    en tema oscuro, con textos blancos, fondos adecuados y contraste correcto.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  resources/views/vendor/adminlte/page.blade.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-fix">FIX</span>
+                    list-group-item en tema oscuro (fondo blanco en modal de confirmación)
+                </div>
+                <div class="change-desc">
+                    Se corrigió el fondo blanco no deseado en los elementos list-group-item dentro de los
+                    modales de confirmación cuando el tema oscuro está activo.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  resources/views/vendor/adminlte/page.blade.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Mapa interactivo de equipos (México/Guatemala/Nicaragua) y cards reordenables
+                </div>
+                <div class="change-desc">
+                    Se implementó un mapa interactivo con Leaflet.js mostrando la distribución de equipos
+                    en México, Guatemala y Nicaragua con GeoJSON. Las cards del dashboard son reordenables
+                    con SortableJS, y se agregó botón de pantalla completa. Se creó el módulo de configuración
+                    de horarios por plaza RBF, y se agregó Bootstrap Icons al proyecto.
+                </div>
+                <div class="file-list">
+<strong>Nuevos:</strong>
+  app/Http/Controllers/RbfPlazaTimeConfigController.php
+    - CRUD para configuración de horarios por plaza
+  app/Jobs/SyncRbfFileHashesJob.php
+    - Job para sincronizar hashes de archivos RBF
+  app/Models/RbfPlazaTimeConfig.php
+  app/Services/RbfFileHashService.php (mejorado)
+  config/dashboard.php
+    - Configuración del mapa y orden de cards
+  database/migrations/..._create_rbf_plaza_time_configs_table.php
+  public/vendor/geojson/{mx,gtm,nic}.json
+  public/vendor/leaflet/leaflet.{css,js}
+  public/vendor/sortablejs/sortable.min.js
+  public/vendor/bootstrap-icons/
+  resources/views/admin/rbf-plaza-time-configs/index.blade.php
+  tests/Feature/RbfFileHashServiceTest.php
+  tests/Feature/RbfPlazaTimeConfigControllerTest.php
+
+<strong>Modificados:</strong>
+  app/Http/Controllers/HomeController.php
+  resources/views/home.blade.php
+  resources/views/vendor/adminlte/page.blade.php
+  resources/views/vendor/adminlte/partials/navbar/navbar.blade.php
+  config/adminlte.php
+  routes/web.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Zoom y paneo habilitados en el mapa de equipos
+                </div>
+                <div class="change-desc">
+                    Se habilitaron las funcionalidades de zoom (rueda del mouse, botones +/−) y paneo
+                    (arrastrar) en el mapa interactivo de equipos, mejorando la experiencia de usuario.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  resources/views/home.blade.php
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- DÍA 17: 24 AGOSTO 2026 -->
+        <!-- ============================================================ -->
+        <div id="dia-2026-08-24" class="day-section page-break">
+            <div class="day-header">
+                <div class="day-title"><span class="icon">📅</span> Domingo 24 de Agosto, 2026</div>
+                <div class="time-badge horario">🕐 16:36 - 17:40 hrs</div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Sistema de alertas compartidas con sonidos configurables
+                </div>
+                <div class="change-desc">
+                    Se implementó un sistema completo de alertas compartidas entre usuarios con sonidos
+                    configurables, cards de actividad y salud de flota. Las alertas se generan automáticamente
+                    según reglas configurables (computadoras offline, distribuciones vencidas, etc.),
+                    y cada usuario puede marcarlas como leídas. Se creó el widget de alertas en el navbar
+                    y las cards de métricas de actividad/salud en el dashboard.
+                </div>
+                <div class="file-list">
+<strong>Nuevos:</strong>
+  app/Http/Controllers/DashboardAlertController.php
+    - CRUD de reglas, eventos, marcado como leído, upload de audios
+  app/Models/DashboardAlertEvent.php
+    - Modelo de eventos de alerta (tabla pivot usuario-evento)
+  app/Models/DashboardAlertRule.php
+    - Modelo de reglas de alerta (condiciones, acciones, audio)
+  app/Observers/AdminAuditObserver.php
+    - Observer para auditoría de modelos admin
+  app/Services/AlertService.php
+    - Servicio de lógica de negocio para alertas (generación, reglas,儿子idades)
+  database/migrations/..._create_dashboard_alerts_tables.php
+    - Tablas: dashboard_alert_rules, dashboard_alert_events, dashboard_alert_event_user
+  resources/views/admin/partials/alerts-widget.blade.php
+    - Widget de notificaciones en navbar con badge, dropdown y reproducción de audio
+  resources/views/home.blade.php (cards de actividad y salud)
+
+<strong>Modificados:</strong>
+  app/Http/Controllers/HomeController.php
+  app/Providers/AppServiceProvider.php
+  config/adminlte.php
+  database/seeders/PermissionSeeder.php
+  database/seeders/RoleSeeder.php
+  resources/views/vendor/adminlte/page.blade.php
+  resources/views/vendor/adminlte/partials/navbar/navbar.blade.php
+  routes/web.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Acceso al Centro de Alertas desde el menú lateral
+                </div>
+                <div class="change-desc">
+                    Se agregó la opción "Centro de Alertas" en el menú lateral del administrador para
+                    acceder directamente al módulo de gestión de alertas.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  config/adminlte.php
+  resources/views/admin/partials/alerts-widget.blade.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-feat">FEATURE</span>
+                    Módulo dedicado del Centro de Alertas con edición de reglas y audios
+                </div>
+                <div class="change-desc">
+                    Se creó la vista completa del Centro de Alertas con tabla de eventos recientes,
+                    editor de reglas de alerta, gestión de audios subidos (mp3/wav/ogg), y reproducción
+                    de sonidos de prueba. La vista se extrajo del widget a una página dedicada.
+                </div>
+                <div class="file-list">
+<strong>Nuevos:</strong>
+  resources/views/admin/alertas/index.blade.php
+    - Vista completa del Centro de Alertas
+  resources/views/admin/alertas/_events.blade.php
+    - Partial de tabla de eventos
+
+<strong>Modificados:</strong>
+  app/Http/Controllers/DashboardAlertController.php
+  config/adminlte.php
+  routes/web.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-fix">FIX</span>
+                    Validación de subida de audios por extensión (mp3/wav/ogg)
+                </div>
+                <div class="change-desc">
+                    Se agregó validación del lado del servidor y del cliente para aceptar únicamente
+                    archivos de audio con extensiones mp3, wav y ogg, con mensajes de error claros
+                    cuando se intenta subir un formato no soportado.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  app/Http/Controllers/DashboardAlertController.php
+  resources/views/admin/alertas/index.blade.php
+  resources/views/admin/partials/alerts-widget.blade.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-fix">FIX</span>
+                    Respuestas JSON seguras en el módulo de alertas
+                </div>
+                <div class="change-desc">
+                    Se mejoraron las respuestas AJAX del módulo de alertas: se agregó header
+                    <code>Accept: application/json</code>, parser tolerante de JSON, y manejo robusto
+                    de errores de red para evitar pantallas de error en el navegador.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  resources/views/admin/alertas/index.blade.php
+  resources/views/admin/partials/alerts-widget.blade.php
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- DÍA 18: 25 AGOSTO 2026 -->
+        <!-- ============================================================ -->
+        <div id="dia-2026-08-25" class="day-section page-break">
+            <div class="day-header">
+                <div class="day-title"><span class="icon">📅</span> Lunes 25 de Agosto, 2026</div>
+                <div class="time-badge horario">🕐 10:11 - 10:22 hrs</div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-fix">FIX</span>
+                    Cierre robusto del modal de alertas (init en DOMContentLoaded)
+                </div>
+                <div class="change-desc">
+                    Se mejoró el cierre del modal de alertas para que funcione de forma robusta:
+                    se inicializa en <code>DOMContentLoaded</code> y se agregó un fallback de cierre
+                    por si el listener principal falla. También se subieron archivos de audio de prueba
+                    (alertas, precios, audio genérico).
+                </div>
+                <div class="file-list">
+<strong>Nuevos:</strong>
+  public/vendor/sounds/alertas-1787636276.mp3
+  public/vendor/sounds/audio-1787615263.mp3
+  public/vendor/sounds/precios-1787636031.mp3
+
+<strong>Modificados:</strong>
+  resources/views/admin/partials/alerts-widget.blade.php
+                </div>
+            </div>
+
+            <div class="change-entry">
+                <div class="change-title">
+                    <span class="badge badge-fix">FIX</span>
+                    Guardado del interruptor de reglas en PostgreSQL (booleano explícito)
+                </div>
+                <div class="change-desc">
+                    Se corrigió el guardado del interruptor de reglas activas/inactivas en el Centro de
+                    Alertas: ahora se envía el valor como booleano explícito (<code>1</code>/<code>0</code>)
+                    para compatibilidad con PostgreSQL, y se aplica el cambio inmediatamente al alternarlo
+                    sin necesidad de recargar la página.
+                </div>
+                <div class="file-list">
+<strong>Modificados:</strong>
+  app/Http/Controllers/DashboardAlertController.php
+    - Endpoint toggle con casteo explícito a boolean
+  resources/views/admin/alertas/index.blade.php
+    - AJAX con toggle y actualización inmediata del badge
+  resources/views/admin/partials/alerts-widget.blade.php
+    - Sincronización del estado del interruptor
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
         <!-- PANTALLAS ADICIONALES DE REPORTES -->
         <!-- ============================================================ -->
         <div id="galeria" class="day-section page-break">
@@ -1905,7 +2281,7 @@
         <!-- FOOTER -->
         <div class="footer">
             <p><strong>Bitácora generada automáticamente</strong> a partir del historial de Git y timestamps de filesystem del proyecto COMEXCARE.</p>
-            <p>Total de commits analizados: 128 | Período: Abril - Agosto 2026 | Archivos nuevos/modificados Agosto: 70+</p>
+            <p>Total de commits analizados: 142 | Período: Abril - Agosto 2026 | Archivos nuevos/modificados Agosto: 85+</p>
             <p style="margin-top: 10px; font-size: 0.85em;">
                 Para guardar como PDF: usa el botón "Imprimir / Guardar como PDF" o presiona Ctrl+P y selecciona "Guardar como PDF".
             </p>
