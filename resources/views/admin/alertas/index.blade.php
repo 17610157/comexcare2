@@ -318,6 +318,13 @@
 
     document.querySelectorAll('.cfg-file').forEach(bindFile);
 
+    document.querySelectorAll('.cfg-enabled').forEach(function (sw) {
+        sw.addEventListener('change', function () {
+            sw.disabled = true;
+            saveRule(sw.closest('tr')).finally(function () { sw.disabled = false; });
+        });
+    });
+
     document.querySelectorAll('.cfg-save').forEach(function (b) {
         b.addEventListener('click', function () { b.disabled = true; saveRule(b.closest('tr')).finally(function () { b.disabled = false; }); });
     });

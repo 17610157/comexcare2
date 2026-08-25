@@ -8,6 +8,7 @@ use App\Services\AlertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardAlertController extends Controller
 {
@@ -114,7 +115,17 @@ class DashboardAlertController extends Controller
             abort_unless(str_starts_with($data['sound_path'], 'vendor/sounds/'), 422, 'Ruta de sonido inválida');
         }
 
-        $rule->update($data);
+        if (array_key_exists('enabled', $data)) {
+            DB::table('dashboard_alert_rules')->where('id', $rule->id)->update([
+                'enabled' => DB::raw(! empty($data['enabled']) ? 'true' : 'false'),
+                'updated_at' => now(),
+            ]);
+            unset($data['enabled']);
+        }
+
+        if ($data) {
+            $rule->fill($data)->save();
+        }
 
         return response()->json(['success' => true, 'rule' => $rule->fresh()]);
     }

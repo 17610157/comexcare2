@@ -331,6 +331,12 @@
         pane.querySelectorAll('.cfg-save').forEach(function (b) {
             b.addEventListener('click', function () { saveRule(b.closest('tr')); });
         });
+        pane.querySelectorAll('.cfg-enabled').forEach(function (sw) {
+            sw.addEventListener('change', function () {
+                sw.disabled = true;
+                saveRule(sw.closest('tr')).finally(function () { sw.disabled = false; });
+            });
+        });
         pane.querySelectorAll('.cfg-test').forEach(function (b) {
             b.addEventListener('click', function () {
                 var path = b.closest('tr').querySelector('.cfg-sound').value;
