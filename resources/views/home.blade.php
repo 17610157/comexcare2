@@ -1310,6 +1310,16 @@
         }
     }
 
+    /* ===== Polling del reporte de precios (DBF) ===== */
+    function pollDbf() {
+        fetch('/home/dbf-overview', { credentials:'same-origin' })
+            .then(function (r) { if (r.ok) return r.json(); return null; })
+            .then(function (j) { if (j) updateDbfOverview(j); })
+            .catch(function () {});
+    }
+    pollDbf();
+    setInterval(pollDbf, 60000);
+
     init();
 })();
 </script>
@@ -1373,17 +1383,6 @@
             localStorage.setItem(SIZE_KEY, JSON.stringify(saved));
         }
     });
-
-    /* ===== Polling del reporte de precios (DBF) ===== */
-    function pollDbf() {
-        fetch('/home/dbf-overview', { credentials:'same-origin' })
-            .then(function (r) { if (r.ok) return r.json(); return null; })
-            .then(function (j) { if (j) updateDbfOverview(j); })
-            .catch(function () {});
-    }
-    pollDbf();
-    setInterval(pollDbf, 60000);
-
 
     /* ===== Mapa de equipos ===== */
     var MAP_COLORS = [
