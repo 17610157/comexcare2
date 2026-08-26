@@ -167,6 +167,34 @@
     .sortable-chosen { box-shadow: 0 16px 40px rgba(0,0,0,.55) !important; }
     .drag-hint { color:#475569; font-size:.65rem; margin-left:auto; margin-right:8px; }
 
+    /* ===== Cards redimensionables ===== */
+    .dash-grid { grid-auto-rows: minmax(280px, 1fr); }
+    .dash-card.card-size-wide  { grid-column: span 2; }
+    .dash-card.card-size-tall  { grid-row:    span 2; }
+    .dash-card.card-size-large { grid-column: span 2; grid-row: span 2; }
+    .resize-btn { cursor:pointer; opacity:.4; font-size:.68rem; margin-left:5px; color:#94a3b8; transition:.2s; padding:3px 5px; border-radius:5px; }
+    .resize-btn:hover { opacity:1; color:#60a5fa; background:rgba(96,165,250,.12); }
+
+    /* ===== Tabla de plazas ===== */
+    .plaza-tbl { width:100%; border-collapse:separate; border-spacing:0 3px; font-size:.78rem; }
+    .plaza-tbl th { color:#7c8db5; font-weight:600; font-size:.66rem; text-transform:uppercase; letter-spacing:.05em; padding:3px 8px; text-align:left; }
+    .plaza-tbl td { padding:5px 8px; color:#cbd5e1; background:rgba(148,163,184,.04); }
+    .plaza-tbl tr:hover td { background:rgba(96,165,250,.06); }
+    .plaza-tbl .pct-cell { width:52px; text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+    .plaza-bar-wrap { width:54px; }
+    .plaza-bar { height:5px; border-radius:3px; background:#1e293b; overflow:hidden; }
+    .plaza-bar-fill { height:100%; border-radius:3px; transition:width .3s ease; }
+
+    /* ===== Card Reporte de Precios ===== */
+    .dbf-big { font-size:1.9rem; font-weight:800; line-height:1; }
+    .dbf-sub { font-size:.72rem; color:#7c8db5; margin-top:2px; }
+    .dbf-row { display:flex; align-items:center; gap:10px; padding:4px 0; font-size:.8rem; }
+    .dbf-row .dbf-dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+    .dbf-row small { margin-left:auto; color:#64748b; }
+    .dbf-table { width:100%; font-size:.76rem; border-collapse:separate; border-spacing:0 2px; }
+    .dbf-table td { padding:3px 6px; color:#cbd5e1; background:rgba(148,163,184,.04); }
+    .dbf-table tr:hover td { background:rgba(96,165,250,.06); }
+
     /* ===== Modal detalle equipos por región ===== */
     #regionModal .modal-body { padding: .5rem .75rem; }
     .region-list { max-height: 320px; overflow-y: auto; }
@@ -310,6 +338,7 @@
             <h3 class="card-title"><i class="fas fa-server text-success"></i> Servidor en Tiempo Real</h3>
             <div class="card-tools">
                 <span id="srv-live" class="live-badge offline"><span class="dot"></span> LIVE</span>
+                <i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i>
             </div>
         </div>
         <div class="card-body d-flex flex-column">
@@ -361,7 +390,7 @@
     <div class="card dash-card" data-card-id="fleet">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-desktop"></i> Flota y Agente</h3>
-            <div class="card-tools"><span class="badge badge-secondary" id="fleet-window-label"></span></div>
+            <div class="card-tools"><span class="badge badge-secondary" id="fleet-window-label"></span><i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i></div>
         </div>
         <div class="card-body d-flex flex-column">
             <div class="kpi-grid">
@@ -402,13 +431,17 @@
         </div>
     </div>
 
-    {{-- Computadoras por plaza --}}
+    {{-- Plazas --}}
     <div class="card dash-card" data-card-id="plaza">
         <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-network-wired"></i> Computadoras por Plaza</h3>
+            <h3 class="card-title"><i class="fas fa-network-wired"></i> Plazas</h3>
+            <div class="card-tools">
+                <span class="badge badge-secondary" id="plazas-count">0 plazas</span>
+                <i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i>
+            </div>
         </div>
-        <div class="card-body d-flex flex-column">
-            <div class="chart-fill"><canvas id="chart-fleet-plaza"></canvas></div>
+        <div class="card-body" id="plazas-table">
+            <div class="text-muted text-center py-3" style="font-size:.82rem"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>
         </div>
     </div>
 
@@ -416,6 +449,7 @@
     <div class="card dash-card" data-card-id="monitoring">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-shield-alt"></i> Monitoreo y Sistema</h3>
+            <div class="card-tools"><i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i></div>
         </div>
         <div class="card-body">
             <div class="stat-strip" style="grid-template-columns:repeat(2,1fr);">
@@ -459,6 +493,7 @@
     <div class="card dash-card" data-card-id="pvsi">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-file-code"></i> Versiones PVSI Instaladas</h3>
+            <div class="card-tools"><i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i></div>
         </div>
         <div class="card-body d-flex flex-column">
             <div class="chart-fill"><canvas id="chart-pvsi"></canvas></div>
@@ -471,6 +506,7 @@
             <h3 class="card-title"><i class="fas fa-download"></i> Distribuciones</h3>
             <div class="card-tools">
                 <a href="/admin/distributions" class="btn btn-tool"><i class="fas fa-external-link-alt"></i></a>
+                <i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i>
             </div>
         </div>
         <div class="card-body d-flex flex-column">
@@ -515,7 +551,7 @@
     <div class="card dash-card" data-card-id="map">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-map-marked-alt"></i> Mapa de Equipos</h3>
-            <div class="card-tools"><span class="drag-hint" title="Arrastra para reordenar"><i class="fas fa-arrows-alt"></i></span></div>
+            <div class="card-tools"><span class="drag-hint" title="Arrastra para reordenar"><i class="fas fa-arrows-alt"></i></span><i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i></div>
         </div>
         <div class="card-body d-flex flex-column">
             <div id="map-equipos"><div class="map-legend">
@@ -532,6 +568,7 @@
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-wave-square text-info"></i> Actividad de Agentes</h3>
             <div class="card-tools">
+                <i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i>
                 <span class="act-rate" id="act-rate">— /min</span>
                 <button type="button" class="btn btn-tool" id="act-pause" title="Pausar feed"><i class="fas fa-pause"></i></button>
                 <span class="drag-hint"><i class="fas fa-arrows-alt"></i></span>
@@ -560,6 +597,7 @@
                 <span class="badge badge-danger" id="hm-c-crit">0</span>
                 <span class="badge badge-secondary" id="hm-c-off">0</span>
                 <span class="drag-hint"><i class="fas fa-arrows-alt"></i></span>
+                <i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i>
             </div>
         </div>
         <div class="card-body d-flex flex-column">
@@ -570,9 +608,23 @@
         </div>
     </div>
 
+    {{-- Reporte de Precios (DBF) --}}
+    <div class="card dash-card" data-card-id="dbf">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-tag text-warning"></i> Reporte de Precios</h3>
+            <div class="card-tools">
+                <a href="/admin/reportes/dbf-especificos" target="_blank" class="btn btn-tool" title="Ver reporte completo"><i class="fas fa-external-link-alt"></i></a>
+                <i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i>
+            </div>
+        </div>
+        <div class="card-body d-flex flex-column" id="dbf-overview">
+            <div class="text-muted text-center py-3" style="font-size:.82rem"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>
+        </div>
+    </div>
+
 </div>
 
-{{-- Modal detalle de equipos por región --}}
+{{-- Modal detalle de equipos por región --}} región --}}
 <div class="modal fade" id="regionModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-scrollable modal-sm-plus">
         <div class="modal-content">
@@ -752,7 +804,7 @@
         if (typeof window.Chart !== 'undefined') {
             applyChartDefaults();
             try {
-                updateFleetChart(data.computers || {});
+                updatePlazasTable(data.computers || {});
                 updateVersionChart('chart-pvsi', (data.computers || {}).pvsi_versions);
                 var d = data.distributions || {};
                 var sd = statusData(d.by_status || {}, ['in_progress', 'completed', 'failed', 'pending', 'stopped']);
@@ -786,41 +838,53 @@
         });
     }
 
-    function updateFleetChart(computers) {
-        var el = document.getElementById('chart-fleet-plaza');
+    function updatePlazasTable(computers) {
+        var el = document.getElementById('plazas-table');
         if (!el) return;
         var byPlaza = computers.by_plaza || [];
-        var labels = byPlaza.map(function (p) { return p.plaza; });
-        var online = byPlaza.map(function (p) { return p.online; });
-        var offline = byPlaza.map(function (p) { return p.offline; });
-        if (charts['chart-fleet-plaza']) {
-            var c = charts['chart-fleet-plaza'];
-            c.data.labels = labels;
-            c.data.datasets[0].data = online;
-            c.data.datasets[1].data = offline;
-            c.update();
+        var cnt = document.getElementById('plazas-count');
+        if (cnt) cnt.textContent = byPlaza.length + ' plaza' + (byPlaza.length !== 1 ? 's' : '');
+        if (!byPlaza.length) {
+            el.innerHTML = '<div class="text-muted text-center py-3">Sin datos de plaza</div>';
             return;
         }
-        charts['chart-fleet-plaza'] = new Chart(el.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'En línea', data: online, backgroundColor: 'rgba(16,185,129,.85)', borderRadius: 4 },
-                    { label: 'Fuera de línea', data: offline, backgroundColor: 'rgba(239,68,68,.8)', borderRadius: 4 }
-                ]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { stacked: true, ticks: { precision: 0 }, grid: { color: 'rgba(148,163,184,.08)' } },
-                    y: { stacked: true, grid: { display: false } }
-                },
-                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } }
-            }
+        var html = '<table class="plaza-tbl"><thead><tr><th>Plaza</th><th style="text-align:center">ON</th><th style="text-align:center">OFF</th><th style="text-align:right">Total</th><th></th><th class="pct-cell">%</th></tr></thead><tbody>';
+        byPlaza.forEach(function (p) {
+            var col = p.percentage >= 80 ? '#34d399' : (p.percentage >= 50 ? '#fbbf24' : '#f87171');
+            html += '<tr><td style="font-weight:600;color:#e2e8f0">' + p.plaza + '</td>'
+                + '<td style="text-align:center;color:#34d399">' + p.online + '</td>'
+                + '<td style="text-align:center;color:#f87171">' + p.offline + '</td>'
+                + '<td style="text-align:right;font-weight:700">' + p.total + '</td>'
+                + '<td class="plaza-bar-wrap"><div class="plaza-bar"><div class="plaza-bar-fill" style="width:' + p.percentage + '%;background:' + col + '"></div></div></td>'
+                + '<td class="pct-cell" style="color:' + col + '">' + p.percentage.toFixed(0) + '%</td></tr>';
         });
+        el.innerHTML = html + '</tbody></table>';
+    }
+
+    function updateDbfOverview(dbf) {
+        var el = document.getElementById('dbf-overview');
+        if (!el || !dbf) return;
+        var pct = dbf.service_level_pct;
+        var pctStr = pct != null ? parseFloat(pct).toFixed(1) + '%' : '—';
+        var pctColor = pct != null ? (pct >= 95 ? '#34d399' : (pct >= 80 ? '#fbbf24' : '#f87171')) : '#64748b';
+        var html = '<div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:10px">'
+            + '<div><div class="dbf-big" style="color:' + pctColor + '">' + pctStr + '</div>'
+            + '<div class="dbf-sub">Nivel de servicio global</div></div></div>';
+
+        if (dbf.breakdown && dbf.breakdown.length) {
+            html += '<table class="dbf-table"><thead><tr><th>Plaza</th><th style="text-align:right">Total</th><th style="text-align:right">OK</th><th style="text-align:right">%</th></tr></thead><tbody>';
+            dbf.breakdown.forEach(function (b) {
+                var p = b.total > 0 ? ((b.matched / b.total) * 100).toFixed(1) : '—';
+                var c = b.total > 0 ? ((b.matched / b.total) * 100) : 0;
+                var col = c >= 95 ? '#34d399' : (c >= 80 ? '#fbbf24' : '#f87171');
+                html += '<tr><td style="font-weight:600;color:#e2e8f0">' + b.plaza + '</td>'
+                    + '<td style="text-align:right">' + b.total + '</td>'
+                    + '<td style="text-align:right;color:#34d399">' + b.matched + '</td>'
+                    + '<td style="text-align:right;font-weight:700;color:' + col + '">' + p + '%</td></tr>';
+            });
+            html += '</tbody></table>';
+        }
+        el.innerHTML = html;
     }
 
     function topN(list, n) {
@@ -1278,6 +1342,48 @@
             }
         });
     }
+
+    /* ===== Cards redimensionables: restaurar tamaño + toggle ===== */
+    var SIZE_KEY = 'dash-card-sizes';
+    var SIZES = ['', 'card-size-wide', 'card-size-tall', 'card-size-large'];
+
+    try {
+        var sizes = JSON.parse(localStorage.getItem(SIZE_KEY) || '{}');
+        document.querySelectorAll('.dash-card[data-card-id]').forEach(function (card) {
+            var id = card.getAttribute('data-card-id');
+            var cls = sizes[id];
+            if (cls && SIZES.indexOf(cls) !== -1) card.classList.add(cls);
+        });
+    } catch (e) {}
+
+    document.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('.resize-btn');
+        if (!btn) return;
+        var card = btn.closest('.dash-card');
+        if (!card) return;
+        var cur = SIZES.filter(function (c) { return card.classList.contains(c); }).pop() || '';
+        var idx = (SIZES.indexOf(cur) + 1) % SIZES.length;
+        card.classList.remove.apply(card.classList, SIZES.filter(Boolean));
+        if (SIZES[idx]) card.classList.add(SIZES[idx]);
+        var id = card.getAttribute('data-card-id');
+        if (id) {
+            var saved = {};
+            try { saved = JSON.parse(localStorage.getItem(SIZE_KEY) || '{}'); } catch (e) {}
+            saved[id] = SIZES[idx];
+            localStorage.setItem(SIZE_KEY, JSON.stringify(saved));
+        }
+    });
+
+    /* ===== Polling del reporte de precios (DBF) ===== */
+    function pollDbf() {
+        fetch('/home/dbf-overview', { credentials:'same-origin' })
+            .then(function (r) { if (r.ok) return r.json(); return null; })
+            .then(function (j) { if (j) updateDbfOverview(j); })
+            .catch(function () {});
+    }
+    pollDbf();
+    setInterval(pollDbf, 60000);
+
 
     /* ===== Mapa de equipos ===== */
     var MAP_COLORS = [

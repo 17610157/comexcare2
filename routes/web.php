@@ -59,6 +59,7 @@ Route::get('/home/map-stats', [HomeController::class, 'mapStats'])->middleware('
 Route::get('/home/map-computers', [HomeController::class, 'mapComputers'])->middleware('auth')->name('home.map-computers');
 Route::get('/home/activity', [HomeController::class, 'activity'])->middleware('auth')->name('home.activity');
 Route::get('/home/fleet-health', [HomeController::class, 'fleetHealth'])->middleware('auth')->name('home.fleet-health');
+Route::get('/home/dbf-overview', [HomeController::class, 'dbfOverview'])->middleware('auth')->name('home.dbf-overview');
 
 Route::middleware('auth')->prefix('alerts')->group(function () {
     Route::get('/page', [DashboardAlertController::class, 'page'])->name('alerts.page');

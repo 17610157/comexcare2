@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\AgentVersion;
 use App\Services\DashboardStatsService;
 use App\Services\ServerMetricsService;
+use App\Services\AlertService;
+use App\Models\Computer;
+use App\Models\RbfFileHash;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -236,5 +239,32 @@ class HomeController extends Controller
             return 'comandos';
         }
         return 'sistema';
+    }
+
+    public function dbfOverview(): JsonResponse
+    {
+        $service = app(AlertService::class);
+        $serviceLevel = $service->dbfServiceLevel();
+
+        $breakdown = Computer::whereNotNull('plaza')
+            ->where('plaza', '!=', '')
+            ->whereNull('deleted_at')
+            ->select('plaza')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('plaza')
+            ->orderByDesc('total')
+            ->get()
+            ->map(function ($row) use ($service) {
+                return [
+                    'plaza' => $row->plaza,
+                    'total' => (int) $row->total,
+                    'matched' => (int) round($row->total * ($serviceLevel ?? 0) / 100),
+                ];
+            });
+
+        return response()->json([
+            'service_level_pct' => $serviceLevel,
+            'breakdown' => $breakdown,
+        ]);
     }
 }
