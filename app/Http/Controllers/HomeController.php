@@ -254,7 +254,7 @@ class HomeController extends Controller
             ->groupBy('plaza')
             ->orderByDesc('total')
             ->get()
-            ->map(function ($row) use ($service) {
+            ->map(function ($row) use ($serviceLevel) {
                 return [
                     'plaza' => $row->plaza,
                     'total' => (int) $row->total,

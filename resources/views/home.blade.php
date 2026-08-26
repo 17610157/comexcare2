@@ -168,7 +168,7 @@
     .drag-hint { color:#475569; font-size:.65rem; margin-left:auto; margin-right:8px; }
 
     /* ===== Cards redimensionables ===== */
-    .dash-grid { grid-auto-rows: minmax(280px, 1fr); }
+    .dash-grid { grid-auto-rows: 280px; }
     .dash-card.card-size-wide  { grid-column: span 2; }
     .dash-card.card-size-tall  { grid-row:    span 2; }
     .dash-card.card-size-large { grid-column: span 2; grid-row: span 2; }
