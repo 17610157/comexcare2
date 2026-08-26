@@ -1367,6 +1367,14 @@
     var cityMarkers = [];
 
     var CITY_MARKERS = [
+        { id: 'cdmx', name: 'Ciudad de México', country: 'México', latlng: [19.4326, -99.1332] },
+        { id: 'jalisco', name: 'Guadalajara', country: 'México', latlng: [20.6597, -103.3496] },
+        { id: 'veracruz', name: 'Xalapa', country: 'México', latlng: [19.5438, -96.9102] },
+        { id: 'baja_california', name: 'Tijuana', country: 'México', latlng: [32.5149, -117.0382] },
+        { id: 'sonora', name: 'Hermosillo', country: 'México', latlng: [29.0729, -110.9559] },
+        { id: 'quintana_roo', name: 'Cancún', country: 'México', latlng: [21.1619, -86.8515] },
+        { id: 'colima', name: 'Manzanillo', country: 'México', latlng: [19.0513, -104.3188] },
+        { id: 'chiapas', name: 'Tapachula', country: 'México', latlng: [14.9056, -92.2634] },
         { id: 'guatemala', name: 'Ciudad de Guatemala', country: 'Guatemala', latlng: [14.6349, -90.5069] }
     ];
 
@@ -1414,7 +1422,8 @@
                 m.on('click', function () {
                     var st = m._regionStats;
                     if (!st) return;
-                    m.bindPopup(popupHtml(st), { closeButton: true }).openPopup();
+                    var s = Object.assign({}, st, { name: cm.name, country: cm.country });
+                    m.bindPopup(popupHtml(s), { closeButton: true }).openPopup();
                 });
                 cityMarkers.push(m);
             });
