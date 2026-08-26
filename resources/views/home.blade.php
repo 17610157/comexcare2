@@ -191,6 +191,8 @@
     .dbf-row { display:flex; align-items:center; gap:10px; padding:4px 0; font-size:.8rem; }
     .dbf-row .dbf-dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
     .dbf-row small { margin-left:auto; color:#64748b; }
+    .dbf-kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; text-align:center; }
+    .dbf-kpi { background:rgba(148,163,184,.04); border-radius:8px; padding:10px 4px; }
     .dbf-table { width:100%; font-size:.76rem; border-collapse:separate; border-spacing:0 2px; }
     .dbf-table td { padding:3px 6px; color:#cbd5e1; background:rgba(148,163,184,.04); }
     .dbf-table tr:hover td { background:rgba(96,165,250,.06); }
@@ -431,19 +433,7 @@
         </div>
     </div>
 
-    {{-- Plazas --}}
-    <div class="card dash-card" data-card-id="plaza">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-network-wired"></i> Plazas</h3>
-            <div class="card-tools">
-                <span class="badge badge-secondary" id="plazas-count">0 plazas</span>
-                <i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i>
-            </div>
-        </div>
-        <div class="card-body" id="plazas-table">
-            <div class="text-muted text-center py-3" style="font-size:.82rem"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>
-        </div>
-    </div>
+    {{-- (plaza card eliminada) --}}
 
     {{-- Monitoreo y sistema --}}
     <div class="card dash-card" data-card-id="monitoring">
@@ -804,7 +794,7 @@
         if (typeof window.Chart !== 'undefined') {
             applyChartDefaults();
             try {
-                updatePlazasTable(data.computers || {});
+                /* updatePlazasTable eliminada */
                 updateVersionChart('chart-pvsi', (data.computers || {}).pvsi_versions);
                 var d = data.distributions || {};
                 var sd = statusData(d.by_status || {}, ['in_progress', 'completed', 'failed', 'pending', 'stopped']);
@@ -838,52 +828,19 @@
         });
     }
 
-    function updatePlazasTable(computers) {
-        var el = document.getElementById('plazas-table');
-        if (!el) return;
-        var byPlaza = computers.by_plaza || [];
-        var cnt = document.getElementById('plazas-count');
-        if (cnt) cnt.textContent = byPlaza.length + ' plaza' + (byPlaza.length !== 1 ? 's' : '');
-        if (!byPlaza.length) {
-            el.innerHTML = '<div class="text-muted text-center py-3">Sin datos de plaza</div>';
-            return;
-        }
-        var html = '<table class="plaza-tbl"><thead><tr><th>Plaza</th><th style="text-align:center">ON</th><th style="text-align:center">OFF</th><th style="text-align:right">Total</th><th></th><th class="pct-cell">%</th></tr></thead><tbody>';
-        byPlaza.forEach(function (p) {
-            var col = p.percentage >= 80 ? '#34d399' : (p.percentage >= 50 ? '#fbbf24' : '#f87171');
-            html += '<tr><td style="font-weight:600;color:#e2e8f0">' + p.plaza + '</td>'
-                + '<td style="text-align:center;color:#34d399">' + p.online + '</td>'
-                + '<td style="text-align:center;color:#f87171">' + p.offline + '</td>'
-                + '<td style="text-align:right;font-weight:700">' + p.total + '</td>'
-                + '<td class="plaza-bar-wrap"><div class="plaza-bar"><div class="plaza-bar-fill" style="width:' + p.percentage + '%;background:' + col + '"></div></div></td>'
-                + '<td class="pct-cell" style="color:' + col + '">' + p.percentage.toFixed(0) + '%</td></tr>';
-        });
-        el.innerHTML = html + '</tbody></table>';
-    }
-
     function updateDbfOverview(dbf) {
         var el = document.getElementById('dbf-overview');
         if (!el || !dbf) return;
-        var pct = dbf.service_level_pct;
-        var pctStr = pct != null ? parseFloat(pct).toFixed(1) + '%' : '—';
-        var pctColor = pct != null ? (pct >= 95 ? '#34d399' : (pct >= 80 ? '#fbbf24' : '#f87171')) : '#64748b';
-        var html = '<div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:10px">'
-            + '<div><div class="dbf-big" style="color:' + pctColor + '">' + pctStr + '</div>'
-            + '<div class="dbf-sub">Nivel de servicio global</div></div></div>';
-
-        if (dbf.breakdown && dbf.breakdown.length) {
-            html += '<table class="dbf-table"><thead><tr><th>Plaza</th><th style="text-align:right">Total</th><th style="text-align:right">OK</th><th style="text-align:right">%</th></tr></thead><tbody>';
-            dbf.breakdown.forEach(function (b) {
-                var p = b.total > 0 ? ((b.matched / b.total) * 100).toFixed(1) : '—';
-                var c = b.total > 0 ? ((b.matched / b.total) * 100) : 0;
-                var col = c >= 95 ? '#34d399' : (c >= 80 ? '#fbbf24' : '#f87171');
-                html += '<tr><td style="font-weight:600;color:#e2e8f0">' + b.plaza + '</td>'
-                    + '<td style="text-align:right">' + b.total + '</td>'
-                    + '<td style="text-align:right;color:#34d399">' + b.matched + '</td>'
-                    + '<td style="text-align:right;font-weight:700;color:' + col + '">' + p + '%</td></tr>';
-            });
-            html += '</tbody></table>';
-        }
+        var p = dbf.cumplimiento_pct;
+        var pctStr = p != null ? p.toFixed(1) + '%' : '—';
+        var pctColor = p != null ? (p >= 95 ? '#34d399' : (p >= 80 ? '#fbbf24' : '#f87171')) : '#64748b';
+        var html = '<div class="dbf-kpi-grid">'
+            + '<div class="dbf-kpi"><div class="dbf-big" style="color:' + pctColor + '">' + pctStr + '</div><div class="dbf-sub">Cumplimiento</div></div>'
+            + '<div class="dbf-kpi"><div class="dbf-big" style="color:#60a5fa">' + (dbf.total || 0) + '</div><div class="dbf-sub">Total Archivos</div></div>'
+            + '<div class="dbf-kpi"><div class="dbf-big" style="color:#34d399">' + (dbf.actualizado || 0) + '</div><div class="dbf-sub">Actualizados</div></div>'
+            + '<div class="dbf-kpi"><div class="dbf-big" style="color:#fbbf24">' + (dbf.cambio_manual || 0) + '</div><div class="dbf-sub">Cambio Manual</div></div>'
+            + '<div class="dbf-kpi"><div class="dbf-big" style="color:#f87171">' + (dbf.desactualizado || 0) + '</div><div class="dbf-sub">Desactualizados</div></div>'
+            + '</div>';
         el.innerHTML = html;
     }
 

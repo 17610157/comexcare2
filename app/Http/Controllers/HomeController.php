@@ -8,6 +8,7 @@ use App\Services\ServerMetricsService;
 use App\Services\AlertService;
 use App\Models\Computer;
 use App\Models\RbfFileHash;
+use App\Models\RbfConfigStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -243,27 +244,129 @@ class HomeController extends Controller
 
     public function dbfOverview(): JsonResponse
     {
-        $service = app(AlertService::class);
-        $serviceLevel = $service->dbfServiceLevel();
+        $specificFiles = [
+            'ARCERO.DBF', 'CABLISTA.DBF', 'CLIECATP.DBF', 'LISTA.DBF',
+            'OFERTAS.DBF', 'PCOMB.DBF', 'PDCOMB.DBF', 'PROMARTS.DBF',
+        ];
+        $fileToService = [
+            'LISTA.DBF' => ['servicio' => 'lista', 'config_col' => 'li'],
+            'CABLISTA.DBF' => ['servicio' => 'lista', 'config_col' => 'li'],
+            'OFERTAS.DBF' => ['servicio' => 'oferta', 'config_col' => 'of'],
+            'PROMARTS.DBF' => ['servicio' => 'promo', 'config_col' => 'pr'],
+            'ARCERO.DBF' => ['servicio' => 'promo', 'config_col' => 'pr'],
+            'PCOMB.DBF' => ['servicio' => 'combo', 'config_col' => 'co'],
+            'PDCOMB.DBF' => ['servicio' => 'combo', 'config_col' => 'co'],
+            'CLIECATP.DBF' => ['servicio' => 'dbf', 'config_col' => 'db'],
+        ];
 
-        $breakdown = Computer::whereNotNull('plaza')
+        $rbfLookup = [];
+        foreach (RbfFileHash::all() as $r) {
+            $rbfLookup[strtolower($r->plaza ?? '').'|'.strtoupper($r->hash ?? '').'|'.strtolower($r->name ?? '')] = $r;
+        }
+
+        $hashesByPlaza = RbfFileHash::all()->groupBy(fn ($r) => strtolower($r->plaza ?? ''));
+        $configHashLookup = [];
+        foreach (RbfConfigStatus::all()->keyBy(fn ($r) => strtolower($r->pl).'|'.strtolower($r->ca)) as $configKey => $config) {
+            $plaza = strtolower($config->pl);
+            $plazaHashes = $hashesByPlaza[$plaza] ?? collect();
+            $arr = $config->toArray();
+            foreach ($fileToService as $fileName => $info) {
+                $zona = strtolower($arr[$info['config_col']] ?? '');
+                if ($zona === '' || $zona === 'vacio') continue;
+                $hashRecord = $plazaHashes->first(
+                    fn ($h) => strtolower($h->servicio ?? '') === $info['servicio']
+                        && strtolower($h->zona ?? '') === $zona
+                        && strtolower($h->name ?? '') === strtolower($fileName)
+                );
+                if ($hashRecord) {
+                    $configHashLookup[$configKey.'|'.strtolower($fileName)] = $hashRecord;
+                }
+            }
+        }
+
+        $globalTotal = 0;
+        $globalMatched = 0;
+        $globalCambioManual = 0;
+        $globalDesactualizado = 0;
+        $plazaStats = [];
+
+        Computer::whereNotNull('plaza')
             ->where('plaza', '!=', '')
             ->whereNull('deleted_at')
-            ->select('plaza')
-            ->selectRaw('COUNT(*) as total')
-            ->groupBy('plaza')
-            ->orderByDesc('total')
-            ->get()
-            ->map(function ($row) use ($serviceLevel) {
-                return [
-                    'plaza' => $row->plaza,
-                    'total' => (int) $row->total,
-                    'matched' => (int) round($row->total * ($serviceLevel ?? 0) / 100),
-                ];
+            ->select('id', 'plaza', 'short_key', 'agent_config')
+            ->chunk(500, function ($computers) use (
+                &$globalTotal, &$globalMatched, &$globalCambioManual, &$globalDesactualizado,
+                &$plazaStats, $specificFiles, $fileToService, $rbfLookup, $configHashLookup
+            ) {
+                foreach ($computers as $computer) {
+                    $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
+                    $dbfFiles = array_values(array_filter(
+                        $dbfFiles,
+                        fn ($f) => in_array(strtoupper($f['name'] ?? ''), $specificFiles)
+                    ));
+                    if (empty($dbfFiles)) continue;
+
+                    $configKey = strtolower($computer->plaza ?? '').'|'.strtolower($computer->short_key ?? '');
+                    $plaza = $computer->plaza ?? 'N/A';
+
+                    foreach ($dbfFiles as $file) {
+                        $fileName = $file['name'] ?? '';
+                        $globalTotal++;
+
+                        $rbfRecord = $configHashLookup[$configKey.'|'.strtolower($fileName)] ?? null;
+                        if (! $rbfRecord) {
+                            $hashKey = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
+                            $rbfRecord = $rbfLookup[$hashKey] ?? null;
+                        }
+
+                        $localHash = strtoupper(substr($file['hash_md5'] ?? '', -5));
+                        $rbfHash = strtoupper($rbfRecord->hash ?? '');
+                        $hashMatch = $rbfRecord !== null && $localHash === $rbfHash;
+
+                        if (! $rbfRecord) {
+                            $rbfStatus = 'cambio_manual';
+                        } elseif ($hashMatch) {
+                            $rbfStatus = 'actualizado';
+                        } else {
+                            $localModified = strtotime($file['modified'] ?? '');
+                            $rbfModified = $rbfRecord->last_modified ? strtotime($rbfRecord->last_modified) : 0;
+                            $rbfStatus = ($localModified > 0 && $rbfModified > 0 && $localModified > $rbfModified)
+                                ? 'cambio_manual'
+                                : 'desactualizado';
+                        }
+
+                        if ($rbfStatus === 'actualizado') $globalMatched++;
+                        elseif ($rbfStatus === 'cambio_manual') $globalCambioManual++;
+                        else $globalDesactualizado++;
+
+                        if (! isset($plazaStats[$plaza])) {
+                            $plazaStats[$plaza] = ['total' => 0, 'actualizado' => 0, 'cambio_manual' => 0, 'desactualizado' => 0];
+                        }
+                        $plazaStats[$plaza]['total']++;
+                        $plazaStats[$plaza][$rbfStatus]++;
+                    }
+                }
             });
 
+        $breakdown = collect($plazaStats)
+            ->map(fn ($s, $plaza) => [
+                'plaza' => $plaza,
+                'total' => $s['total'],
+                'actualizado' => $s['actualizado'],
+                'cambio_manual' => $s['cambio_manual'],
+                'desactualizado' => $s['desactualizado'],
+                'cumplimiento_pct' => $s['total'] > 0 ? round(($s['actualizado'] / $s['total']) * 100, 1) : 0,
+            ])
+            ->sortByDesc('total')
+            ->values()
+            ->all();
+
         return response()->json([
-            'service_level_pct' => $serviceLevel,
+            'total' => $globalTotal,
+            'actualizado' => $globalMatched,
+            'cambio_manual' => $globalCambioManual,
+            'desactualizado' => $globalDesactualizado,
+            'cumplimiento_pct' => $globalTotal > 0 ? round(($globalMatched / $globalTotal) * 100, 1) : 0,
             'breakdown' => $breakdown,
         ]);
     }
