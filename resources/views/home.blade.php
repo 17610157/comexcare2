@@ -841,6 +841,19 @@
             + '<div class="dbf-kpi"><div class="dbf-big" style="color:#fbbf24">' + (dbf.cambio_manual || 0) + '</div><div class="dbf-sub">Cambio Manual</div></div>'
             + '<div class="dbf-kpi"><div class="dbf-big" style="color:#f87171">' + (dbf.desactualizado || 0) + '</div><div class="dbf-sub">Desactualizados</div></div>'
             + '</div>';
+        if (dbf.breakdown && dbf.breakdown.length) {
+            html += '<table class="dbf-table"><thead><tr><th>Plaza</th><th style="text-align:right">Total</th><th style="text-align:right">Actualizados</th><th style="text-align:right">Cambio Manual</th><th style="text-align:right">Desactualizados</th><th style="text-align:right">%</th></tr></thead><tbody>';
+            dbf.breakdown.forEach(function (b) {
+                var col = b.cumplimiento_pct >= 95 ? '#34d399' : (b.cumplimiento_pct >= 80 ? '#fbbf24' : '#f87171');
+                html += '<tr><td style="font-weight:600;color:#e2e8f0">' + b.plaza + '</td>'
+                    + '<td style="text-align:right">' + b.total + '</td>'
+                    + '<td style="text-align:right;color:#34d399">' + b.actualizado + '</td>'
+                    + '<td style="text-align:right;color:#fbbf24">' + b.cambio_manual + '</td>'
+                    + '<td style="text-align:right;color:#f87171">' + b.desactualizado + '</td>'
+                    + '<td style="text-align:right;font-weight:700;color:' + col + '">' + b.cumplimiento_pct + '%</td></tr>';
+            });
+            html += '</tbody></table>';
+        }
         el.innerHTML = html;
     }
 
