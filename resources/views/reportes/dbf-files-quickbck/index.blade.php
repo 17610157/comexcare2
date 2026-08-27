@@ -207,6 +207,8 @@
               <th>Modificación</th>
               <th>MD5 RBF</th>
               <th>Fecha RBF</th>
+              <th>MD5 Externo</th>
+              <th>Fecha Externo</th>
               <th style="cursor:pointer" data-sort="status_conciliacion" class="text-center">Conciliación <i class="fas fa-sort"></i></th>
             </tr>
           </thead>
@@ -376,7 +378,7 @@ function renderTable(json) {
   $tbody.empty();
 
   if (data.length === 0) {
-    $tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No se encontraron archivos QuickBCK</td></tr>');
+    $tbody.html('<tr><td colspan="14" class="text-center py-4 text-muted">No se encontraron archivos QuickBCK</td></tr>');
     $('#paginationControls').addClass('d-none');
     return;
   }
@@ -416,6 +418,8 @@ function renderTable(json) {
         '<td style="white-space:nowrap;">' + modified + '</td>' +
         '<td>' + hashDisplay(row.rbf_md5, row.rbf_matched, row.status_conciliacion) + '</td>' +
         '<td style="white-space:nowrap;">' + (row.rbf_fecha || '<span class="text-muted">-</span>') + '</td>' +
+        '<td>' + hashDisplay(row.externo_md5, row.externo_matched, row.status_conciliacion) + '</td>' +
+        '<td style="white-space:nowrap;">' + (row.externo_fecha || '<span class="text-muted">-</span>') + '</td>' +
         '<td class="text-center">' + statusBadge + desactualizadoBadge + '</td>' +
       '</tr>'
     );

@@ -309,8 +309,11 @@ class ReporteDbfFilesQuickbckController extends Controller
                     $pvsiRecord = $matches['pvsi'] ?? null;
                     $rbfRecord = $matches['rbf'] ?? null;
 
+                    $externoRecord = $matches['nicar'] ?? $matches['guate'] ?? null;
+
                     $pvsiMatched = $pvsiRecord !== null && $last5 === strtolower($pvsiRecord->md5);
                     $rbfMatched = $rbfRecord !== null && $last5 === strtolower($rbfRecord->md5);
+                    $externoMatched = $externoRecord !== null && $last5 === strtolower($externoRecord->md5);
 
                     $classification = $this->classifyConciliacion(
                         $pvsiMatched,
@@ -373,8 +376,11 @@ class ReporteDbfFilesQuickbckController extends Controller
                         'pvsi_fecha' => $pvsiRecord?->fecha_modificacion?->format('Y-m-d H:i:s'),
                         'rbf_md5' => $rbfRecord?->md5,
                         'rbf_fecha' => $rbfRecord?->fecha_modificacion?->format('Y-m-d H:i:s'),
+                        'externo_md5' => $externoRecord?->md5,
+                        'externo_fecha' => $externoRecord?->fecha_modificacion?->format('Y-m-d H:i:s'),
                         'pvsi_matched' => $pvsiMatched,
                         'rbf_matched' => $rbfMatched,
+                        'externo_matched' => $externoMatched,
                         'status_conciliacion' => $statusConciliacion,
                         'desactualizado' => $classification['desactualizado'],
                     ];
@@ -508,6 +514,7 @@ class ReporteDbfFilesQuickbckController extends Controller
                 fputcsv($output, [
                     'Computadora', 'Plaza', 'Archivo',
                     'Tamano (KB)', 'MD5 Pvsi', 'Fecha Pvsi', 'MD5 Quick', 'Fecha Quick', 'MD5 RBF', 'Fecha RBF',
+                    'MD5 Externo', 'Fecha Externo',
                     'Conciliacion', 'Desactualizado',
                 ]);
 
@@ -531,6 +538,7 @@ class ReporteDbfFilesQuickbckController extends Controller
                         $matches = $conciliacionLookup[$shortKey.'|'.strtolower($fileName)] ?? [];
                         $pvsiRecord = $matches['pvsi'] ?? null;
                         $rbfRecord = $matches['rbf'] ?? null;
+                        $externoRecord = $matches['nicar'] ?? $matches['guate'] ?? null;
 
                         $pvsiMatched = $pvsiRecord !== null && $last5 === strtolower($pvsiRecord->md5);
                         $rbfMatched = $rbfRecord !== null && $last5 === strtolower($rbfRecord->md5);
@@ -563,6 +571,8 @@ class ReporteDbfFilesQuickbckController extends Controller
                             $modified,
                             $rbfRecord?->md5 ?? '',
                             $rbfRecord?->fecha_modificacion?->format('Y-m-d H:i:s') ?? '',
+                            $externoRecord?->md5 ?? '',
+                            $externoRecord?->fecha_modificacion?->format('Y-m-d H:i:s') ?? '',
                             $conciliacion,
                             $classification['desactualizado'] ? 'Si' : 'No',
                         ]);
