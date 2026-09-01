@@ -8,11 +8,11 @@ use App\Http\Controllers\AuthorizableEmailsController;
 use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\AuthorizationReportController;
 use App\Http\Controllers\ComputersController;
+use App\Http\Controllers\DashboardAlertController;
 use App\Http\Controllers\DistributionsController;
 use App\Http\Controllers\FileListsController;
 use App\Http\Controllers\FileReceptionController;
 use App\Http\Controllers\GroupsController;
-use App\Http\Controllers\DashboardAlertController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MetasMensualController;
 use App\Http\Controllers\ModulesController;
@@ -25,16 +25,17 @@ use App\Http\Controllers\ReporteApiDemoController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteDbfFilesController;
 use App\Http\Controllers\ReporteDbfFilesEspecificosController;
-use App\Http\Controllers\ReporteRbfConfigStatusController;
 use App\Http\Controllers\ReporteDbfFilesQuickbckController;
 use App\Http\Controllers\ReporteDesgloseController;
 use App\Http\Controllers\ReporteDistribucionesController;
 use App\Http\Controllers\ReporteMetasMatricialController;
 use App\Http\Controllers\ReporteMetasVentasController;
+use App\Http\Controllers\ReporteRbfConfigStatusController;
 use App\Http\Controllers\Reportes\CarteraAbonosController;
 use App\Http\Controllers\Reportes\ClubComexController;
 use App\Http\Controllers\Reportes\NotasCompletasController;
 use App\Http\Controllers\Reportes\ReporteRedencionesClubController;
+use App\Http\Controllers\ReporteTrazabilidadController;
 use App\Http\Controllers\ReporteValesController;
 use App\Http\Controllers\ReporteVendedoresB2bController;
 use App\Http\Controllers\ReporteVendedoresController;
@@ -284,6 +285,18 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.dbf-files-quickbck.data')->middleware('can:dbf-files-quickbck.ver');
     Route::get('dbf-files-quickbck/export', [ReporteDbfFilesQuickbckController::class, 'export'])
         ->name('reportes.dbf-files-quickbck.export')->middleware('can:dbf-files-quickbck.ver');
+
+    // REPORTE: Trazabilidad (basado en disparador RBF)
+    Route::get('trazabilidad', [ReporteTrazabilidadController::class, 'index'])
+        ->name('reportes.trazabilidad')->middleware('can:reportes.trazabilidad.ver');
+    Route::get('trazabilidad/data', [ReporteTrazabilidadController::class, 'data'])
+        ->name('reportes.trazabilidad.data')->middleware('can:reportes.trazabilidad.ver');
+    Route::get('trazabilidad/archivos', [ReporteTrazabilidadController::class, 'archivos'])
+        ->name('reportes.trazabilidad.archivos')->middleware('can:reportes.trazabilidad.ver');
+    Route::get('trazabilidad/archivos-disponibles', [ReporteTrazabilidadController::class, 'archivosDisponibles'])
+        ->name('reportes.trazabilidad.archivos-disponibles')->middleware('can:reportes.trazabilidad.ver');
+    Route::get('trazabilidad/export', [ReporteTrazabilidadController::class, 'export'])
+        ->name('reportes.trazabilidad.export')->middleware('can:reportes.trazabilidad.ver');
 
     // REPORTE: Vales
     Route::get('vales', [ReporteValesController::class, 'index'])

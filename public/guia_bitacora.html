@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitácora Diaria - Guía de Uso</title>
+<style>
+  :root { --azul:#1f4e78; --verde:#2e7d32; --rojo:#c62828; --gris:#f5f6fa; --borde:#e0e3eb; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; margin:0; background:#eef1f6; color:#222; line-height:1.6; }
+  header { background:linear-gradient(135deg,var(--azul),#2a6dab); color:#fff; padding:28px 24px; }
+  header .container { max-width:980px; margin:0 auto; }
+  header h1 { margin:0 0 6px; font-size:26px; }
+  header p { margin:0; opacity:.9; }
+  .container { max-width:980px; margin:0 auto; padding:24px; }
+  .card { background:#fff; border:1px solid var(--borde); border-radius:10px; padding:22px 24px; margin-bottom:22px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .card h2 { margin-top:0; color:var(--azul); font-size:20px; border-bottom:2px solid var(--borde); padding-bottom:10px; }
+  .card h3 { color:#333; margin-bottom:8px; }
+  code { background:var(--gris); border:1px solid var(--borde); border-radius:4px; padding:2px 6px; font-family:"SFMono-Regular",Consolas,Menlo,monospace; font-size:13px; color:#b33939; }
+  pre { background:#1e2430; color:#e6edf3; border-radius:8px; padding:16px; overflow-x:auto; font-family:"SFMono-Regular",Consolas,Menlo,monospace; font-size:13.5px; line-height:1.55; }
+  pre .cmt { color:#7d8590; }
+  pre .ok { color:#7ee787; }
+  pre .cmd { color:#79c0ff; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; border-radius:20px; padding:2px 10px; margin-left:4px; vertical-align:middle; }
+  .tag.green { background:#e6f4ea; color:var(--verde); }
+  .tag.red { background:#fdecea; color:var(--rojo); }
+  .tag.blue { background:#e7f0fb; color:var(--azul); }
+  .step { display:flex; gap:14px; margin-bottom:16px; }
+  .step-num { flex:0 0 34px; height:34px; background:var(--azul); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .step-body { flex:1; }
+  ul { margin:8px 0 0; padding-left:20px; }
+  li { margin-bottom:6px; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; }
+  th,td { text-align:left; border:1px solid var(--borde); padding:10px 12px; vertical-align:top; }
+  th { background:var(--gris); }
+  tr:nth-child(even) { background:#fafbfd; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600; margin-right:6px; }
+  .badge.ej { background:#fff3cd; color:#7a5c00; border:1px solid #ffe08a; }
+  .warn { background:#fff8e6; border-left:4px solid #f0a500; padding:12px 16px; border-radius:0 8px 8px 0; font-size:14px; }
+  .ok-box { background:#e6f4ea; border-left:4px solid var(--verde); padding:12px 16px; border-radius:0 8px 8px 0; font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <h1>📘 Bitácora Diaria — Guía de Uso 100%</h1>
+    <p>Sistema de evidencias: captura de pantalla + envío de data e imagen al endpoint remoto</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>1. Cómo funciona (resumen)</h2>
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Captura</strong> — se toma la captura de pantalla de la vista con Puppeteer (login automático en el sistema).</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Guarda</strong> — el PNG se guarda en <code>storage/app/evidencias/</code>.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Envía</strong> — se suben <em>data + imagen</em> al endpoint <code>diario.camposreyeros.com/api_bitacora.php</code>.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Archiva</strong> — la imagen se mueve a <code>enviadas/</code> para no volver a enviarse.</div></div>
+    <div class="ok-box">✅ <strong>Resultado confirmado:</strong> <code>{"ok":true}</code> (HTTP 200). La actividad se ve en la plataforma externa con su imagen.</div>
+  </div>
+
+  <div class="card">
+    <h2>2. El comando final (todo en uno)</h2>
+    <p>Este comando hace la captura <u>y</u> el envío en un solo paso:</p>
+    <pre><span class="cmd">bash scripts/evidencia.sh</span> /ruta/de/la/vista \
+  <span class="cmd">--categoria</span>="<span class="cmt">Desarrollo</span>" \
+  <span class="cmd">--descripcion</span>="<span class="cmt">Descripción de la actividad</span>" \
+  <span class="cmd">--fecha</span>=<span class="cmt">YYYY-MM-DD</span>   <span class="cmt"># opcional, por defecto hoy</span></pre>
+    <p>Puedes pasar <strong>varias vistas</strong> juntas y capturar <strong>otras opciones</strong>:</p>
+    <p>Opciones disponibles: <code>--categoria</code>, <code>--descripcion</code>, <code>--fecha</code>, <code>--empleado_id</code></p>
+  </div>
+
+  <div class="card">
+    <h2>3. Ejemplos reales de uso</h2>
+
+    <h3><span class="badge ej">EJEMPLO 1</span> Una sola actividad/vista</h3>
+    <p>Hiciste un cambio en el reporte QuickBCK y quieres registrarlo:</p>
+    <pre><span class="cmd">bash scripts/evidencia.sh</span> /reportes/dbf-files \
+  <span class="cmd">--categoria</span>="Desarrollo - Reporte QuickBCK" \
+  <span class="cmd">--descripcion</span>="Se agregó columna MD5 Externo a la conciliación de archivos Nicaragua/Guatemala"</pre>
+    <p>Salida esperada:</p>
+    <pre>CAPTURA OK: .../storage/app/evidencias/20260827_163000_reportes_dbf_files.png
+<span class="ok">[OK] 20260827_163000_reportes_dbf_files.png -&gt; {"ok":true} (HTTP 200)</span>
+Resumen: 1 enviadas, 0 falladas.</pre>
+
+    <h3><span class="badge ej">EJEMPLO 2</span> Un cambio que tocó varias pantallas</h3>
+    <pre><span class="cmd">bash scripts/evidencia.sh</span> /dashboard /reportes/dbf-files /reportes/dbf-files-especificos \
+  <span class="cmd">--categoria</span>="Desarrollo - Módulo de conciliación" \
+  <span class="cmd">--descripcion</span>="Conciliación QuickBCK con archivos externos en 3 vistas"</pre>
+    <p>Se capturan las 3 vistas y se suben 3 evidencias (cada una con su imagen y la misma data).</p>
+
+    <h3><span class="badge ej">EJEMPLO 3</span> Registrar una actividad de un día anterior</h3>
+    <pre><span class="cmd">bash scripts/evidencia.sh</span> /dashboard \
+  <span class="cmd">--fecha</span>=2026-08-26 \
+  <span class="cmd">--categoria</span>="Mantenimiento" \
+  <span class="cmd">--descripcion</span>="Evidencia diaria registrada retroactivamente"</pre>
+
+    <table>
+      <tr><th>Tipo de cambio</th><th>Comando sugerido</th></tr>
+      <tr><td>Modifiqué una vista PHP</td><td><code>bash scripts/evidencia.sh /reportes/dbf-files --categoria="Desarrollo" --descripcion="Cambio en layout del reporte"</code></td></tr>
+      <tr><td>Agregué un indicador al dashboard</td><td><code>bash scripts/evidencia.sh /dashboard --categoria="Desarrollo" --descripcion="Nuevo indicador en dashboard"</code></td></tr>
+      <tr><td>Cambié una API / endpoint</td><td><code>bash scripts/evidencia.sh /ruta-api --categoria="Backend" --descripcion="Ajuste de endpoint"</code></td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>4. Uso manual / alternativo</h2>
+    <p>Si solo quieres <strong>enviar</strong> lo que ya está en la carpeta (sin capturar):</p>
+    <pre><span class="cmd">php artisan bitacora:enviar-nuevas</span> \
+  <span class="cmd">--categoria</span>="Mi categoría" \
+  <span class="cmd">--descripcion</span>="Mi descripción"</pre>
+    <p>Ver qué hay pendiente por enviar (sin enviar nada):</p>
+    <pre><span class="cmd">php artisan bitacora:enviar-nuevas</span> --dry-run</pre>
+    <p>Ver evidencias ya enviadas:</p>
+    <pre><span class="cmd">ls -la</span> storage/app/evidencias/enviadas/</pre>
+  </div>
+
+  <div class="card">
+    <h2>5. Automatización</h2>
+    <p>El <strong>scheduler de Laravel</strong> ejecuta <code>bitacora:enviar-nuevas</code> <span class="tag green">CADA 5 MIN</span> automáticamente.</p>
+    <ul>
+      <li>Toda imagen que quede en <code>storage/app/evidencias/</code> se sube sola en menos de 5 minutos.</li>
+      <li>El comando <code>evidencia.sh</code> sirve para <strong>capturar de inmediato</strong> y confirmar al instante el <code>{"ok":true}</code>.</li>
+      <li>Si no das categoría/descripción, se usan los valores por defecto del <code>.env</code>.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>6. Datos de configuración (ya listos en .env)</h2>
+    <table>
+      <tr><th>Variable</th><th>Valor</th></tr>
+      <tr><td><code>BITACORA_API_KEY</code></td><td>BygFi70lSU2YhnBfOrlCpgykKIN2Dlra</td></tr>
+      <tr><td><code>BITACORA_ENDPOINT</code></td><td>http://diario.camposreyeros.com/api_bitacora.php</td></tr>
+      <tr><td><code>BITACORA_EVIDENCIAS_DIR</code></td><td>app/evidencias</td></tr>
+      <tr><td><code>BITACORA_EMPLEADO_ID</code></td><td>20241</td></tr>
+      <tr><td><code>BITACORA_CATEGORIA</code></td><td>Evidencia diaria</td></tr>
+      <tr><td><code>BITACORA_DESCRIPCION</code></td><td>Captura diaria de evidencias</td></tr>
+    </table>
+    <div class="warn">⚠️ <strong>Nota:</strong> si el endpoint responde <code>400</code> (key incorrecta) o falla, la evidencia <strong>no se mueve</strong> a <code>enviadas/</code> y queda pendiente para el siguiente intento automático.</div>
+  </div>
+
+  <div class="card">
+    <h2>7. Flujo rutina diaria recomendada</h2>
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Haz tu trabajo</strong> — programación, vistas, ajustes.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Por cada actividad</strong>, ejecuta: <code>bash scripts/evidencia.sh /vista --categoria="..." --descripcion="..."</code></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Revisa</strong> que no quede nada sin enviar: <code>php artisan bitacora:enviar-nuevas --dry-run</code></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Verifica</strong> en la plataforma externa (<code>diario.camposreyeros.com</code>) que aparezcan las actividades con sus imágenes.</div></div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -291,6 +291,9 @@ class PermissionSeeder extends Seeder
             // DBF Files QuickBCK Conciliación
             'dbf-files-quickbck.ver',
 
+            // Reporte Trazabilidad
+            'reportes.trazabilidad.ver',
+
             // RBF Config Status
             'reportes.rbf-config-status.ver',
 

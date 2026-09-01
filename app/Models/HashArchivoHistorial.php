@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ConciliacionHashArchivo extends Model
+class HashArchivoHistorial extends Model
 {
     use HasFactory;
+
+    protected $table = 'hash_archivos_historial';
 
     protected $fillable = [
         'sucursal',
@@ -15,8 +17,8 @@ class ConciliacionHashArchivo extends Model
         'archivo',
         'md5',
         'md5_completo',
-        'fecha_modificacion',
         'disparador',
+        'fecha_modificacion',
         'fecha_consulta_api',
     ];
 

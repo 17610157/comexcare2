@@ -1,0 +1,102 @@
+==================================================================
+ BITACORA DIARIA - GUIA DE USO (100% funcional)
+ Sistema: captura de pantalla + envio de data e imagen al endpoint
+==================================================================
+
+FLUJO (como funciona):
+  1) Captura: se toma captura de pantalla de la vista con Puppeteer
+     (login automatico en el sistema).
+  2) Guarda:  el PNG se guarda en storage/app/evidencias/
+  3) Envia:   data + imagen al endpoint
+              http://diario.camposreyeros.com/api_bitacora.php
+  4) Archiva: la imagen se mueve a enviadas/ (evita duplicados)
+
+  Resultado confirmado: {"ok":true} (HTTP 200)
+
+
+------------------------------------------------------------------
+ COMANDO FINAL (captura + envio en un solo paso)
+------------------------------------------------------------------
+  bash scripts/evidencia.sh /ruta/de/la/vista \
+      --categoria="Desarrollo" \
+      --descripcion="Descripcion de la actividad" \
+      --fecha=YYYY-MM-DD        (opcional, por defecto hoy)
+
+  Opciones: --categoria  --descripcion  --fecha  --empleado_id
+
+
+------------------------------------------------------------------
+ EJEMPLOS
+------------------------------------------------------------------
+
+ EJEMPLO 1 - Una sola actividad/vista
+   bash scripts/evidencia.sh /reportes/dbf-files \
+      --categoria="Desarrollo - Reporte QuickBCK" \
+      --descripcion="Se agrego columna MD5 Externo a la conciliacion"
+
+   Salida esperada:
+     CAPTURA OK: .../storage/app/evidencias/20260827_163000_reportes_dbf_files.png
+     [OK] 20260827_163000_reportes_dbf_files.png -> {"ok":true} (HTTP 200)
+     Resumen: 1 enviadas, 0 falladas.
+
+ EJEMPLO 2 - Un cambio que toco varias pantallas
+   bash scripts/evidencia.sh /dashboard /reportes/dbf-files \
+      --categoria="Desarrollo - Modulo de conciliacion" \
+      --descripcion="Conciliacion QuickBCK con archivos externos en 2 vistas"
+
+ EJEMPLO 3 - Registrar una actividad de un dia anterior
+   bash scripts/evidencia.sh /dashboard \
+      --fecha=2026-08-26 \
+      --categoria="Mantenimiento" \
+      --descripcion="Evidencia registrada retroactivamente"
+
+
+------------------------------------------------------------------
+ ENVIO MANUAL / ALTERNATIVO
+------------------------------------------------------------------
+  Enviar lo pendiente (sin capturar):
+     php artisan bitacora:enviar-nuevas \
+        --categoria="Mi categoria" --descripcion="Mi descripcion"
+
+  Ver que hay por enviar (sin enviar):
+     php artisan bitacora:enviar-nuevas --dry-run
+
+  Ver evidencias ya enviadas:
+     ls -la storage/app/evidencias/enviadas/
+
+
+------------------------------------------------------------------
+ AUTOMATIZACION
+------------------------------------------------------------------
+  El scheduler de Laravel ejecuta bitacora:enviar-nuevas CADA 5 MIN.
+  Toda imagen que quede en storage/app/evidencias/ se sube sola
+  en menos de 5 minutos. El comando evidencia.sh es para capturar
+  de inmediato y confirmar al instante.
+
+
+------------------------------------------------------------------
+ CONFIGURACION (ya lista en .env)
+------------------------------------------------------------------
+  BITACORA_API_KEY             BygFi70lSU2YhnBfOrlCpgykKIN2Dlra
+  BITACORA_ENDPOINT            http://diario.camposreyeros.com/api_bitacora.php
+  BITACORA_EVIDENCIAS_DIR      app/evidencias
+  BITACORA_EMPLEADO_ID         20241
+  BITACORA_CATEGORIA           Evidencia diaria
+  BITACORA_DESCRIPCION         Captura diaria de evidencias
+
+
+------------------------------------------------------------------
+ RUTINA DIARIA RECOMENDADA
+------------------------------------------------------------------
+  1) Haz tu trabajo (programacion, vistas, ajustes).
+  2) Por CADA actividad ejecuta:
+       bash scripts/evidencia.sh /vista --categoria="..." --descripcion="..."
+  3) Revisa que no quede nada sin enviar:
+       php artisan bitacora:enviar-nuevas --dry-run
+  4) Verifica en la plataforma externa (diario.camposreyeros.com)
+     que aparezcan las actividades con sus imagenes.
+
+NOTA: si el endpoint devuelve 400 o falla, la evidencia NO se
+mueve a enviadas/ y queda pendiente para el siguiente intento.
+
+==================================================================

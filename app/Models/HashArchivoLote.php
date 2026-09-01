@@ -30,7 +30,6 @@ class HashArchivoLote extends Model
     protected function casts(): array
     {
         return [
-            'fecha_envio' => 'datetime',
             'errores' => 'array',
         ];
     }

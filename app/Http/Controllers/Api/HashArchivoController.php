@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConciliacionHashArchivo;
+use App\Models\HashArchivoHistorial;
 use App\Models\HashArchivoLote;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -115,7 +116,7 @@ class HashArchivoController extends Controller
             'sucursal' => $first['Sucursal'] ?? null,
             'nombre_carpeta' => $first['NombreCarpeta'] ?? null,
             'ruta_base' => $first['RutaBase'] ?? null,
-            'fecha_envio' => isset($first['FechaEnvio']) ? Carbon::parse($first['FechaEnvio']) : null,
+            'fecha_envio' => $first['FechaEnvio'] ?? null,
             'disparador' => $first['Disparador'] ?? null,
             'num_archivos' => $numArchivos,
             'peso_total' => $pesoTotal,
@@ -127,7 +128,7 @@ class HashArchivoController extends Controller
         ]);
 
         foreach ($tiendas as $tienda) {
-            $this->syncTienda($tienda);
+            $this->syncTienda($tienda, $request->ip());
         }
 
         Log::info('Hash archivos: lote registrado', [
@@ -145,9 +146,11 @@ class HashArchivoController extends Controller
         ], 200);
     }
 
-    protected function syncTienda(array $tienda): void
+    protected function syncTienda(array $tienda, ?string $ip = null): void
     {
-        $fechaEnvio = isset($tienda['FechaEnvio']) ? Carbon::parse($tienda['FechaEnvio']) : now();
+        $fechaEnvio = $tienda['FechaEnvio'] ?? null;
+        $sucursal = $tienda['Sucursal'] ?? '';
+        $disparador = $tienda['Disparador'] ?? '';
 
         foreach ($tienda['Archivos'] ?? [] as $archivo) {
             if (isset($archivo['Existe']) && $archivo['Existe'] === false) {
@@ -155,24 +158,38 @@ class HashArchivoController extends Controller
             }
 
             $md5 = strtolower((string) ($archivo['Md5'] ?? ''));
+            $nombre = $archivo['Nombre'] ?? '';
+            $fechaMod = $this->parseFechaModificacion($archivo['FechaModificacion'] ?? null);
 
             ConciliacionHashArchivo::updateOrCreate(
                 [
-                    'sucursal' => $tienda['Sucursal'] ?? '',
-                    'archivo' => $archivo['Nombre'] ?? '',
-                    'disparador' => $tienda['Disparador'] ?? '',
+                    'sucursal' => $sucursal,
+                    'archivo' => $nombre,
+                    'disparador' => $disparador,
                 ],
                 [
-                    'md5' => substr($md5, -5),
-                    'md5_completo' => $md5,
-                    'fecha_modificacion' => $this->parseFechaModificacion($archivo['FechaModificacion'] ?? null),
+                    'ip' => $ip,
+                    'md5' => $md5 === '' ? '' : substr($md5, -5),
+                    'md5_completo' => $md5 === '' ? null : $md5,
+                    'fecha_modificacion' => $fechaMod,
                     'fecha_consulta_api' => $fechaEnvio,
                 ]
             );
+
+            HashArchivoHistorial::create([
+                'sucursal' => $sucursal,
+                'ip' => $ip,
+                'archivo' => $nombre,
+                'md5' => $md5 === '' ? '' : substr($md5, -5),
+                'md5_completo' => $md5 === '' ? null : $md5,
+                'disparador' => $disparador,
+                'fecha_modificacion' => $fechaMod,
+                'fecha_consulta_api' => $fechaEnvio,
+            ]);
         }
     }
 
-    protected function parseFechaModificacion(?string $fecha): ?Carbon
+    protected function parseFechaModificacion(?string $fecha): ?string
     {
         if ($fecha === null || $fecha === '') {
             return null;
@@ -184,7 +201,7 @@ class HashArchivoController extends Controller
             return null;
         }
 
-        return $carbon;
+        return $fecha;
     }
 
     protected function storeInvalid(Request $request, string $raw, array $errors)
@@ -215,13 +232,13 @@ class HashArchivoController extends Controller
         return [
             '*.NombreCarpeta' => 'required|string|max:255',
             '*.RutaBase' => 'required|string|max:500',
-            '*.FechaEnvio' => ['required', 'regex:/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/'],
+            '*.FechaEnvio' => ['required', 'regex:/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})?$/'],
             '*.Disparador' => 'required|string|max:50',
             '*.Sucursal' => 'required|string|max:100',
             '*.Archivos' => 'present|array',
             '*.Archivos.*.Nombre' => 'required|string|max:255',
             '*.Archivos.*.Existe' => 'required|boolean',
-            '*.Archivos.*.Md5' => ['required_if:*.Archivos.*.Existe,true', 'string', 'regex:/^[0-9a-fA-F]{32}$/'],
+            '*.Archivos.*.Md5' => ['nullable', 'string', 'regex:/^(?:[0-9a-fA-F]{32})?$/'],
             '*.Archivos.*.Peso' => 'required|integer|min:0',
             '*.Archivos.*.FechaModificacion' => ['required', 'string', 'regex:/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})?$/'],
         ];

@@ -53,6 +53,7 @@ class RoleSeeder extends Seeder
             'dbf-files-especificos.ver',
             'dbf-files-especificos.ejecutar',
             'dbf-files-quickbck.ver',
+            'reportes.trazabilidad.ver',
             'file-lists.ver', 'file-lists.crear', 'file-lists.editar', 'file-lists.eliminar', 'file-lists.autorizar',
             'agent-defaults.ver', 'agent-defaults.crear', 'agent-defaults.editar', 'agent-defaults.eliminar',
             'monitored-files.ver', 'monitored-files.crear', 'monitored-files.editar', 'monitored-files.eliminar',

@@ -77,7 +77,7 @@ it('registra un lote válido y puebla conciliacion_hash_archivos', function () {
     expect($record->disparador)->toBe('serv');
     expect($record->md5)->toBe('8427e');
     expect($record->md5_completo)->toBe('d41d8cd98f00b204e9800998ecf8427e');
-    expect($record->fecha_modificacion->format('Y-m-d H:i:s'))->toBe('2026-08-05 14:22:11');
+    expect($record->fecha_modificacion)->toBe('2026-08-05T14:22:11');
 });
 
 it('acepta un lote con Tiendas vacío', function () {
@@ -121,7 +121,7 @@ it('rechaza un Md5 que no es hexadecimal de 32', function () {
     expect(HashArchivoLote::first()->estado)->toBe('error_validacion');
 });
 
-it('rechaza un Md5 faltante cuando Existe es true', function () {
+it('acepta un Md5 faltante cuando Existe es true', function () {
     $payload = [
         'Tiendas' => [
             validTienda(['Archivos' => [
@@ -137,8 +137,35 @@ it('rechaza un Md5 faltante cuando Existe es true', function () {
 
     $response = $this->postJson('/api/hash-archivos/registrar-lote', $payload, ['X-API-Key' => 'test-api-key']);
 
-    $response->assertStatus(422);
-    expect(array_key_exists('0.Archivos.0.Md5', $response->json('errors')))->toBeTrue();
+    $response->assertStatus(200);
+    $record = ConciliacionHashArchivo::where('archivo', 'VALES.DBF')->first();
+    expect($record)->not->toBeNull();
+    expect($record->md5_completo)->toBeNull();
+});
+
+it('acepta un Md5 vacio cuando Existe es true y guarda el archivo', function () {
+    $payload = [
+        'Tiendas' => [
+            validTienda(['Archivos' => [
+                [
+                    'Nombre' => 'DD_DATOS.DBF',
+                    'Existe' => true,
+                    'Md5' => '',
+                    'Peso' => 14065224,
+                    'FechaModificacion' => '2026-08-28T18:07:28.1935447-06:00',
+                ],
+            ]]),
+        ],
+    ];
+
+    $response = $this->postJson('/api/hash-archivos/registrar-lote', $payload, ['X-API-Key' => 'test-api-key']);
+
+    $response->assertStatus(200);
+    expect($response->json('archivos'))->toBe(1);
+    $record = ConciliacionHashArchivo::where('archivo', 'DD_DATOS.DBF')->first();
+    expect($record)->not->toBeNull();
+    expect($record->md5)->toBe('');
+    expect($record->md5_completo)->toBeNull();
 });
 
 it('acepta archivos con Existe false, sin Md5, y no los guarda', function () {
@@ -191,7 +218,23 @@ it('acepta FechaModificacion con offset de zona horaria y decimales', function (
 
     $response->assertStatus(200);
     $record = ConciliacionHashArchivo::where('archivo', 'VALES.DBF')->first();
-    expect($record->fecha_modificacion->format('Y-m-d H:i:s'))->toBe('2026-07-14 13:28:23');
+    expect($record->fecha_modificacion)->toBe('2026-07-14T13:28:23.3065014-06:00');
+});
+
+it('acepta FechaEnvio con offset de zona horaria y decimales', function () {
+    $payload = [
+        'Tiendas' => [
+            validTienda([
+                'FechaEnvio' => '2026-08-31T16:14:03.9909249-06:00',
+            ]),
+        ],
+    ];
+
+    $response = $this->postJson('/api/hash-archivos/registrar-lote', $payload, ['X-API-Key' => 'test-api-key']);
+
+    $response->assertStatus(200);
+    $record = ConciliacionHashArchivo::where('archivo', 'VALES.DBF')->first();
+    expect($record->fecha_consulta_api)->toBe('2026-08-31T16:14:03.9909249-06:00');
 });
 
 it('rechaza campos obligatorios faltantes', function () {

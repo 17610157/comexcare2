@@ -104,7 +104,7 @@ class ReporteDbfFilesQuickbckController extends Controller
             if (in_array($disparador, ['pvsi', 'cortefin'])) {
                 if (! isset($map[$key]['_pvsi_latest'])) {
                     $map[$key]['_pvsi_latest'] = $r;
-                } elseif ($r->fecha_modificacion > $map[$key]['_pvsi_latest']->fecha_modificacion) {
+                } elseif ($this->fechaCarbon($r->fecha_modificacion) > $this->fechaCarbon($map[$key]['_pvsi_latest']->fecha_modificacion)) {
                     $map[$key]['_pvsi_latest'] = $r;
                 }
             }
@@ -118,6 +118,19 @@ class ReporteDbfFilesQuickbckController extends Controller
         }
 
         return $map;
+    }
+
+    private function fechaCarbon(mixed $fecha): ?Carbon
+    {
+        if ($fecha === null || (string) $fecha === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($fecha);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     private function formatAgentModifiedTime($modified)
@@ -203,7 +216,8 @@ class ReporteDbfFilesQuickbckController extends Controller
     ): array {
         $pvsiEqualsRbf = $pvsiRecord !== null
             && $rbfRecord !== null
-            && strtolower($pvsiRecord->md5) === strtolower($rbfRecord->md5);
+            && trim((string) $pvsiRecord->md5) !== ''
+            && strtolower((string) $pvsiRecord->md5) === strtolower((string) $rbfRecord->md5);
 
         if ($pvsiEqualsRbf) {
             return ['status' => 'conciliado', 'desactualizado' => false];
@@ -215,10 +229,13 @@ class ReporteDbfFilesQuickbckController extends Controller
 
         $desactualizado = true;
 
-        if ($pvsiRecord?->fecha_modificacion !== null
-            && $rbfRecord?->fecha_modificacion !== null
+        $pvsiFecha = $this->fechaCarbon($pvsiRecord?->fecha_modificacion);
+        $rbfFecha = $this->fechaCarbon($rbfRecord?->fecha_modificacion);
+
+        if ($pvsiFecha !== null
+            && $rbfFecha !== null
             && $quickModified !== null) {
-            $dates = [$pvsiRecord->fecha_modificacion, $rbfRecord->fecha_modificacion, $quickModified];
+            $dates = [$pvsiFecha, $rbfFecha, $quickModified];
             $minDate = $dates[0];
             $maxDate = $dates[0];
             foreach ($dates as $date) {
@@ -309,7 +326,7 @@ class ReporteDbfFilesQuickbckController extends Controller
                     $pvsiRecord = $matches['pvsi'] ?? null;
                     $rbfRecord = $matches['rbf'] ?? null;
 
-                    $externoRecord = $matches['nicar'] ?? $matches['guate'] ?? null;
+                    $externoRecord = $matches['nicar'] ?? $matches['guate'] ?? $matches['guada'] ?? $matches['canov'] ?? null;
 
                     $pvsiMatched = $pvsiRecord !== null && $last5 === strtolower($pvsiRecord->md5);
                     $rbfMatched = $rbfRecord !== null && $last5 === strtolower($rbfRecord->md5);
@@ -373,11 +390,11 @@ class ReporteDbfFilesQuickbckController extends Controller
                         'modificacion' => $this->formatAgentModifiedTime($file['modified'] ?? ''),
                         'md5' => substr($file['hash_md5'] ?? '', -5),
                         'pvsi_md5' => $pvsiRecord?->md5,
-                        'pvsi_fecha' => $pvsiRecord?->fecha_modificacion?->format('Y-m-d H:i:s'),
+                        'pvsi_fecha' => $this->fechaCarbon($pvsiRecord?->fecha_modificacion)?->format('Y-m-d H:i:s'),
                         'rbf_md5' => $rbfRecord?->md5,
-                        'rbf_fecha' => $rbfRecord?->fecha_modificacion?->format('Y-m-d H:i:s'),
+                        'rbf_fecha' => $this->fechaCarbon($rbfRecord?->fecha_modificacion)?->format('Y-m-d H:i:s'),
                         'externo_md5' => $externoRecord?->md5,
-                        'externo_fecha' => $externoRecord?->fecha_modificacion?->format('Y-m-d H:i:s'),
+                        'externo_fecha' => $this->fechaCarbon($externoRecord?->fecha_modificacion)?->format('Y-m-d H:i:s'),
                         'pvsi_matched' => $pvsiMatched,
                         'rbf_matched' => $rbfMatched,
                         'externo_matched' => $externoMatched,
@@ -538,7 +555,7 @@ class ReporteDbfFilesQuickbckController extends Controller
                         $matches = $conciliacionLookup[$shortKey.'|'.strtolower($fileName)] ?? [];
                         $pvsiRecord = $matches['pvsi'] ?? null;
                         $rbfRecord = $matches['rbf'] ?? null;
-                        $externoRecord = $matches['nicar'] ?? $matches['guate'] ?? null;
+                        $externoRecord = $matches['nicar'] ?? $matches['guate'] ?? $matches['guada'] ?? $matches['canov'] ?? null;
 
                         $pvsiMatched = $pvsiRecord !== null && $last5 === strtolower($pvsiRecord->md5);
                         $rbfMatched = $rbfRecord !== null && $last5 === strtolower($rbfRecord->md5);
@@ -566,13 +583,13 @@ class ReporteDbfFilesQuickbckController extends Controller
                             $fileName,
                             $sizeKb,
                             $pvsiRecord?->md5 ?? '',
-                            $pvsiRecord?->fecha_modificacion?->format('Y-m-d H:i:s') ?? '',
+                            $this->fechaCarbon($pvsiRecord?->fecha_modificacion)?->format('Y-m-d H:i:s') ?? '',
                             $dbfFile['hash_md5'] ?? '',
                             $modified,
                             $rbfRecord?->md5 ?? '',
-                            $rbfRecord?->fecha_modificacion?->format('Y-m-d H:i:s') ?? '',
+                            $this->fechaCarbon($rbfRecord?->fecha_modificacion)?->format('Y-m-d H:i:s') ?? '',
                             $externoRecord?->md5 ?? '',
-                            $externoRecord?->fecha_modificacion?->format('Y-m-d H:i:s') ?? '',
+                            $this->fechaCarbon($externoRecord?->fecha_modificacion)?->format('Y-m-d H:i:s') ?? '',
                             $conciliacion,
                             $classification['desactualizado'] ? 'Si' : 'No',
                         ]);

@@ -537,6 +537,12 @@ return [
                     'can' => 'dbf-files-quickbck.ver',
                 ],
                 [
+                    'text' => 'Reporte de Trazabilidad',
+                    'icon' => 'fas fa-project-diagram',
+                    'url' => 'reportes/trazabilidad',
+                    'can' => 'reportes.trazabilidad.ver',
+                ],
+                [
                     'text' => 'Reporte Distribuciones',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/distribuciones',
