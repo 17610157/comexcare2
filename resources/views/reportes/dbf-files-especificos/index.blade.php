@@ -192,6 +192,7 @@
   <div class="card">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div class="d-flex align-items-center flex-wrap">
+        <button class="btn btn-dark btn-sm" id="btn_run_dbf" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> DBF</button>
         <button class="btn btn-success btn-sm" id="btn_run_lista" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> LISTA</button>
         <button class="btn btn-info btn-sm" id="btn_run_promocion" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> PROMOCION</button>
         <button class="btn btn-warning btn-sm" id="btn_run_oferta" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> OFERTA</button>
@@ -858,6 +859,7 @@ $(function() {
     });
   }
 
+  $('#btn_run_dbf').on('click', function() { previewAndConfirm('dbf'); });
   $('#btn_run_lista').on('click', function() { previewAndConfirm('lista'); });
   $('#btn_run_promocion').on('click', function() { previewAndConfirm('promocion'); });
   $('#btn_run_oferta').on('click', function() { previewAndConfirm('oferta'); });

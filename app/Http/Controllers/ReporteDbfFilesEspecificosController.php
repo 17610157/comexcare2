@@ -16,7 +16,6 @@ class ReporteDbfFilesEspecificosController extends Controller
 {
     private const SPECIFIC_FILES = [
         'ARCERO.DBF',
-        'CABLISTA.DBF',
         'CLIECATP.DBF',
         'LISTA.DBF',
         'OFERTAS.DBF',
@@ -26,7 +25,8 @@ class ReporteDbfFilesEspecificosController extends Controller
     ];
 
     private const TIPO_MAP = [
-        'lista' => ['dbf' => ['LISTA.DBF', 'CABLISTA.DBF'], 'bat' => 'DALISTA.BAT'],
+        'dbf' => ['dbf' => ['CLIECATP.DBF'], 'bat' => 'DADBF.BAT'],
+        'lista' => ['dbf' => ['LISTA.DBF'], 'bat' => 'DALISTA.BAT'],
         'promocion' => ['dbf' => ['PROMARTS.DBF', 'ARCERO.DBF'], 'bat' => 'DAPROMO.BAT'],
         'oferta' => ['dbf' => ['OFERTAS.DBF'], 'bat' => 'DAOFERTA.BAT'],
         'combo' => ['dbf' => ['PCOMB.DBF', 'PDCOMB.DBF'], 'bat' => 'DACOMBO.BAT'],
@@ -34,7 +34,6 @@ class ReporteDbfFilesEspecificosController extends Controller
 
     private const FILE_TO_SERVICE = [
         'LISTA.DBF' => ['servicio' => 'lista', 'config_col' => 'li'],
-        'CABLISTA.DBF' => ['servicio' => 'lista', 'config_col' => 'li'],
         'OFERTAS.DBF' => ['servicio' => 'oferta', 'config_col' => 'of'],
         'PROMARTS.DBF' => ['servicio' => 'promo', 'config_col' => 'pr'],
         'ARCERO.DBF' => ['servicio' => 'promo', 'config_col' => 'pr'],
@@ -136,6 +135,20 @@ class ReporteDbfFilesEspecificosController extends Controller
         foreach ($records as $r) {
             $key = strtolower($r->plaza ?? '').'|'.strtoupper($r->hash ?? '').'|'.strtolower($r->name ?? '');
             $map[$key] = $r;
+        }
+
+        return $map;
+    }
+
+    private function getRbfHashByNameLookup(): array
+    {
+        $map = [];
+        $records = RbfFileHash::all();
+        foreach ($records as $r) {
+            $key = strtolower($r->plaza ?? '').'|'.strtolower($r->name ?? '');
+            if (! isset($map[$key])) {
+                $map[$key] = $r;
+            }
         }
 
         return $map;
@@ -302,6 +315,7 @@ class ReporteDbfFilesEspecificosController extends Controller
         $archivoAllowed = $this->resolveArchivoFilter($archivoInput);
         $rbfLookup = $this->getRbfHashLookup();
         $configHashLookup = $this->buildRbfConfigHashLookup();
+        $plazaHashByName = $this->getRbfHashByNameLookup();
 
         $flatRows = [];
         foreach ($allComputers as $computer) {
@@ -326,6 +340,14 @@ class ReporteDbfFilesEspecificosController extends Controller
                 if (! $rbfRecord) {
                     $hashKey = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($fileName);
                     $rbfRecord = $rbfLookup[$hashKey] ?? null;
+                }
+
+                // Fallback: buscar el archivo RBF por plaza + nombre. Esto permite
+                // detectar desincronización incluso cuando el hash local difiere
+                // del hash RBF (el cruce por hash solo coincide cuando ya están sincronizados).
+                if (! $rbfRecord) {
+                    $plazaNameKey = strtolower($computer->plaza ?? '').'|'.strtolower($fileName);
+                    $rbfRecord = $plazaHashByName[$plazaNameKey] ?? null;
                 }
 
                 $localHash = strtoupper(substr($file['hash_md5'] ?? '', -5));
