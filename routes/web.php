@@ -63,7 +63,7 @@ Route::get('/home/activity', [HomeController::class, 'activity'])->middleware('a
 Route::get('/home/fleet-health', [HomeController::class, 'fleetHealth'])->middleware('auth')->name('home.fleet-health');
 Route::get('/home/dbf-overview', [HomeController::class, 'dbfOverview'])->middleware('auth')->name('home.dbf-overview');
 
-Route::middleware('auth')->prefix('alerts')->group(function () {
+Route::middleware(['auth', 'can:alertas.configurar'])->prefix('alerts')->group(function () {
     Route::get('/page', [DashboardAlertController::class, 'page'])->name('alerts.page');
     Route::get('/state', [DashboardAlertController::class, 'state'])->name('alerts.state');
     Route::post('/ack', [DashboardAlertController::class, 'ack'])->name('alerts.ack');
@@ -341,12 +341,17 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.api-demo.data')->middleware('can:reportes.api-demo.ver');
 
     // Reporte de Autorizaciones
-    Route::get('authorization-report', [AuthorizationReportController::class, 'index'])
-        ->name('reportes.authorization-report.index')->middleware('can:reportes.ver');
+Route::get('authorization-report', [AuthorizationReportController::class, 'index'])
+
+        ->name('reportes.authorization-report.index')->middleware('can:authorization-report.ver');
+
     Route::get('authorization-report/data', [AuthorizationReportController::class, 'data'])
-        ->name('reportes.authorization-report.data')->middleware('can:reportes.ver');
+
+        ->name('reportes.authorization-report.data')->middleware('can:authorization-report.ver');
+
     Route::get('authorization-report/export', [AuthorizationReportController::class, 'export'])
-        ->name('reportes.authorization-report.export')->middleware('can:reportes.ver');
+
+        ->name('reportes.authorization-report.export')->middleware('can:authorization-report.ver');
 
     // Reporte de Estado RBF
     Route::get('rbf-config-status', [ReporteRbfConfigStatusController::class, 'index'])

@@ -174,7 +174,9 @@
     </div>
 
     {{-- Widget global de alertas --}}
-    @include('admin.partials.alerts-widget')
+    @can('alertas.configurar')
+        @include('admin.partials.alerts-widget')
+    @endcan
 @stop
 
 @section('adminlte_js')

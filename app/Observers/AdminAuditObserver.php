@@ -16,6 +16,12 @@ class AdminAuditObserver
         Permission::class => 'permiso',
     ];
 
+    protected array $relevantes = [
+        User::class => ['name', 'email', 'password', 'activo', 'plaza', 'tienda', 'rol', 'email_verified_at'],
+        Role::class => ['name', 'guard_name'],
+        Permission::class => ['name', 'guard_name'],
+    ];
+
     public function created(Model $model): void
     {
         $this->handle('create', $model);
@@ -34,6 +40,10 @@ class AdminAuditObserver
     protected function handle(string $action, Model $model): void
     {
         if (app()->runningInConsole()) {
+            return;
+        }
+
+        if ($action === 'update' && ! $this->tieneCambiosRelevantes($model)) {
             return;
         }
 
@@ -76,5 +86,18 @@ class AdminAuditObserver
             'meta' => ['model' => $type, 'id' => $model->getKey(), 'action' => $action],
             'triggered_at' => now(),
         ]);
+    }
+
+    protected function tieneCambiosRelevantes(Model $model): bool
+    {
+        $relevantFields = $this->relevantes[$model::class] ?? null;
+
+        if ($relevantFields === null) {
+            return true;
+        }
+
+        $changed = array_keys($model->getChanges());
+
+        return count(array_intersect($changed, $relevantFields)) > 0;
     }
 }

@@ -22,12 +22,14 @@
         @yield('content_top_nav_right')
 
         {{-- Campana de alertas --}}
-        <li class="nav-item">
-            <a class="nav-link position-relative" href="#" id="alerts-bell" aria-label="Alertas" title="Alertas">
-                <i class="bi bi-bell"></i>
-                <span id="alerts-badge" class="alerts-badge d-none">0</span>
-            </a>
-        </li>
+        @can('alertas.configurar')
+            <li class="nav-item">
+                <a class="nav-link position-relative" href="#" id="alerts-bell" aria-label="Alertas" title="Alertas">
+                    <i class="bi bi-bell"></i>
+                    <span id="alerts-badge" class="alerts-badge d-none">0</span>
+                </a>
+            </li>
+        @endcan
 
         {{-- Fullscreen toggler --}}
         <li class="nav-item">

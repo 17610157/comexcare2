@@ -317,6 +317,7 @@ return [
             'text' => 'Centro de Alertas',
             'url' => '/alerts/page',
             'icon' => 'far fa-bell',
+            'can' => 'alertas.configurar',
         ],
 
         [
@@ -552,7 +553,7 @@ return [
                     'text' => 'Reporte Autorizaciones',
                     'icon' => 'fas fa-file-alt',
                     'url' => 'reportes/authorization-report',
-                    'can' => 'reportes.ver',
+                    'can' => 'authorization-report.ver',
                 ],
                 [
                     'text' => 'Estado Configuración RBF',
