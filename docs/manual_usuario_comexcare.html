@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMEXCARE - Manual de Usuario</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #3b82f6;
+            --secondary: #0f172a;
+            --accent: #3b82f6;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --bg: #ffffff;
+            --bg-alt: #f8fafc;
+            --border: #e2e8f0;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        /* ===== PORTADA ===== */
+        .cover {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+            color: white;
+            text-align: center;
+            padding: 60px 40px;
+            page-break-after: always;
+        }
+
+        .cover-logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 40px;
+            border: 3px solid rgba(255,255,255,0.2);
+        }
+
+        .cover h1 {
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+
+        .cover .subtitle {
+            font-size: 20px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 40px;
+        }
+
+        .cover .version {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 60px;
+        }
+
+        .cover .version strong { color: rgba(255,255,255,0.8); }
+
+        /* ===== CONTENIDO ===== */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        /* ===== ÍNDICE ===== */
+        .toc {
+            page-break-after: always;
+            padding: 60px 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .toc h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: var(--secondary);
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 10px;
+        }
+
+        .toc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 8px 0;
+            border-bottom: 1px dotted var(--border);
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .toc-item:hover { color: var(--primary); }
+
+        .toc-section {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .toc-sub {
+            padding-left: 24px;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        /* ===== SECCIONES ===== */
+        h1.section-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--secondary);
+            margin: 60px 0 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid var(--primary);
+            page-break-before: always;
+        }
+
+        h1.section-title:first-of-type {
+            page-break-before: auto;
+        }
+
+        h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--secondary);
+            margin: 40px 0 12px;
+            padding-left: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        h3 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text);
+            margin: 24px 0 8px;
+        }
+
+        p {
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        /* ===== CAPTURA DE PANTALLA ===== */
+        .screenshot {
+            background: var(--bg-alt);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 20px 0;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            page-break-inside: avoid;
+        }
+
+        .screenshot-placeholder {
+            width: 100%;
+            min-height: 180px;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            font-size: 13px;
+            gap: 8px;
+        }
+
+        .screenshot-placeholder i {
+            font-size: 32px;
+            opacity: 0.4;
+        }
+
+        .screenshot-caption {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* ===== NOTAS ===== */
+        .note {
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            padding: 14px 18px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+            font-size: 13px;
+        }
+
+        .note-warning {
+            background: #fef3c7;
+            border-left-color: var(--warning);
+        }
+
+        .note-danger {
+            background: #fef2f2;
+            border-left-color: var(--danger);
+        }
+
+        .note strong { display: block; margin-bottom: 4px; }
+
+        /* ===== PASOS ===== */
+        .steps {
+            counter-reset: step;
+            margin: 16px 0;
+        }
+
+        .step {
+            counter-increment: step;
+            display: flex;
+            gap: 14px;
+            margin-bottom: 16px;
+            padding: 14px;
+            background: var(--bg-alt);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .step::before {
+            content: counter(step);
+            background: var(--primary);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .step-content { flex: 1; }
+        .step-content strong { display: block; margin-bottom: 4px; }
+
+        /* ===== TABLAS ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 13px;
+        }
+
+        th {
+            background: var(--secondary);
+            color: white;
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:nth-child(even) { background: var(--bg-alt); }
+        tr:hover { background: #f1f5f9; }
+
+        /* ===== LISTAS ===== */
+        ul, ol {
+            margin: 12px 0;
+            padding-left: 24px;
+        }
+
+        li { margin-bottom: 6px; }
+
+        /* ===== BADGES ===== */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-blue { background: #dbeafe; color: #1d4ed8; }
+        .badge-green { background: #dcfce7; color: #16a34a; }
+        .badge-yellow { background: #fef3c7; color: #b45309; }
+        .badge-red { background: #fef2f2; color: #dc2626; }
+        .badge-gray { background: #f1f5f9; color: #64748b; }
+
+        /* ===== FUNCIONALIDAD ===== */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .feature-card {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .feature-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--primary);
+        }
+
+        .feature-card p {
+            font-size: 12px;
+            color: var(--text-light);
+            margin: 0;
+        }
+
+        /* ===== MENÚ LATERAL ===== */
+        .sidebar-nav {
+            page-break-after: always;
+        }
+
+        .menu-item {
+            padding: 6px 0 6px 16px;
+            border-left: 2px solid var(--border);
+            margin-left: 8px;
+        }
+
+        .menu-item.active {
+            border-left-color: var(--primary);
+            background: #eff6ff;
+            border-radius: 0 6px 6px 0;
+        }
+
+        /* ===== PRINT ===== */
+        @media print {
+            body { font-size: 11pt; }
+            .cover { min-height: auto; padding: 100px 40px; }
+            h1.section-title { page-break-before: always; }
+            .screenshot { page-break-inside: avoid; }
+            .no-print { display: none; }
+            .container { padding: 20px; }
+        }
+
+        /* ===== FLECHA SVG ===== */
+        .icon-placeholder {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===================== PORTADA ===================== -->
+<div class="cover">
+    <div class="cover-logo">CC</div>
+    <h1>COMEXCARE</h1>
+    <p class="subtitle">Manual de Usuario - Guia Completa del Sistema</p>
+    <p class="subtitle" style="font-size:15px; margin-top:-20px; color:rgba(255,255,255,0.5);">Plataforma de Gestion y Monitoreo de Equipos</p>
+    <div class="version">
+        <strong>Version 1.0</strong> | Septiembre 2026<br>
+        Departamento de Tecnologia - COMEX
+    </div>
+</div>
+
+<!-- ===================== ÍNDICE ===================== -->
+<div class="toc">
+    <h2>Indice de Contenidos</h2>
+
+    <a class="toc-item" href="#intro"><span class="toc-section">1. Introduccion</span></a>
+    <a class="toc-item toc-sub" href="#intro-que-es"><span>1.1 Que es COMEXCARE</span></a>
+    <a class="toc-item toc-sub" href="#intro-requisitos"><span>1.2 Requisitos del Sistema</span></a>
+
+    <a class="toc-item" href="#login"><span class="toc-section">2. Inicio de Sesion</span></a>
+
+    <a class="toc-item" href="#dashboard"><span class="toc-section">3. Panel de Control (Dashboard)</span></a>
+    <a class="toc-item toc-sub" href="#dash-servidor"><span>3.1 Servidor en Tiempo Real</span></a>
+    <a class="toc-item toc-sub" href="#dash-flota"><span>3.2 Flota y Agente</span></a>
+    <a class="toc-item toc-sub" href="#dash-mapa"><span>3.3 Mapa de Equipos</span></a>
+    <a class="toc-item toc-sub" href="#dash-actividad"><span>3.4 Actividad de Agentes</span></a>
+    <a class="toc-item toc-sub" href="#dash-salud"><span>3.5 Matriz de Salud</span></a>
+    <a class="toc-item toc-sub" href="#dash-distribuciones"><span>3.6 Distribuciones</span></a>
+    <a class="toc-item toc-sub" href="#dash-precios"><span>3.7 Reporte de Precios (DBF)</span></a>
+    <a class="toc-item toc-sub" href="#dash-monitoreo"><span>3.8 Monitoreo y Sistema</span></a>
+    <a class="toc-item toc-sub" href="#dash-pvsi"><span>3.9 Versiones PVSI</span></a>
+
+    <a class="toc-item" href="#alertas"><span class="toc-section">4. Centro de Alertas</span></a>
+
+    <a class="toc-item" href="#admin"><span class="toc-section">5. Modulos de Administracion</span></a>
+    <a class="toc-item toc-sub" href="#admin-usuarios"><span>5.1 Usuarios</span></a>
+    <a class="toc-item toc-sub" href="#admin-roles"><span>5.2 Roles</span></a>
+    <a class="toc-item toc-sub" href="#admin-permisos"><span>5.3 Permisos</span></a>
+    <a class="toc-item toc-sub" href="#admin-tiendas"><span>5.4 Tiendas</span></a>
+    <a class="toc-item toc-sub" href="#admin-user-plaza"><span>5.5 Asignacion de Usuarios a Plaza/Tienda</span></a>
+    <a class="toc-item toc-sub" href="#admin-metas"><span>5.6 Metas</span></a>
+    <a class="toc-item toc-sub" href="#admin-distribuciones"><span>5.7 Distribuciones</span></a>
+    <a class="toc-item toc-sub" href="#admin-agent-defaults"><span>5.8 Archivos Predeterminados del Agente</span></a>
+    <a class="toc-item toc-sub" href="#admin-monitored"><span>5.9 Archivos Monitoreados</span></a>
+    <a class="toc-item toc-sub" href="#admin-rbf-hashes"><span>5.10 RBF File Hashes</span></a>
+    <a class="toc-item toc-sub" href="#admin-rbf-time"><span>5.11 Horarios por Plaza RBF</span></a>
+    <a class="toc-item toc-sub" href="#admin-file-lists"><span>5.12 Listas de Archivos (Blanca/Negra)</span></a>
+    <a class="toc-item toc-sub" href="#admin-modules"><span>5.13 Modulos de Autorizacion</span></a>
+    <a class="toc-item toc-sub" href="#admin-emails"><span>5.14 Correos Autorizados</span></a>
+    <a class="toc-item toc-sub" href="#admin-reception"><span>5.15 Recepcion de Informacion</span></a>
+    <a class="toc-item toc-sub" href="#admin-computers"><span>5.16 Computadoras</span></a>
+    <a class="toc-item toc-sub" href="#admin-groups"><span>5.17 Grupos</span></a>
+    <a class="toc-item toc-sub" href="#admin-agent-versions"><span>5.18 Versiones de Agente</span></a>
+    <a class="toc-item toc-sub" href="#admin-resurtido"><span>5.19 CareAgent Resurtido</span></a>
+
+    <a class="toc-item" href="#reportes"><span class="toc-section">6. Modulo de Reportes</span></a>
+    <a class="toc-item toc-sub" href="#rep-vendedores"><span>6.1 Reporte de Vendedores</span></a>
+    <a class="toc-item toc-sub" href="#rep-vendedores-b2b"><span>6.2 Reporte de Vendedores B2B/VDT</span></a>
+    <a class="toc-item toc-sub" href="#rep-vendedores-matricial"><span>6.3 Reporte de Vendedores Matricial</span></a>
+    <a class="toc-item toc-sub" href="#rep-metas-ventas"><span>6.4 Reporte de Metas de Ventas</span></a>
+    <a class="toc-item toc-sub" href="#rep-metas-matricial"><span>6.5 Reporte Resumen Metas (Matricial)</span></a>
+    <a class="toc-item toc-sub" href="#rep-desglose"><span>6.6 Desglose de Ventas por Dia</span></a>
+    <a class="toc-item toc-sub" href="#rep-compras"><span>6.7 Reporte de Compras Directo</span></a>
+    <a class="toc-item toc-sub" href="#rep-vales"><span>6.8 Reporte de Vales</span></a>
+    <a class="toc-item toc-sub" href="#rep-cartera"><span>6.9 Reporte Cartera - Abonos</span></a>
+    <a class="toc-item toc-sub" href="#rep-notas"><span>6.10 Reporte Notas Completas</span></a>
+    <a class="toc-item toc-sub" href="#rep-club-comex"><span>6.11 Club Comex</span></a>
+    <a class="toc-item toc-sub" href="#rep-redenciones"><span>6.12 Redenciones Club Comex</span></a>
+    <a class="toc-item toc-sub" href="#rep-dbf-files"><span>6.13 Dashboard de Archivos (DBF)</span></a>
+    <a class="toc-item toc-sub" href="#rep-dbf-precios"><span>6.14 Reporte de Archivos de Precios</span></a>
+    <a class="toc-item toc-sub" href="#rep-dbf-conciliacion"><span>6.15 Conciliacion QuickBCK</span></a>
+    <a class="toc-item toc-sub" href="#rep-trazabilidad"><span>6.16 Reporte de Trazabilidad</span></a>
+    <a class="toc-item toc-sub" href="#rep-distribuciones"><span>6.17 Reporte de Distribuciones</span></a>
+    <a class="toc-item toc-sub" href="#rep-authorization"><span>6.18 Reporte de Autorizaciones</span></a>
+    <a class="toc-item toc-sub" href="#rep-rbf-status"><span>6.19 Estado Configuracion RBF</span></a>
+
+    <a class="toc-item" href="#glosario"><span class="toc-section">7. Glosario de Terminos</span></a>
+</div>
+
+<!-- ===================== CONTENIDO PRINCIPAL ===================== -->
+<div class="container">
+
+<!-- ===== 1. INTRODUCCIÓN ===== -->
+<h1 class="section-title" id="intro">1. Introduccion</h1>
+
+<h2 id="intro-que-es">1.1 Que es COMEXCARE</h2>
+<p>COMEXCARE es una plataforma web integral disenada para la gestion, monitoreo y administracion remota de equipos de computo (computadoras) distribuidos en tiendas, almacenes y centros de distribucion de <strong>COMEX</strong> a nivel nacional.</p>
+
+<p>El sistema permite:</p>
+<ul>
+    <li><strong>Monitorear</strong> el estado de cientos de computadoras en tiempo real (en linea, fuera de linea, actualizando).</li>
+    <li><strong>Distribuir archivos</strong> de forma masiva: actualizaciones de agentes, archivos de precios DBF, configuraciones, comandos.</li>
+    <li><strong>Recepcionar archivos</strong> desde las tiendas para su consolidacion centralizada.</li>
+    <li><strong>Generar reportes</strong> detallados de ventas, metas, vales, cartera, conciliacion de archivos y mas.</li>
+    <li><strong>Gestionar usuarios, roles y permisos</strong> con control de acceso granular.</li>
+    <li><strong>Recibir alertas</strong> en tiempo real sobre metricas del sistema.</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de pantalla del Dashboard principal]
+    </div>
+    <div class="screenshot-caption">Figura 1.1 - Panel de Control principal de COMEXCARE</div>
+</div>
+
+<h2 id="intro-requisitos">1.2 Requisitos del Sistema</h2>
+<table>
+    <thead>
+        <tr><th>Componente</th><th>Requisito</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Navegador Web</td><td>Google Chrome 90+, Mozilla Firefox 90+, Microsoft Edge 90+ o Safari 14+</td></tr>
+        <tr><td>Conexion a Internet</td><td>Conexion estable recomendada (minimo 1 Mbps)</td></tr>
+        <tr><td>Resolucion</td><td>1280x720 o superior (optimizado para 1920x1080)</td></tr>
+        <tr><td>JavaScript</td><td>Habilitado (requerido para funcionamiento completo)</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ===== 2. INICIO DE SESIÓN ===== -->
+<h1 class="section-title" id="login">2. Inicio de Sesion</h1>
+
+<p>Para acceder al sistema, abra su navegador y navegue a la URL de COMEXCARE. Se mostrara la pantalla de inicio de sesion con un diseno retro/arcade.</p>
+
+<div class="steps">
+    <div class="step">
+        <div class="step-content">
+            <strong>Ingrese su correo electronico</strong>
+            Escriba el correo electronico registrado en el campo "Usuario" o "Email".
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-content">
+            <strong>Ingrese su contrasena</strong>
+            Escriba su contrasena en el campo correspondiente.
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-content">
+            <strong>Haga clic en "Iniciar Sesion"</strong>
+            El sistema validara sus credenciales. Si son correctas, sera redirigido al Panel de Control.
+        </div>
+    </div>
+</div>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de pantalla de la pagina de Login]
+    </div>
+    <div class="screenshot-caption">Figura 2.1 - Pantalla de inicio de sesion con diseno retro</div>
+</div>
+
+<div class="note">
+    <strong>Nota:</strong> Si olvido su contrasena o tiene problemas para acceder, contacte al administrador del sistema para restablecer sus credenciales.
+</div>
+
+
+<!-- ===== 3. PANEL DE CONTROL ===== -->
+<h1 class="section-title" id="dashboard">3. Panel de Control (Dashboard)</h1>
+
+<p>El Panel de Control es la pantalla principal que se muestra al iniciar sesion. Ofrece una vista completa del estado del sistema en tiempo real, organizada en tarjetas informativas.</p>
+
+<h3>Navegacion del Sidebar</h3>
+<p>El menu lateral izquierdo contiene todas las secciones del sistema. Para navegar, haga clic en la seccion deseada. Las secciones disponibles dependen de los permisos asignados a su usuario.</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del sidebar/menu lateral con las secciones visibles]
+    </div>
+    <div class="screenshot-caption">Figura 3.0 - Menu lateral de navegacion</div>
+</div>
+
+<h2 id="dash-servidor">3.1 Servidor en Tiempo Real</h2>
+<p>Esta tarjeta muestra el rendimiento actual del servidor con metricas en vivo actualizadas automaticamente.</p>
+
+<div class="feature-grid">
+    <div class="feature-card">
+        <h4>CPU</h4>
+        <p>Porcentaje de uso del procesador con grafica de historial en tiempo real.</p>
+    </div>
+    <div class="feature-card">
+        <h4>Memoria RAM</h4>
+        <p>Porcentaje de uso de memoria del servidor.</p>
+    </div>
+    <div class="feature-card">
+        <h4>Disco Duro</h4>
+        <p>Espacio utilizado en el disco del servidor.</p>
+    </div>
+    <div class="feature-card">
+        <h4>Red</h4>
+        <p>Traffic de red entrante (RX) y saliente (TX) en tiempo real.</p>
+    </div>
+</div>
+
+<p>En la parte superior se muestran chips informativos con: Nucleos del CPU, Load Average, RAM, Disco, Swap y Uptime del servidor.</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la tarjeta "Servidor en Tiempo Real"]
+    </div>
+    <div class="screenshot-caption">Figura 3.1 - Metricas del servidor en tiempo real</div>
+</div>
+
+<h2 id="dash-flota">3.2 Flota y Agente</h2>
+<p>Muestra el resumen del estado de todas las computadoras monitoreadas y el estado del agente instalado.</p>
+
+<table>
+    <thead>
+        <tr><th>Metrica</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="badge badge-green">En Linea</span></td><td>Computadoras que se han comunicado recientemente con el servidor</td></tr>
+        <tr><td><span class="badge badge-red">Fuera de Linea</span></td><td>Computadoras que no se han comunicado en el periodo configurado</td></tr>
+        <tr><td>Total PCs</td><td>Numero total de computadoras registradas en el sistema</td></tr>
+        <tr><td>% En Linea</td><td>Porcentaje de computadoras activas vs. el total</td></tr>
+        <tr><td>Agente Activo</td><td>Computadoras ejecutando la version actual del agente</td></tr>
+        <tr><td>Desactualiz.</td><td>Computadoras con versiones antiguas del agente</td></tr>
+        <tr><td>Con Agente</td><td>Computadoras que tienen instalado el agente COMEXCARE</td></tr>
+    </tbody>
+</table>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la tarjeta "Flota y Agente"]
+    </div>
+    <div class="screenshot-caption">Figura 3.2 - Resumen de la flota de computadoras</div>
+</div>
+
+<h2 id="dash-mapa">3.3 Mapa de Equipos</h2>
+<p>Muestra un mapa interactivo de Mexico con el estado de las computadoras por plaza/region. El color de cada region indica el porcentaje de equipos en linea:</p>
+<ul>
+    <li><span style="color:#059669">&#9632;</span> <strong>Verde:</strong> Mas del 80% de equipos en linea</li>
+    <li><span style="color:#b45309">&#9632;</span> <strong>Amarillo:</strong> Entre 50% y 80% en linea</li>
+    <li><span style="color:#dc2626">&#9632;</span> <strong>Rojo:</strong> Menos del 50% en linea</li>
+    <li><span style="color:#334155">&#9632;</span> <strong>Gris:</strong> Sin equipos registrados</li>
+</ul>
+<p>Haga clic en una region para ver el detalle de los equipos en esa plaza.</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la tarjeta "Mapa de Equipos"]
+    </div>
+    <div class="screenshot-caption">Figura 3.3 - Mapa interactivo de equipos por plaza</div>
+</div>
+
+<h2 id="dash-actividad">3.4 Actividad de Agentes</h2>
+<p>Muestra un feed en vivo de las actividades de los agentes instalados en las computadoras. Puede filtrar por tipo de actividad:</p>
+<ul>
+    <li><strong>Todo:</strong> Muestra todos los eventos</li>
+    <li><strong>Vales:</strong> Movimientos de vales</li>
+    <li><strong>RBF:</strong> Actualizaciones de archivos RBF</li>
+    <li><strong>Descargas:</strong> Descargas de archivos</li>
+    <li><strong>Comandos:</strong> Ejecucion de comandos remotos</li>
+    <li><strong>Sistema:</strong> Eventos del sistema</li>
+</ul>
+<p>Se muestra la tasa de eventos por minuto y puede pausar/reanudar el feed.</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la tarjeta "Actividad de Agentes"]
+    </div>
+    <div class="screenshot-caption">Figura 3.4 - Feed de actividad de agentes en tiempo real</div>
+</div>
+
+<h2 id="dash-salud">3.5 Matriz de Salud</h2>
+<p>Visualizacion grafica del estado de salud de cada computadora, agrupada por plaza. Cada cuadrado representa una computadora:</p>
+<ul>
+    <li><span style="display:inline-block;width:12px;height:12px;background:#059669;border-radius:3px;vertical-align:middle"></span> <strong>OK:</strong> Computadora saludable</li>
+    <li><span style="display:inline-block;width:12px;height:12px;background:#b45309;border-radius:3px;vertical-align:middle"></span> <strong>Advertencia:</strong> Requiere atencion</li>
+    <li><span style="display:inline-block;width:12px;height:12px;background:#dc2626;border-radius:3px;vertical-align:middle"></span> <strong>Critico:</strong> Problema grave</li>
+    <li><span style="display:inline-block;width:12px;height:12px;background:#334155;border-radius:3px;vertical-align:middle"></span> <strong>Offline:</strong> Sin conexion</li>
+</ul>
+<p>Puede filtrar por plaza haciendo clic en los chips superiores. Haga clic en un cuadrado para ver el perfil detallado de la computadora.</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la tarjeta "Matriz de Salud"]
+    </div>
+    <div class="screenshot-caption">Figura 3.5 - Matriz de salud del parque de equipos</div>
+</div>
+
+<h2 id="dash-distribuciones">3.6 Distribuciones</h2>
+<p>Muestra un resumen de las distribuciones de archivos en curso y recientes:</p>
+<ul>
+    <li>Conteo por estado: En Progreso, Completadas, Fallidas, Total</li>
+    <li>Grafica de dona con la distribucion por estados</li>
+    <li>Tabla con las ultimas distribuciones mostrando nombre, estado, objetivos y barra de progreso</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la tarjeta "Distribuciones"]
+    </div>
+    <div class="screenshot-caption">Figura 3.6 - Resumen de distribuciones de archivos</div>
+</div>
+
+<h2 id="dash-precios">3.7 Reporte de Precios (DBF)</h2>
+<p>Muestra un resumen del estado de actualizacion de archivos DBF de precios en las computadoras:</p>
+<ul>
+    <li><strong>% Cumplimiento:</strong> Porcentaje de archivos actualizados</li>
+    <li><strong>Total Archivos:</strong> Cantidad total de archivos monitoreados</li>
+    <li><strong>Actualizados:</strong> Archivos con hash MD5 coincidente</li>
+    <li><strong>Cambio Manual:</strong> Archivos modificados manualmente</li>
+    <li><strong>Desactualizados:</strong> Archivos que requieren actualizacion</li>
+</ul>
+<p>Se incluye una tabla de desglose por plaza.</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la tarjeta "Reporte de Precios"]
+    </div>
+    <div class="screenshot-caption">Figura 3.7 - Resumen de archivos DBF de precios</div>
+</div>
+
+<h2 id="dash-monitoreo">3.8 Monitoreo y Sistema</h2>
+<p>Tarjeta con metricas generales del sistema:</p>
+<ul>
+    <li>Archivos Monitoreados, Listas de archivos, Hashes RBF</li>
+    <li>Comandos Pendientes, Fallos en 24h</li>
+    <li>Jobs en Cola, Fallos de jobs</li>
+    <li>Sincronizaciones de Reportes</li>
+</ul>
+
+<h2 id="dash-pvsi">3.9 Versiones PVSI</h2>
+<p>Grafica de dona que muestra la distribucion de versiones de PVSI (sistema punto de venta) instaladas en las computadoras.</p>
+
+
+<!-- ===== 4. CENTRO DE ALERTAS ===== -->
+<h1 class="section-title" id="alertas">4. Centro de Alertas</h1>
+
+<p>El Centro de Alertas permite monitorear metricas del sistema y recibir notificaciones automaticas cuando se superan umbrales configurados.</p>
+
+<h2>4.1 Panel de Alertas Activas</h2>
+<p>Muestra todas las alertas que actualmente estan activas (sin confirmar). Cada alerta incluye:</p>
+<ul>
+    <li><strong>Severidad:</strong> Critica (rojo), Advertencia (amarillo) o Informativa (azul)</li>
+    <li><strong>Mensaje:</strong> Descripcion de la alerta</li>
+    <li><strong>Valor actual:</strong> Porcentaje o valor que触发 la alerta</li>
+    <li><strong>Fecha y hora:</strong> Cuando se activo la alerta</li>
+    <li><strong>Boton "Confirmar":</strong> Para marcar la alerta como atendida</li>
+</ul>
+
+<p>Tambien hay un boton "Confirmar Todo" para confirmar todas las alertas activas de una vez.</p>
+
+<h2>4.2 Historial de Alertas</h2>
+<p>Muestra las alertas que ya fueron confirmadas/atendidas, en modo solo lectura.</p>
+
+<h2>4.3 Configuracion de Reglas (Administradores)</h2>
+<p>Los usuarios con permisos de administrador pueden configurar las reglas de alerta:</p>
+
+<table>
+    <thead>
+        <tr><th>Parametro</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Umbral</td><td>Porcentaje que activa la alerta (comparador: menor que / mayor que)</td></tr>
+        <tr><td>Habilitado</td><td>Activar o desactivar la regla</td></tr>
+        <tr><td>Enfriamiento</td><td>Tiempo en minutos para no repetir la misma alerta</td></tr>
+        <tr><td>Sonido</td><td>Seleccionar un archivo de audio personalizado para la alerta</td></tr>
+    </tbody>
+</table>
+
+<p>Puede subir archivos de audio (MP3, WAV, OGG, maximo 2MB) y probarlos con el boton "Probar Sonido".</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de pantalla del Centro de Alertas]
+    </div>
+    <div class="screenshot-caption">Figura 4.1 - Centro de Alertas con reglas y alertas activas</div>
+</div>
+
+
+<!-- ===== 5. ADMINISTRACION ===== -->
+<h1 class="section-title" id="admin">5. Modulos de Administracion</h1>
+
+<!-- 5.1 Usuarios -->
+<h2 id="admin-usuarios">5.1 Usuarios</h2>
+<p>Permite gestionar los usuarios del sistema: crear, editar, eliminar y consultar.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li><strong>Crear usuario:</strong> Nombre, correo electronico, contrasena (minimo 8 caracteres), plaza, tienda, rol y estado (activo/inactivo)</li>
+    <li><strong>Editar usuario:</strong> Modificar cualquier campo excepto contrasena (la contrasena solo se cambia si se ingresa una nueva)</li>
+    <li><strong>Eliminar usuario:</strong> Confirmacion requerida antes de eliminar</li>
+    <li><strong>Filtros:</strong> Por rol, estado (activo/inactivo) y busqueda por texto</li>
+</ul>
+
+<h3>Tabla de Usuarios</h3>
+<table>
+    <thead>
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>ID</td><td>Identificador unico del usuario</td></tr>
+        <tr><td>Nombre</td><td>Nombre completo</td></tr>
+        <tr><td>Email</td><td>Correo electronico de acceso</td></tr>
+        <tr><td>Plaza</td><td>Plaza asignada</td></tr>
+        <tr><td>Tienda</td><td>Tienda asignada</td></tr>
+        <tr><td>Rol</td><td>Rol asignado (badge de color)</td></tr>
+        <tr><td>Estado</td><td>Activo (verde) o Inactivo (gris)</td></tr>
+        <tr><td>Fecha Creacion</td><td>Fecha de alta en el sistema</td></tr>
+    </tbody>
+</table>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Gestion de Usuarios]
+    </div>
+    <div class="screenshot-caption">Figura 5.1 - Modulo de gestion de usuarios</div>
+</div>
+
+<!-- 5.2 Roles -->
+<h2 id="admin-roles">5.2 Roles</h2>
+<p>Administra los roles del sistema. Cada rol agrupa un conjunto de permisos que determinan que puede hacer un usuario.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li><strong>Crear rol:</strong> Nombre del rol y seleccion de permisos agrupados por modulo</li>
+    <li><strong>Editar rol:</strong> Cambiar nombre y/o permisos asignados</li>
+    <li><strong>Eliminar rol:</strong> Solo si no tiene usuarios asignados</li>
+    <li><strong>Seleccionar todos:</strong> Checkbox para seleccionar/deseleccionar todos los permisos</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Gestion de Roles]
+    </div>
+    <div class="screenshot-caption">Figura 5.2 - Gestion de roles con permisos agrupados por modulo</div>
+</div>
+
+<!-- 5.3 Permisos -->
+<h2 id="admin-permisos">5.3 Permisos</h2>
+<p>Visualiza y administra los permisos disponibles en el sistema. Los permisos se organizan por modulo y controlan el acceso a funcionalidades especificas.</p>
+
+<p>Ejemplos de permisos:</p>
+<ul>
+    <li><code>admin.usuarios.ver</code> - Ver la lista de usuarios</li>
+    <li><code>admin.usuarios.crear</code> - Crear nuevos usuarios</li>
+    <li><code>reportes.vendedores.ver</code> - Ver reportes de vendedores</li>
+    <li><code>distribution.crear</code> - Crear distribuciones de archivos</li>
+</ul>
+
+<!-- 5.4 Tiendas -->
+<h2 id="admin-tiendas">5.4 Tiendas</h2>
+<p>Gestion de tiendas registradas en el sistema. Cada tienda esta asociada a una plaza, zona y puede estar vinculada a una computadora.</p>
+
+<h3>Campos de la Tienda</h3>
+<table>
+    <thead>
+        <tr><th>Campo</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Clave Tienda</td><td>Identificador unico de la tienda</td></tr>
+        <tr><td>Nombre</td><td>Nombre comercial de la tienda</td></tr>
+        <tr><td>Plaza</td><td>Plaza a la que pertenece</td></tr>
+        <tr><td>Zona</td><td>Zona geografica (1-10)</td></tr>
+        <tr><td>Clave Alterna</td><td>Identificador alternativo</td></tr>
+        <tr><td>Estado</td><td>Activo o Inactivo</td></tr>
+        <tr><td>Tipo</td><td>Tipo de tienda</td></tr>
+        <tr><td>Computadora</td><td>Equipo asociado (indicador verde/rojo de conexion)</td></tr>
+    </tbody>
+</table>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Tiendas]
+    </div>
+    <div class="screenshot-caption">Figura 5.4 - Modulo de gestion de tiendas</div>
+</div>
+
+<!-- 5.5 Asignacion Usuarios-Plaza-Tienda -->
+<h2 id="admin-user-plaza">5.5 Asignacion de Usuarios a Plaza/Tienda</h2>
+<p>Controla que plazas y tiendas puede ver cada usuario en los reportes. Esta asignacion determina los datos que se muestran al usuario cuando consulta reportes.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li>Visualiza todos los usuarios con sus plazas y tiendas asignadas</li>
+    <li>Haga clic en "Editar" para modificar las asignaciones de un usuario</li>
+    <li>Se muestran badges con las plazas (gris) y tiendas (verde) asignadas</li>
+    <li>Si un usuario tiene mas de 5 tiendas asignadas, se muestra "+N mas"</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Asignacion de Usuarios]
+    </div>
+    <div class="screenshot-caption">Figura 5.5 - Asignacion de usuarios a plaza y tienda</div>
+</div>
+
+<!-- 5.6 Metas -->
+<h2 id="admin-metas">5.6 Metas</h2>
+<p>Importacion y gestion de metas de venta mensuales desde archivos Excel.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li><strong>Importar desde Excel:</strong> Subir archivo Excel con metas por plaza/tienda/periodo</li>
+    <li><strong>Crear meta manual:</strong> Definir plaza, tienda, periodo y monto de meta</li>
+    <li><strong>Editar/Eliminar metas:</strong> Modificar o eliminar metas existentes</li>
+    <li><strong>Generar Dias:</strong> Crear el desglose diario de las metas (seleccionando dias feriados)</li>
+    <li><strong>Generar Metas:</strong> Auto-generar metas basadas en configuracion</li>
+</ul>
+
+<h3>Pestanas de Informacion</h3>
+<ul>
+    <li><strong>Metas Mensual:</strong> Vista de metas por plaza/tienda/mes</li>
+    <li><strong>Metas Diarias:</strong> Desglose diario con dia de semana, valor del dia, semana Friedman</li>
+    <li><strong>Metas Detalles:</strong> Detalle por dia con meta total, dias total y meta del dia</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Metas Mensuales]
+    </div>
+    <div class="screenshot-caption">Figura 5.6 - Modulo de metas mensuales</div>
+</div>
+
+<!-- 5.7 Distribuciones -->
+<h2 id="admin-distribuciones">5.7 Distribuciones</h2>
+<p>Envio masivo de archivos, actualizaciones o comandos a las computadoras de las tiendas.</p>
+
+<h3>Crear una Distribucion</h3>
+<div class="steps">
+    <div class="step">
+        <div class="step-content">
+            <strong>Nombre y Tipo</strong>
+            Asigne un nombre descriptivo y seleccione el tipo: Inmediata, Programada o Recurrente.
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-content">
+            <strong>Tipo de Distribucion</strong>
+            Seleccione: Archivo, Actualizacion o Comando.
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-content">
+            <strong>Subir Archivo(s)</strong>
+            Seleccione los archivos a distribuir. El sistema validara contra las listas blanca/negra automaticamente.
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-content">
+            <strong>Seleccionar Destinatarios</strong>
+            Elija: Todos, Por Grupo, Por Plaza o Equipos Especificos. Puede buscar computadoras por nombre.
+        </div>
+    </div>
+    <div class="step">
+        <div class="step-content">
+            <strong>Programacion (si aplica)</strong>
+            Para recurrentes: frecuencia (minutos, horas, diario, semanal, mensual). Para programadas: fecha y hora.
+        </div>
+    </div>
+</div>
+
+<h3>Seguimiento en Tiempo Real</h3>
+<p>Una vez iniciada, la distribucion muestra el progreso de cada equipo objetivo:</p>
+<ul>
+    <li><span class="badge badge-green">Completado</span> - Archivo enviado exitosamente</li>
+    <li><span class="badge badge-blue">En Progreso</span> - Descargando o instalando</li>
+    <li><span class="badge badge-red">Fallido</span> - Error en la transferencia</li>
+    <li><span class="badge badge-yellow">Pendiente</span> - Esperando turno</li>
+    <li><span class="badge badge-gray">Offline</span> - Equipo sin conexion</li>
+</ul>
+<p>Puede reintentar equipos fallidos individualmente con el boton "Reintentar".</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Distribuciones]
+    </div>
+    <div class="screenshot-caption">Figura 5.7 - Modulo de distribuciones con seguimiento de progreso</div>
+</div>
+
+<!-- 5.8 Archivos Predeterminados -->
+<h2 id="admin-agent-defaults">5.8 Archivos Predeterminados del Agente</h2>
+<p>Administra las categorias de archivos que el agente debe tener instalados por defecto. Cada categoria puede tener multiples rutas y archivos asociados.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li>Crear, editar y eliminar categorias de archivos predeterminados</li>
+    <li>Gestionar rutas de destino en los equipos</li>
+    <li>Subir archivos para cada ruta</li>
+    <li>Asignar computadoras/grupos a cada ruta</li>
+    <li>Sincronizar archivos automaticamente</li>
+</ul>
+
+<!-- 5.9 Archivos Monitoreados -->
+<h2 id="admin-monitored">5.9 Archivos Monitoreados</h2>
+<p>Define que archivos debe monitorear el agente en las computadoras. Puede configurarse a tres niveles:</p>
+
+<table>
+    <thead>
+        <tr><th>Nivel</th><th>Alcance</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="badge badge-blue">General</span></td><td>Todas las maquinas</td><td>Aplica a todas las computadoras del sistema</td></tr>
+        <tr><td><span class="badge badge-yellow">Grupo</span></td><td>Un grupo especifico</td><td>Aplica solo a las computadoras de un grupo</td></tr>
+        <tr><td><span class="badge badge-green">Computadora</span></td><td>Un equipo especifico</td><td>Aplica solo a una computadora en particular</td></tr>
+    </tbody>
+</table>
+
+<p>Cada registro incluye: ruta de destino, nombres de archivos (multiples), si es recursivo y orden de clasificacion.</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Archivos Monitoreados]
+    </div>
+    <div class="screenshot-caption">Figura 5.9 - Configuracion de archivos monitoreados</div>
+</div>
+
+<!-- 5.10 RBF File Hashes -->
+<h2 id="admin-rbf-hashes">5.10 RBF File Hashes</h2>
+<p>Gestion de hashes MD5 de archivos RBF por plaza. El sistema usa estos hashes para verificar la integridad de los archivos en los equipos remotos.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li><strong>Subir archivos:</strong> Seleccione uno o mas archivos y las plazas destino. El sistema calcula el MD5 sin almacenar el archivo en disco.</li>
+    <li><strong>Tabla de hashes:</strong> Muestra plaza, zona, nombre del archivo, hash MD5, ruta, ultima sincronizacion y fecha de creacion.</li>
+    <li><strong>Filtrar por plaza:</strong> Use el dropdown para ver solo los hashes de una plaza especifica.</li>
+</ul>
+
+<!-- 5.11 Horarios por Plaza RBF -->
+<h2 id="admin-rbf-time">5.11 Horarios por Plaza RBF</h2>
+<p>Configura los ajustes de tiempo para los archivos RBF por plaza. Estos ajustes determinan cuando se considera actualizado un archivo.</p>
+
+<h3>Parametros</h3>
+<table>
+    <thead>
+        <tr><th>Parametro</th><th>Rango</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Plaza</td><td>Texto</td><td>Nombre de la plaza (con autocompletado)</td></tr>
+        <tr><td>Meridiano</td><td>0 - 23</td><td>Ajuste horario en horas</td></tr>
+        <tr><td>Zona Horaria</td><td>-12 a +14</td><td>Zona horaria de la plaza</td></tr>
+        <tr><td>Sincronizar</td><td>Si/No</td><td>Forzar sincronizacion inmediata al guardar</td></tr>
+    </tbody>
+</table>
+
+<div class="note">
+    <strong>Formula:</strong> El sistema ajusta el <code>last_modified</code> usando: <code>last_modified - meridiano + zona_horaria</code> horas.
+</div>
+
+<p>Use el boton "Sincronizar Ahora" para forzar una actualizacion inmediata de los hashes.</p>
+
+<!-- 5.12 Listas de Archivos -->
+<h2 id="admin-file-lists">5.12 Listas de Archivos (Blanca/Negra)</h2>
+<p>Configura las listas de control de archivos que se aplican durante las distribuciones:</p>
+
+<ul>
+    <li><strong><span class="badge badge-green">Lista Blanca (Whitelist):</span></strong> Solo se permiten enviar los archivos que esten en esta lista.</li>
+    <li><strong><span class="badge badge-red">Lista Negra (Blacklist):</span></strong> Se prohíbe enviar los archivos que esten en esta lista.</li>
+</ul>
+
+<p>Los archivos pueden coincidir por nombre exacto o por extension (ej: <code>.exe</code>).</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Listas de Archivos]
+    </div>
+    <div class="screenshot-caption">Figura 5.12 - Gestion de listas blanca y negra de archivos</div>
+</div>
+
+<!-- 5.13 Modulos de Autorizacion -->
+<h2 id="admin-modules">5.13 Modulos de Autorizacion</h2>
+<p>Administra los modulos de autorizacion del sistema. Los modulos determinan para que areas funcionales se pueden configurar correos autorizados y notificaciones.</p>
+
+<h3>Campos</h3>
+<ul>
+    <li><strong>Nombre:</strong> Nombre descriptivo del modulo</li>
+    <li><strong>Slug:</strong> Identificador tecnico (solo minusculas, numeros y guiones)</li>
+    <li><strong>Descripcion:</strong> Descripcion del modulo</li>
+    <li><strong>Estado:</strong> Activo o Inactivo</li>
+</ul>
+
+<!-- 5.14 Correos Autorizados -->
+<h2 id="admin-emails">5.14 Correos Autorizados</h2>
+<p>Configura que correos electronicos reciben notificaciones de autorizacion para cada modulo.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li>Seleccionar un usuario de la plataforma (auto-completa el email)</li>
+    <li>Asignar a un modulo especifico o a todos los modulos (Global)</li>
+    <li>Activar/desactivar cada correo autorizado</li>
+</ul>
+
+<!-- 5.15 Recepcion -->
+<h2 id="admin-reception">5.15 Recepcion de Informacion</h2>
+<p>Gestion de tareas de recepcion de archivos desde las computadoras remotas hacia el servidor central.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li><strong>Crear recepcion:</strong> Definir nombre, tipo (Inmediata/Programada/Recurrente) y configuracion</li>
+    <li><strong>Iniciar/Detener:</strong> Controlar recepciones recurrentes</li>
+    <li><strong>Agentes con Rutas:</strong> Lista de computadoras con rutas de recepcion configuradas y su ultimo contacto</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Recepcion]
+    </div>
+    <div class="screenshot-caption">Figura 5.15 - Modulo de recepcion de informacion</div>
+</div>
+
+<!-- 5.16 Computadoras -->
+<h2 id="admin-computers">5.16 Computadoras</h2>
+<p>Consulta y administracion de todas las computadoras registradas en el sistema.</p>
+
+<h3>Filtros Disponibles</h3>
+<ul>
+    <li>Plaza</li>
+    <li>Estado: En linea / Actualizando / Fuera de linea</li>
+    <li>Grupo</li>
+    <li>Busqueda por texto libre (nombre, IP, short key)</li>
+</ul>
+
+<h3>Columnas de la Tabla</h3>
+<table>
+    <thead>
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Short Key</td><td>Identificador corto de la computadora</td></tr>
+        <tr><td>Nombre</td><td>Nombre del equipo</td></tr>
+        <tr><td>Estado</td><td>Indicador verde (online) / rojo (offline)</td></tr>
+        <tr><td>Version Agente</td><td>Version del agente COMEXCARE instalado</td></tr>
+        <tr><td>Version PVSI</td><td>Version del sistema punto de venta</td></tr>
+        <tr><td>Version Resurtido</td><td>Version del agente de resurtido</td></tr>
+        <tr><td>Version Windows</td><td>Sistema operativo instalado</td></tr>
+        <tr><td>Plaza</td><td>Plaza a la que pertenece</td></tr>
+        <tr><td>Ultima Actividad</td><td>Fecha y hora del ultimo heartbeat</td></tr>
+    </tbody>
+</table>
+
+<h3>Acciones Adicionales</h3>
+<ul>
+    <li><strong>Limpiar Duplicados:</strong> Elimina registros duplicados del sistema</li>
+    <li><strong>Exportar Todo:</strong> Descarga la lista completa en formato CSV</li>
+    <li><strong>Ver Logs:</strong> Consulta el historial de eventos de una computadora</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Computadoras]
+    </div>
+    <div class="screenshot-caption">Figura 5.16 - Modulo de gestion de computadoras</div>
+</div>
+
+<!-- 5.17 Grupos -->
+<h2 id="admin-groups">5.17 Grupos</h2>
+<p>Agrupa computadoras por criterios funcionales para facilitar las distribuciones y el monitoreo.</p>
+
+<h3>Tipos de Grupo</h3>
+<table>
+    <thead>
+        <tr><th>Tipo</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Tienda</td><td>Equipos de puntos de venta</td></tr>
+        <tr><td>Almacen</td><td>Equipos de almacen</td></tr>
+        <tr><td>Cedis</td><td>Centros de distribucion</td></tr>
+        <tr><td>Vendedor</td><td>Equipos de vendedores</td></tr>
+        <tr><td>Especial</td><td>Equipos con configuracion especial</td></tr>
+        <tr><td>Cobranza</td><td>Equipos de cobranza</td></tr>
+    </tbody>
+</table>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li><strong>Crear grupo:</strong> Nombre, tipo, descripcion y seleccion de computadoras por plaza</li>
+    <li><strong>Importar desde Excel:</strong> Carga masiva desde archivo Excel/CSV</li>
+    <li><strong>Exportar:</strong> Descargar la lista de grupos</li>
+</ul>
+
+<!-- 5.18 Versiones de Agente -->
+<h2 id="admin-agent-versions">5.18 Versiones de Agente</h2>
+<p>Gestion de versiones del agente COMEXCARE instalado en las computadoras.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li><strong>Crear version:</strong> Definir numero de version, canal (Estable/Beta/Alfa) y archivos</li>
+    <li><strong>Desplegar (Deploy):</strong> Enviar actualizacion a: Todos, Por Grupo, Por Plaza o Equipos Especificos</li>
+    <li><strong>Activar/Desactivar:</strong> Marcar una version como activa (la que reciben los equipos nuevos)</li>
+    <li><strong>Eliminar:</strong> Borrado permanente (no se puede deshacer)</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura de la pantalla de Versiones de Agente]
+    </div>
+    <div class="screenshot-caption">Figura 5.18 - Gestion de versiones del agente</div>
+</div>
+
+<!-- 5.19 CareAgent Resurtido -->
+<h2 id="admin-resurtido">5.19 CareAgent Resurtido</h2>
+<p>Gestion de versiones del agente de resurtido. Funciona de manera similar a las Versiones de Agente pero para el modulo de resurtido.</p>
+
+
+<!-- ===== 6. REPORTES ===== -->
+<h1 class="section-title" id="reportes">6. Modulo de Reportes</h1>
+<p>El modulo de reportes contiene multiples vistas para el analisis de datos de ventas, metas, archivos y distribuciones. Cada reporte permite filtrar datos, exportar y en algunos casos sincronizar informacion.</p>
+
+<div class="note">
+    <strong>Importante:</strong> Los reportes que usted puede ver dependen de los permisos asignados a su rol. Si no ve un reporte especifico, contacte al administrador.
+</div>
+
+<!-- 6.1 Vendedores -->
+<h2 id="rep-vendedores">6.1 Reporte de Vendedores</h2>
+<p>Muestra las ventas registradas por vendedor en un periodo determinado.</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Periodo: Fecha Inicio y Fecha Fin</li>
+    <li>Plazas (seleccion multiple con "Seleccionar Todas")</li>
+    <li>Tiendas (seleccion multiple con "Seleccionar Todas")</li>
+    <li>Vendedor (clave del vendedor)</li>
+</ul>
+
+<h3>Columnas</h3>
+<table>
+    <thead>
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Tienda-Vendedor</td><td>Clave compuesta tienda + vendedor</td></tr>
+        <tr><td>Vendedor-Dia</td><td>Clave compuesta vendedor + dia</td></tr>
+        <tr><td>Plaza Ajustada</td><td>Plaza correspondiente</td></tr>
+        <tr><td>Tienda</td><td>Nombre de la tienda</td></tr>
+        <tr><td>Vendedor</td><td>Nombre del vendedor</td></tr>
+        <tr><td>Fecha</td><td>Fecha de la venta</td></tr>
+        <tr><td>Venta Total</td><td>Monto total vendido</td></tr>
+        <tr><td>Devolucion</td><td>Monto devuelto</td></tr>
+        <tr><td>Venta Neta</td><td>Venta Total - Devolucion</td></tr>
+    </tbody>
+</table>
+
+<h3>Exportar</h3>
+<ul>
+    <li><strong>CSV:</strong> Descarga el reporte filtrado en formato CSV</li>
+</ul>
+
+<h3>Sincronizar</h3>
+<p>El boton "Sincronizar" permite actualizar los datos del reporte desde la fuente original. Opciones de sincronizacion:</p>
+<ul>
+    <li>Mes anterior</li>
+    <li>Ultimos N dias</li>
+    <li>Dia especifico</li>
+    <li>Periodo personalizado</li>
+    <li>Sincronizacion completa (desde 2000)</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del Reporte de Vendedores]
+    </div>
+    <div class="screenshot-caption">Figura 6.1 - Reporte de Vendedores con filtros y tabla de resultados</div>
+</div>
+
+<!-- 6.2 Vendedores B2B -->
+<h2 id="rep-vendedores-b2b">6.2 Reporte de Vendedores B2B/VDT</h2>
+<p>Similar al reporte de vendedores pero muestra datos especificos de ventas B2B (Business to Business) y VDT (Venta Directa a Trabajadores).</p>
+<p>Mismos filtros, columnas y funcionalidades de exportacion que el Reporte de Vendedores.</p>
+
+<!-- 6.3 Vendedores Matricial -->
+<h2 id="rep-vendedores-matricial">6.3 Reporte de Vendedores - Vista Matricial</h2>
+<p>Vista en formato matriz/pivote de las ventas por vendedor, organizadas por dia.</p>
+
+<h3>Estructura</h3>
+<ul>
+    <li><strong>Filas:</strong> Cada vendedor con: Nombre, Tipo, Tiendas, Plaza, Ventas por dia, Total Vendedor</li>
+    <li><strong>Columnas:</strong> Cada dia del periodo + Total Dia</li>
+</ul>
+
+<h3>Estadisticas Resumen</h3>
+<ul>
+    <li>Cantidad de Vendedores</li>
+    <li>Dias Reportados</li>
+    <li>Total General ($)</li>
+    <li>Tiempo de Carga (ms)</li>
+</ul>
+
+<h3>Exportar</h3>
+<ul>
+    <li><strong>Excel</strong></li>
+    <li><strong>PDF</strong></li>
+    <li><strong>CSV</strong></li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del Reporte Matricial de Vendedores]
+    </div>
+    <div class="screenshot-caption">Figura 6.3 - Reporte matricial de ventas por vendedor</div>
+</div>
+
+<!-- 6.4 Metas de Ventas -->
+<h2 id="rep-metas-ventas">6.4 Reporte de Metas de Ventas</h2>
+<p>Compara las metas de venta contra las ventas reales por tienda.</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Periodo: Fecha Inicio y Fecha Fin</li>
+    <li>Plazas y Tiendas (seleccion multiple)</li>
+    <li>Zonas (1-10, seleccion multiple)</li>
+</ul>
+
+<h3>Columnas</h3>
+<table>
+    <thead>
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Clave</td><td>Identificador de la tienda</td></tr>
+        <tr><td>Nombre</td><td>Nombre de la tienda</td></tr>
+        <tr><td>Meta</td><td>Objetivo de venta del mes</td></tr>
+        <tr><td>Dias Mes</td><td>Dias totales del mes</td></tr>
+        <tr><td>Dias Agotados</td><td>Dias transcurridos</td></tr>
+        <tr><td>Meta Parcial</td><td>Meta proporcional a los dias transcurridos</td></tr>
+        <tr><td>Venta Real</td><td>Venta efectivamente realizada</td></tr>
+        <tr><td>Porcentaje</td><td>% de cumplimiento (coloreado: verde >=100%, amarillo >=80%, rojo <80%)</td></tr>
+    </tbody>
+</table>
+
+<h3>Exportar</h3>
+<ul>
+    <li><strong>Excel</strong></li>
+    <li><strong>PDF</strong></li>
+    <li><strong>CSV</strong></li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del Reporte de Metas de Ventas]
+    </div>
+    <div class="screenshot-caption">Figura 6.4 - Reporte de metas vs ventas reales</div>
+</div>
+
+<!-- 6.5 Metas Matricial -->
+<h2 id="rep-metas-matricial">6.5 Reporte Resumen Metas (Matricial)</h2>
+<p>Vista resumen en formato jerarquico de metas por plaza, zona y tienda, con desglose diario.</p>
+
+<h3>Estructura</h3>
+<ul>
+    <li><strong>Filas jerarquicas:</strong> Plaza > Zona > Dias > Metricas (Venta Real, Objetivo, Porcentaje)</li>
+    <li><strong>Columnas:</strong> Cada tienda + Total</li>
+</ul>
+
+<h3>Exportar</h3>
+<ul>
+    <li><strong>Excel</strong></li>
+    <li><strong>PDF</strong></li>
+</ul>
+
+<!-- 6.6 Desglose -->
+<h2 id="rep-desglose">6.6 Desglose de Ventas por Dia</h2>
+<p>Muestra el desglose diario de ventas separado por tipo: Contado y Credito.</p>
+
+<h3>Estructura</h3>
+<ul>
+    <li><strong>Filas:</strong> Por tienda: Contado, Credito, Total</li>
+    <li><strong>Columnas:</strong> Cada dia del periodo (formato dd/mm)</li>
+</ul>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Periodo: Fecha Inicio y Fecha Fin</li>
+    <li>Plazas, Tiendas y Zonas (seleccion multiple)</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del Desglose de Ventas]
+    </div>
+    <div class="screenshot-caption">Figura 6.6 - Desglose diario de ventas contado/credito</div>
+</div>
+
+<!-- 6.7 Compras -->
+<h2 id="rep-compras">6.7 Reporte de Compras Directo</h2>
+<p>Muestra las compras directas registradas en el sistema.</p>
+
+<h3>Filtros y Exportacion</h3>
+<ul>
+    <li>Filtros por periodo, plazas y tiendas</li>
+    <li>Exportar: Excel, CSV, PDF</li>
+    <li>Sincronizacion disponible</li>
+</ul>
+
+<!-- 6.8 Vales -->
+<h2 id="rep-vales">6.8 Reporte de Vales</h2>
+<p>Muestra todos los movimientos de vales registrados.</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Plazas y Tiendas (seleccion multiple)</li>
+    <li>Procedencia (seleccion multiple)</li>
+    <li>Tipo de Movimiento (dropdown)</li>
+    <li>Periodo: Fecha Desde y Fecha Hasta</li>
+    <li>No. Consecutivo (busqueda exacta)</li>
+</ul>
+
+<h3>Columnas</h3>
+<table>
+    <thead>
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Tipo Mov</td><td>Tipo de movimiento del vale</td></tr>
+        <tr><td>No. Consec</td><td>Numero consecutivo</td></tr>
+        <tr><td>Fecha</td><td>Fecha del movimiento</td></tr>
+        <tr><td>Cve Pro/Cl</td><td>Clave del proveedor o cliente</td></tr>
+        <tr><td>Descripcion</td><td>Descripcion del vale</td></tr>
+        <tr><td>E/S</td><td>Entrada (verde) o Salida (rojo)</td></tr>
+        <tr><td>Tienda</td><td>Tienda afectada</td></tr>
+        <tr><td>Plaza</td><td>Plaza de la tienda</td></tr>
+    </tbody>
+</table>
+
+<h3>Exportar</h3>
+<ul>
+    <li><strong>CSV:</strong> Descarga con los filtros aplicados</li>
+</ul>
+
+<!-- 6.9 Cartera Abonos -->
+<h2 id="rep-cartera">6.9 Reporte Cartera - Abonos</h2>
+<p>Reporte de cartera de clientes con abonos, cargos y estado de credito.</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Periodo: Fecha Inicio y Fecha Fin (por defecto mes anterior)</li>
+    <li>Plazas y Tiendas (seleccion multiple)</li>
+</ul>
+
+<h3>Columnas</h3>
+<table>
+    <thead>
+        <tr><th>Columna</th><th>Descripcion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Plaza / Tienda</td><td>Ubicacion</td></tr>
+        <tr><td>Fecha / Fecha Vta</td><td>Fecha del registro y fecha de venta original</td></tr>
+        <tr><td>Concepto / Tipo</td><td>Tipo de movimiento</td></tr>
+        <tr><td>Factura</td><td>Numero de factura</td></tr>
+        <tr><td>RFC / Nombre</td><td>Datos del cliente</td></tr>
+        <tr><td>Vendedor</td><td>Vendedor que atendio</td></tr>
+        <tr><td>Monto FA / DV / CD</td><td>Montos de factura, devolucion y cargo</td></tr>
+        <tr><td>Dias Credito</td><td>Plazo de credito otorgado</td></tr>
+        <tr><td>Dias Vencidos</td><td>Dias de atraso en el pago</td></tr>
+    </tbody>
+</table>
+
+<h3>Exportar</h3>
+<ul>
+    <li><strong>CSV</strong></li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del Reporte Cartera - Abonos]
+    </div>
+    <div class="screenshot-caption">Figura 6.9 - Reporte de cartera y abonos</div>
+</div>
+
+<!-- 6.10 Notas Completas -->
+<h2 id="rep-notas">6.10 Reporte Notas Completas</h2>
+<p>Detalle completo de notas de venta con informacion de productos, precios y descuentos.</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Periodo, Plazas, Tiendas y Vendedor</li>
+</ul>
+
+<h3>Columnas</h3>
+<p>Plaza, Tienda, Num Referencia, Vendedor, Factura, Nota Club, Club TR, Club ID, Fecha Vta, Producto, Descripcion, Piezas, Descuento, Precio Venta, Costo, Total con IVA, Total sin IVA.</p>
+
+<!-- 6.11 Club Comex -->
+<h2 id="rep-club-comex">6.11 Club Comex</h2>
+<p>Gestion y busqueda de datos del programa de lealtad Club Comex.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li><strong>Sincronizacion:</strong> Actualiza tres tablas: redenciones, acumulaciones y acumulaciones IA</li>
+    <li><strong>Busqueda:</strong> Por cliente (CCampo3), fecha inicio/fin</li>
+    <li><strong>Exportar:</strong> CSV</li>
+</ul>
+
+<h3>Datos que muestra</h3>
+<p>Plaza, Tienda, CCampo3, Clientes, RFC, Cve Con, Redenciones, Acumulaciones, Total Redenciones, Total Acumulaciones.</p>
+
+<!-- 6.12 Redenciones Club -->
+<h2 id="rep-redenciones">6.12 Redenciones Club Comex</h2>
+<p>Detalle de redenciones del programa Club Comex.</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Periodo, Plazas, Tiendas y Vendedor</li>
+</ul>
+
+<h3>Columnas</h3>
+<p>Plaza, Tienda, Concepto, Fecha, Ref Tipo, Ref Num, Importe, Ing/Egr, Club ID, Vendedor, Nota Folio, Folio R, Tipo Venta, Cliente, Status, Fecha Nota, Producto, Descripcion, Cantidad, Precio, Subtotal, Importe.</p>
+
+<h3>Exportar</h3>
+<ul>
+    <li><strong>CSV</strong></li>
+</ul>
+
+<!-- 6.13 DBF Files -->
+<h2 id="rep-dbf-files">6.13 Dashboard de Archivos (DBF)</h2>
+<p>Vista general del estado de todos los archivos DBF en las computadoras del sistema.</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Plazas y Tipos de Grupo (seleccion multiple)</li>
+    <li>Categorias de Archivo: Todos, .DBF, QBCK, .EXE, .BAT</li>
+    <li>Archivo especifico (filtrado por categoria)</li>
+    <li>Buscar Computadora (nombre o IP)</li>
+    <li>Conexion: Todas, Online, Offline</li>
+    <li>Estado de Actualizacion: Todos, Actualizado, Desactualizado</li>
+</ul>
+
+<h3>Columnas</h3>
+<p>Computadora, Plaza, Estado (Online/Offline), Categoria, Nombre, Ruta, Tamano, Modificacion, MD5 (ultimos 5 chars), Ruta RBF, Hash RBF, Mod. RBF, Estado Archivo (OK/Falta).</p>
+
+<h3>Exportar</h3>
+<ul>
+    <li><strong>CSV</strong></li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del Dashboard de Archivos DBF]
+    </div>
+    <div class="screenshot-caption">Figura 6.13 - Dashboard general de archivos DBF</div>
+</div>
+
+<!-- 6.14 DBF Precios -->
+<h2 id="rep-dbf-precios">6.14 Reporte de Archivos de Precios</h2>
+<p>Reporte detallado del estado de archivos de precios en las computadoras, con graficas y ejecucion remota de comandos.</p>
+
+<h3>Funcionalidades Especiales</h3>
+<ul>
+    <li><strong>Graficas:</strong> Grafica de dona (estado de archivos) y grafica de barras apiladas (por plaza)</li>
+    <li><strong>Ejecucion de comandos:</strong> Botones LISTA, PROMOCION, OFERTA, COMBO para enviar comandos a equipos seleccionados</li>
+    <li><strong>Bitacora:</strong> Historial de ejecuciones recientes</li>
+    <li><strong>Historial de hash:</strong> Ver cambios de hash en los ultimos 3 dias por computadora</li>
+</ul>
+
+<h3>Estadisticas</h3>
+<ul>
+    <li>Total Archivos, Actualizados, Cambio Manual, Desactualizados</li>
+    <li>% Cumplimiento general</li>
+</ul>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del Reporte de Archivos de Precios]
+    </div>
+    <div class="screenshot-caption">Figura 6.14 - Reporte de precios con graficas y ejecucion remota</div>
+</div>
+
+<!-- 6.15 QuickBCK -->
+<h2 id="rep-dbf-conciliacion">6.15 Conciliacion QuickBCK</h2>
+<p>Verifica la conciliacion de archivos entre PVSI, QuickBCK y RBF.</p>
+
+<h3>Estados de Conciliacion</h3>
+<ul>
+    <li><span class="badge badge-green">Conciliado</span> - Los hashes coinciden en todas las fuentes</li>
+    <li><span class="badge badge-yellow">Parcial OK</span> - Algunas fuentes coinciden</li>
+    <li><span class="badge badge-red">Parcial Error</span> - Discrepancia detectada</li>
+    <li><span class="badge badge-gray">Sin Conciliar</span> - No se ha verificado</li>
+</ul>
+
+<h3>Columnas</h3>
+<p>Computadora, Plaza, Conexion, Archivo, Tamano, MD5 PVSI, Fecha PVSI, MD5 Quick, Modificacion, MD5 RBF, Fecha RBF, MD5 Externo, Fecha Externo, Estado de Conciliacion.</p>
+
+<!-- 6.16 Trazabilidad -->
+<h2 id="rep-trazabilidad">6.16 Reporte de Trazabilidad</h3>
+<p>Reporte avanzado que permite rastrear el historial de archivos a traves de multiples disparadores (fuentes).</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Tipos de Grupo, Plazas</li>
+    <li>Buscar Tienda / Clave</li>
+    <li>Estado del Agente (Todos, Online, Offline, Actualizando)</li>
+    <li>Archivo (seleccion multiple)</li>
+</ul>
+
+<h3>Funcionalidad</h3>
+<p>Cada fila muestra la tienda, grupo, estado del agente, archivo y los hashes de cada disparador (fuente). Los hashes se muestran como chips coloreados con el tiempo transcurrido. Al hacer clic en el icono de ojo, se muestra el detalle completo con historial.</p>
+
+<div class="screenshot">
+    <div class="screenshot-placeholder">
+        [Insertar captura del Reporte de Trazabilidad]
+    </div>
+    <div class="screenshot-caption">Figura 6.16 - Reporte de trazabilidad de archivos</div>
+</div>
+
+<!-- 6.17 Distribuciones -->
+<h2 id="rep-distribuciones">6.17 Reporte de Distribuciones</h2>
+<p>Actividad de usuarios en distribuciones de archivos.</p>
+
+<h3>Filtros</h3>
+<ul>
+    <li>Usuario (dropdown)</li>
+    <li>Tipo: Todos, Inmediata, Programada, Recurrente</li>
+    <li>Estado: Todos, Pendiente, En Progreso, Completado, Fallido, Detenido</li>
+    <li>Periodo: Fecha Desde y Fecha Hasta</li>
+</ul>
+
+<h3>Vistas</h3>
+<ul>
+    <li><strong>Detalle:</strong> Cada distribucion con ID, nombre, contenido, tipo, estado, targets, progreso y fechas</li>
+    <li><strong>Resumen por Usuario:</strong> Distribuciones creadas, activas, eliminadas, targets totales y fallidos</li>
+</ul>
+
+<h3>Estadisticas</h3>
+<ul>
+    <li>Distribuciones Creadas, Activas, Eliminadas, Targets Fallidos</li>
+</ul>
+
+<!-- 6.18 Autorizaciones -->
+<h2 id="rep-authorization">6.18 Reporte de Autorizaciones</h2>
+<p>Muestra el historial de autorizaciones realizadas en el sistema.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li>Filtros por fecha y criterios de busqueda</li>
+    <li>Exportar a CSV</li>
+</ul>
+
+<!-- 6.19 RBF Status -->
+<h2 id="rep-rbf-status">6.19 Estado Configuracion RBF</h2>
+<p>Muestra el estado actual de la configuracion RBF en todas las tiendas.</p>
+
+<h3>Columnas</h3>
+<p>PLAZA, RAZON, TIPO, CLAVE, LISTA, OFERTA, PROMO, COMBO, EXE, DBF, PVSI, USUARIO.</p>
+
+<h3>Funcionalidades</h3>
+<ul>
+    <li>Busqueda con debounce (400ms)</li>
+    <li>Selector de tamano de pagina (10, 25, 50, 100)</li>
+    <li>Muestra el tiempo desde la ultima sincronizacion</li>
+</ul>
+
+
+<!-- ===== 7. GLOSARIO ===== -->
+<h1 class="section-title" id="glosario">7. Glosario de Terminos</h1>
+
+<table>
+    <thead>
+        <tr><th>Termino</th><th>Definicion</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><strong>Agente / CareAgent</strong></td><td>Software instalado en cada computadora de tienda que se comunica con el servidor central, ejecuta comandos y reporta el estado del equipo.</td></tr>
+        <tr><td><strong>Plaza</strong></td><td>Region geografica o area de negocio que agrupa multiples tiendas (ej: Ciudad de Mexico, Guadalajara, Monterrey).</td></tr>
+        <tr><td><strong>Tienda</strong></td><td>Punto de venta o local fisico donde se encuentra la computadora monitoreada.</td></tr>
+        <tr><td><strong>Short Key</strong></td><td>Identificador corto unico de cada computadora en el sistema.</td></tr>
+        <tr><td><strong>PVSI</strong></td><td>Punto de Venta Sistemas Inteligentes - Sistema de punto de venta utilizado en las tiendas.</td></tr>
+        <tr><td><strong>DBF</strong></td><td>Formato de archivo de base de datos (dBASE) utilizado para precios, listas y configuraciones.</td></tr>
+        <tr><td><strong>RBF</strong></td><td>Sistema de archivos de referencia para sincronizacion de precios y configuraciones.</td></tr>
+        <tr><td><strong>QuickBCK</strong></td><td>Sistema de respaldo rapido usado para conciliacion de archivos.</td></tr>
+        <tr><td><strong>Hash MD5</strong></td><td>Firma digital de un archivo que permite verificar su integridad. Si dos archivos tienen el mismo MD5, son identicos.</td></tr>
+        <tr><td><strong>Distribucion</strong></td><td>Envio masivo de archivos, actualizaciones o comandos a multiples computadoras.</td></tr>
+        <tr><td><strong>Recepcion</strong></td><td>Proceso de recibir archivos desde las computadoras remotas hacia el servidor.</td></tr>
+        <tr><td><strong>Heartbeat</strong></td><td>Señal periodica que envia cada agente al servidor para indicar que esta activo y funcionando.</td></tr>
+        <tr><td><strong>Vale</strong></td><td>Documento de movimiento de mercancia (entrada/salida) registrado en el sistema.</td></tr>
+        <tr><td><strong>Meta</strong></td><td>Objetivo de venta mensual asignado a una tienda o plaza.</td></tr>
+        <tr><td><strong>Club Comex</strong></td><td>Programa de lealtad de clientes de COMEX con sistema de acumulacion y redencion de puntos.</td></tr>
+        <tr><td><strong>Cartera</strong></td><td>Reporte de credito y abonos de clientes, incluyendo facturas, devoluciones y dias de vencimiento.</td></tr>
+        <tr><td><strong>B2B / VDT</strong></td><td>Business to Business / Venta Directa a Trabajadores - Canales de venta especiales.</td></tr>
+        <tr><td><strong>Trazabilidad</strong></td><td>Capacidad de rastrear el historial y origen de archivos a traves de multiples fuentes/disparadores.</td></tr>
+        <tr><td><strong>WebSocket</strong></td><td>Tecnologia de comunicacion en tiempo real que permite actualizaciones instantaneas sin recargar la pagina.</td></tr>
+        <tr><td><strong>RBAC</strong></td><td>Role-Based Access Control - Control de acceso basado en roles (usuarios, roles, permisos).</td></tr>
+    </tbody>
+</table>
+
+<div style="margin-top:60px; padding-top:20px; border-top:2px solid var(--border); text-align:center; color:var(--text-light); font-size:12px;">
+    <p><strong>COMEXCARE</strong> - Manual de Usuario v1.0</p>
+    <p>Departamento de Tecnologia - COMEX | Septiembre 2026</p>
+    <p style="margin-top:8px; font-size:11px;">Este documento es confidencial. Uso exclusivo del personal autorizado.</p>
+</div>
+
+</div>
+
+</body>
+</html>
