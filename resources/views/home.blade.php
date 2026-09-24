@@ -306,9 +306,9 @@
     }
     .hm-square:hover { transform:scale(1.45); z-index:5; box-shadow:0 0 0 2px #93c5fd; position:relative; }
     .s-ok   { background:#059669; box-shadow:inset 0 0 3px rgba(255,255,255,.25); }
-    .s-warn { background:#b45309; }
-    .s-crit { background:#dc2626; }
-    .s-off  { background:#334155; }
+    .s-warn { background:#059669; box-shadow:inset 0 0 3px rgba(255,255,255,.25); }
+    .s-crit { background:#059669; box-shadow:inset 0 0 3px rgba(255,255,255,.25); }
+    .s-off  { background:#dc2626; }
 
     /* ===== Perfil PC (modal) ===== */
     .pcp-score-bar { height:7px; border-radius:99px; background:rgba(148,163,184,.15); overflow:hidden; margin-top:4px; }
@@ -582,10 +582,8 @@
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-th text-success"></i> Matriz de Salud</h3>
             <div class="card-tools hm-counters">
-                <span class="badge badge-success" id="hm-c-ok">0</span>
-                <span class="badge badge-warning" id="hm-c-warn">0</span>
-                <span class="badge badge-danger" id="hm-c-crit">0</span>
-                <span class="badge badge-secondary" id="hm-c-off">0</span>
+                <span class="badge badge-success" id="hm-c-online">0</span>
+                <span class="badge badge-danger" id="hm-c-offline">0</span>
                 <span class="drag-hint"><i class="fas fa-arrows-alt"></i></span>
                 <i class="fas fa-expand-arrows-alt resize-btn" title="Cambiar tamaño"></i>
             </div>
@@ -1370,7 +1368,7 @@
         { id: 'cdmx', name: 'Ciudad de México', country: 'México', latlng: [19.4326, -99.1332] },
         { id: 'jalisco', name: 'Guadalajara', country: 'México', latlng: [20.6597, -103.3496] },
         { id: 'veracruz', name: 'Xalapa', country: 'México', latlng: [19.5438, -96.9102] },
-        { id: 'baja_california', name: 'Tijuana', country: 'México', latlng: [32.5149, -117.0382] },
+        { id: 'baja_california', name: 'La Paz', country: 'México', latlng: [24.1426, -110.3128] },
         { id: 'sonora', name: 'Hermosillo', country: 'México', latlng: [29.0729, -110.9559] },
         { id: 'quintana_roo', name: 'Cancún', country: 'México', latlng: [21.1619, -86.8515] },
         { id: 'colima', name: 'Manzanillo', country: 'México', latlng: [19.0513, -104.3188] },
@@ -1709,7 +1707,7 @@
     var hmChipsRow = document.querySelector('[data-card-id="health"] .act-filters');
 
     function stateLabel(st) {
-        return st === 'ok' ? 'Sano' : st === 'warn' ? 'Degradado' : st === 'crit' ? 'Crítico' : 'Apagado';
+        return st === 'off' ? 'Apagado' : 'En línea';
     }
 
     function fetchHealth() {
@@ -1721,10 +1719,14 @@
             .then(function (data) {
                 if (!data.computers) return;
                 healthData = data.computers;
-                ['ok', 'warn', 'crit', 'off'].forEach(function (k) {
-                    var el = document.getElementById('hm-c-' + k);
-                    if (el) el.textContent = data.counts[k] || 0;
+                var online = 0, offline = 0;
+                healthData.forEach(function (pc) {
+                    if (pc.online) online++; else offline++;
                 });
+                var elOn = document.getElementById('hm-c-online');
+                var elOff = document.getElementById('hm-c-offline');
+                if (elOn) elOn.textContent = online;
+                if (elOff) elOff.textContent = offline;
                 buildPlazaChips();
                 renderMatrix();
             })
@@ -1795,7 +1797,7 @@
         document.getElementById('pcp-score-num').textContent = pc.score;
         var fill = document.getElementById('pcp-score-fill');
         fill.style.width = pc.score + '%';
-        fill.style.background = pc.state === 'ok' ? '#059669' : pc.state === 'warn' ? '#b45309' : pc.state === 'crit' ? '#dc2626' : '#334155';
+        fill.style.background = pc.state === 'off' ? '#dc2626' : '#059669';
 
         var d = pc.details || {};
         var rows = [

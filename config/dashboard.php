@@ -14,9 +14,9 @@ return [
         ],
         [
             'id' => 'baja_california',
-            'name' => 'Baja California',
+            'name' => 'Baja California Sur',
             'country' => 'México',
-            'geo_names' => ['Baja California'],
+            'geo_names' => ['Baja California Sur'],
             'plazas' => ['BAJAC'],
         ],
         [
