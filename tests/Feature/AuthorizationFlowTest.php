@@ -6,7 +6,9 @@ use App\Models\FileList;
 use App\Models\FileListAuthorization;
 use App\Models\Module;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 
 it('creates a file list with pending status', function () {
@@ -32,6 +34,127 @@ it('creates a file list with pending status', function () {
     $fileList = FileList::where('file_name', 'test.xlsx')->first();
     expect($fileList->status)->toBe('pending');
     expect($fileList->module_id)->toBe($module->id);
+});
+
+it('creates a file list with uploaded file and stores MD5', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create(['activo' => true]);
+    $module = Module::create(['name' => 'Upload', 'slug' => 'upload-test', 'is_active' => true]);
+
+    Permission::firstOrCreate(['name' => 'admin.ver', 'guard_name' => 'web']);
+    $user->givePermissionTo('admin.ver');
+
+    $this->actingAs($user);
+
+    Notification::fake();
+
+    $file = UploadedFile::fake()->createWithContent('test-upload.exe', 'fake content here');
+
+    $response = $this->postJson(route('admin.file-lists.store'), [
+        'type' => 'whitelist',
+        'file_name' => 'test-upload.exe',
+        'file' => $file,
+        'description' => 'File with MD5',
+        'module_id' => $module->id,
+    ]);
+
+    $response->assertSuccessful();
+
+    $fileList = FileList::where('file_name', 'test-upload.exe')->first();
+    expect($fileList)->not->toBeNull();
+    expect($fileList->status)->toBe('pending');
+    expect($fileList->file_md5)->not->toBeNull();
+    expect(strlen($fileList->file_md5))->toBe(32);
+    expect($fileList->file_path)->not->toBeNull();
+    expect($fileList->file_size)->toBeGreaterThan(0);
+    expect($fileList->hasAttachment())->toBeTrue();
+});
+
+it('can download file via authorization token', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create(['activo' => true]);
+    $module = Module::create(['name' => 'DL', 'slug' => 'dl-test', 'is_active' => true]);
+
+    $content = 'test file content for download';
+    $file = UploadedFile::fake()->createWithContent('dl-test.xlsx', $content);
+    $md5 = md5_file($file->getRealPath());
+
+    $path = $file->store('file-lists', 'local');
+
+    $fileList = FileList::create([
+        'type' => 'whitelist',
+        'file_name' => 'dl-test.xlsx',
+        'file_path' => $path,
+        'file_md5' => $md5,
+        'file_size' => $file->getSize(),
+        'description' => 'Download test',
+        'created_by' => $user->id,
+        'status' => 'pending',
+        'module_id' => $module->id,
+    ]);
+
+    $authEmail = AuthorizableEmail::create([
+        'user_id' => $user->id,
+        'email' => 'dl@test.com',
+        'module_id' => $module->id,
+        'is_active' => true,
+    ]);
+
+    $token = AuthorizationToken::create([
+        'file_list_id' => $fileList->id,
+        'authorizable_email_id' => $authEmail->id,
+        'token' => AuthorizationToken::generate(),
+        'expires_at' => now()->addHours(48),
+    ]);
+
+    $response = $this->get(route('authorization.file', $token->token));
+    $response->assertStatus(200);
+    $response->assertHeader('content-disposition', 'attachment; filename=dl-test.xlsx');
+});
+
+it('shows hash and download link on authorization page', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create(['activo' => true]);
+    $module = Module::create(['name' => 'ViewHash', 'slug' => 'viewhash-test', 'is_active' => true]);
+
+    $content = 'view hash content';
+    $file = UploadedFile::fake()->createWithContent('vh-test.xlsx', $content);
+    $md5 = md5_file($file->getRealPath());
+    $path = $file->store('file-lists', 'local');
+
+    $fileList = FileList::create([
+        'type' => 'blacklist',
+        'file_name' => 'vh-test.xlsx',
+        'file_path' => $path,
+        'file_md5' => $md5,
+        'file_size' => $file->getSize(),
+        'description' => 'View hash test',
+        'created_by' => $user->id,
+        'status' => 'pending',
+        'module_id' => $module->id,
+    ]);
+
+    $authEmail = AuthorizableEmail::create([
+        'user_id' => $user->id,
+        'email' => 'vh@test.com',
+        'module_id' => $module->id,
+        'is_active' => true,
+    ]);
+
+    $token = AuthorizationToken::create([
+        'file_list_id' => $fileList->id,
+        'authorizable_email_id' => $authEmail->id,
+        'token' => AuthorizationToken::generate(),
+        'expires_at' => now()->addHours(48),
+    ]);
+
+    $response = $this->get(route('authorization.show', $token->token));
+    $response->assertSuccessful();
+    $response->assertSee($md5);
+    $response->assertSee('Descargar archivo para revisar');
 });
 
 it('does not validate pending files in validateFiles endpoint', function () {

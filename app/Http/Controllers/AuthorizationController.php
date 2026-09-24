@@ -6,6 +6,7 @@ use App\Models\AuthorizationToken;
 use App\Models\FileListAuthorization;
 use App\Services\DashboardStatsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AuthorizationController extends Controller
 {
@@ -39,6 +40,29 @@ class AuthorizationController extends Controller
             'authorizerEmail' => $authToken->authorizableEmail->email,
             'authorizerName' => $authToken->authorizableEmail->user->name ?? '',
         ]);
+    }
+
+    public function download(Request $request, string $token)
+    {
+        $authToken = AuthorizationToken::with('fileList')
+            ->where('token', $token)
+            ->first();
+
+        if (! $authToken) {
+            abort(404, 'Enlace de autorización no válido.');
+        }
+
+        if (! $authToken->isValid()) {
+            abort(410, 'Este enlace de autorización ha expirado o ya fue utilizado.');
+        }
+
+        $fileList = $authToken->fileList;
+
+        if (! $fileList->hasAttachment() || ! Storage::disk('local')->exists($fileList->file_path)) {
+            abort(404, 'Este registro no tiene archivo adjunto.');
+        }
+
+        return Storage::disk('local')->download($fileList->file_path, $fileList->file_name);
     }
 
     public function process(Request $request, string $token)

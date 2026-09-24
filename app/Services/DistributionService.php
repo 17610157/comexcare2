@@ -82,15 +82,16 @@ class DistributionService
         $files = $distribution->files;
         $subfolder = $distribution->subfolder;
 
-        $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
-        $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
+        $blacklistRules = FileList::where('type', 'blacklist')->get();
+        $whitelistRules = FileList::where('type', 'whitelist')->get();
 
         foreach ($files as $file) {
-            if ($this->matchesFileList($file->file_name, $blacklistRules)) {
+            if (FileList::matchesRules($blacklistRules, $file->file_name, $this->fileMd5($file))) {
                 continue;
             }
 
-            if (! $this->matchesFileList($file->file_name, $whitelistRules)) {
+            // La whitelist solo restringe cuando hay reglas configuradas
+            if (! $whitelistRules->isEmpty() && ! FileList::matchesRules($whitelistRules, $file->file_name, $this->fileMd5($file))) {
                 continue;
             }
             $commandData = [
@@ -140,18 +141,14 @@ class DistributionService
         return $systemInfo['disk_free'] > $file->file_size;
     }
 
-    private function matchesFileList(string $fileName, array $rules): bool
+    private function fileMd5(DistributionFile $file): ?string
     {
-        foreach ($rules as $rule) {
-            if (str_starts_with($rule, '.')) {
-                if (str_ends_with($fileName, $rule)) {
-                    return true;
-                }
-            } elseif ($fileName === $rule) {
-                return true;
-            }
+        $path = Storage::disk('public')->path($file->file_path);
+
+        if (! is_file($path)) {
+            return null;
         }
 
-        return false;
+        return md5_file($path);
     }
 }

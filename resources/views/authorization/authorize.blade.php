@@ -64,11 +64,24 @@
                         @endif
                     </p>
                     <p><strong>Archivo:</strong> <code>{{ $fileList->file_name }}</code></p>
+                    @if($fileList->file_md5)
+                        <p><strong>Hash MD5:</strong> <code>{{ $fileList->file_md5 }}</code></p>
+                    @endif
+                    @if($fileList->file_size)
+                        <p><strong>Tamaño:</strong> {{ number_format($fileList->file_size / 1024, 2) }} KB</p>
+                    @endif
                     <p><strong>Descripción:</strong> {{ $fileList->description ?? 'Sin descripción' }}</p>
                     <p><strong>Registrado por:</strong> {{ $fileList->creator->name ?? 'Desconocido' }}</p>
                     <p><strong>Fecha:</strong> {{ $fileList->created_at->format('d/m/Y H:i') }}</p>
                     @if($fileList->module)
                         <p><strong>Módulo:</strong> {{ $fileList->module->name }}</p>
+                    @endif
+                    @if($fileList->hasAttachment())
+                        <div class="text-center mt-3">
+                            <a href="{{ route('authorization.file', $token) }}" class="btn btn-outline-primary btn-block">
+                                <i class="fas fa-download"></i> Descargar archivo para revisar
+                            </a>
+                        </div>
                     @endif
                 </div>
 

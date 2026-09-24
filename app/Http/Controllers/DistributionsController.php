@@ -69,16 +69,19 @@ class DistributionsController extends Controller
         if ($request->hasFile('files')) {
             $fileNames = [];
             foreach ($request->file('files') as $file) {
-                $fileNames[] = $file->getClientOriginalName();
+                $fileNames[] = [
+                    'name' => $file->getClientOriginalName(),
+                    'md5' => md5_file($file->getRealPath()),
+                ];
             }
 
-            $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
-            $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
+            $blacklistRules = FileList::where('type', 'blacklist')->get();
+            $whitelistRules = FileList::where('type', 'whitelist')->get();
 
             $blocked = [];
-            foreach ($fileNames as $fileName) {
-                if ($this->matchesFileList($fileName, $blacklistRules)) {
-                    $blocked[] = $fileName;
+            foreach ($fileNames as $fileInfo) {
+                if (FileList::matchesRules($blacklistRules, $fileInfo['name'], $fileInfo['md5'])) {
+                    $blocked[] = $fileInfo['name'];
                 }
             }
 
@@ -89,9 +92,10 @@ class DistributionsController extends Controller
             }
 
             $notAllowed = [];
-            foreach ($fileNames as $fileName) {
-                if (! $this->matchesFileList($fileName, $whitelistRules)) {
-                    $notAllowed[] = $fileName;
+            foreach ($fileNames as $fileInfo) {
+                // La whitelist solo restringe cuando hay reglas configuradas
+                if (! $whitelistRules->isEmpty() && ! FileList::matchesRules($whitelistRules, $fileInfo['name'], $fileInfo['md5'])) {
+                    $notAllowed[] = $fileInfo['name'];
                 }
             }
 
@@ -369,18 +373,21 @@ class DistributionsController extends Controller
         }
 
         // Validar archivos contra file lists
-        $fileNames = [];
+        $fileInfos = [];
         foreach ($request->file('files') as $file) {
-            $fileNames[] = $file->getClientOriginalName();
+            $fileInfos[] = [
+                'name' => $file->getClientOriginalName(),
+                'md5' => md5_file($file->getRealPath()),
+            ];
         }
 
-        $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
-        $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
+        $blacklistRules = FileList::where('type', 'blacklist')->get();
+        $whitelistRules = FileList::where('type', 'whitelist')->get();
 
         $blocked = [];
-        foreach ($fileNames as $fileName) {
-            if ($this->matchesFileList($fileName, $blacklistRules)) {
-                $blocked[] = $fileName;
+        foreach ($fileInfos as $fileInfo) {
+            if (FileList::matchesRules($blacklistRules, $fileInfo['name'], $fileInfo['md5'])) {
+                $blocked[] = $fileInfo['name'];
             }
         }
 
@@ -389,9 +396,10 @@ class DistributionsController extends Controller
         }
 
         $notAllowed = [];
-        foreach ($fileNames as $fileName) {
-            if (! $this->matchesFileList($fileName, $whitelistRules)) {
-                $notAllowed[] = $fileName;
+        foreach ($fileInfos as $fileInfo) {
+            // La whitelist solo restringe cuando hay reglas configuradas
+            if (! $whitelistRules->isEmpty() && ! FileList::matchesRules($whitelistRules, $fileInfo['name'], $fileInfo['md5'])) {
+                $notAllowed[] = $fileInfo['name'];
             }
         }
 
@@ -418,21 +426,6 @@ class DistributionsController extends Controller
                 'file_size' => $file->getSize(),
             ]);
         }
-    }
-
-    private function matchesFileList(string $fileName, array $rules): bool
-    {
-        foreach ($rules as $rule) {
-            if (str_starts_with($rule, '.')) {
-                if (str_ends_with($fileName, $rule)) {
-                    return true;
-                }
-            } elseif ($fileName === $rule) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public function progress($id)

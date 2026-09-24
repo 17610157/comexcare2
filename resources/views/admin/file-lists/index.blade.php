@@ -26,6 +26,7 @@
                                 <th>ID</th>
                                 <th>Tipo</th>
                                 <th>Nombre de Archivo</th>
+                                <th>Hash MD5</th>
                                 <th>Descripción</th>
                                 <th>Módulo</th>
                                 <th>Estado</th>
@@ -46,6 +47,13 @@
                                         @endif
                                     </td>
                                     <td><code>{{ $item->file_name }}</code></td>
+                                    <td>
+                                        @if($item->file_md5)
+                                            <code title="MD5 del archivo">{{ $item->file_md5 }}</code>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $item->description ?? '-' }}</td>
                                     <td>{{ $item->module->name ?? '-' }}</td>
                                     <td>
@@ -58,6 +66,12 @@
                                     <td>{{ $item->creator->name ?? 'N/A' }}</td>
                                     <td>{{ $item->created_at->format('d/m/Y H:i') }}</td>
                                     <td>
+                                        @if($item->hasAttachment() && $item->file_md5)
+                                            <a href="{{ route('admin.file-lists.download', $item->id) }}"
+                                               class="btn btn-info btn-sm" title="Descargar archivo">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        @endif
                                         <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
                                                 data-target="#editFileListModal"
                                                 data-id="{{ $item->id }}"
@@ -94,8 +108,13 @@
                         <input type="hidden" name="type" value="whitelist">
                         <div class="form-group">
                             <label>Nombre del Archivo *</label>
-                            <input type="text" name="file_name" class="form-control" required placeholder="ej: reporte.xlsx">
-                            <small class="text-muted">Nombre exacto (ej: virus.exe) o extensión (ej: .exe para todos los .exe)</small>
+                            <input type="text" name="file_name" class="form-control fileListFileName" required placeholder="ej: reporte.xlsx">
+                            <small class="text-muted">Si subes un archivo, se usará su nombre automáticamente. También puedes escribir un nombre exacto o extensión (ej: .exe).</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Archivo a subir (opcional)</label>
+                            <input type="file" name="file" class="form-control-file fileListFileInput">
+                            <small class="text-muted">Se calculará su hash MD5 y se adjuntará al correo de autorización para su revisión.</small>
                         </div>
                         <div class="form-group">
                             <label>Descripción (opcional)</label>
@@ -127,8 +146,13 @@
                         <input type="hidden" name="type" value="blacklist">
                         <div class="form-group">
                             <label>Nombre del Archivo *</label>
-                            <input type="text" name="file_name" class="form-control" required placeholder="ej: virus.exe">
-                            <small class="text-muted">Nombre exacto (ej: virus.exe) o extensión (ej: .exe para todos los .exe)</small>
+                            <input type="text" name="file_name" class="form-control fileListFileName" required placeholder="ej: virus.exe">
+                            <small class="text-muted">Si subes un archivo, se usará su nombre automáticamente. También puedes escribir un nombre exacto o extensión (ej: .exe).</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Archivo a subir (opcional)</label>
+                            <input type="file" name="file" class="form-control-file fileListFileInput">
+                            <small class="text-muted">Se calculará su hash MD5 y se adjuntará al correo de autorización para su revisión.</small>
                         </div>
                         <div class="form-group">
                             <label>Descripción (opcional)</label>
@@ -169,6 +193,11 @@
                         <div class="form-group">
                             <label>Nombre del Archivo *</label>
                             <input type="text" name="file_name" id="editFileName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Reemplazar archivo (opcional)</label>
+                            <input type="file" name="file" class="form-control-file">
+                            <small class="text-muted">Si subes un archivo se recalculará su hash MD5 y se usará su nombre.</small>
                         </div>
                         <div class="form-group">
                             <label>Descripción</label>
@@ -219,6 +248,16 @@ $(document).ready(function() {
             "aria": {
                 "sortAscending": ": activar para ordenar la columna ascendente",
                 "sortDescending": ": activar para ordenar la columna descendente"
+            }
+        }
+    });
+
+    $('.fileListFileInput').on('change', function() {
+        const input = this;
+        if (input.files && input.files.length > 0) {
+            const fileNameInput = $(this).closest('form').find('.fileListFileName');
+            if (fileNameInput.length) {
+                fileNameInput.val(input.files[0].name);
             }
         }
     });

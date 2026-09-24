@@ -12,6 +12,9 @@ class FileList extends Model
     protected $fillable = [
         'type',
         'file_name',
+        'file_path',
+        'file_md5',
+        'file_size',
         'description',
         'created_by',
         'status',
@@ -23,6 +26,7 @@ class FileList extends Model
     protected function casts(): array
     {
         return [
+            'file_size' => 'integer',
             'token_expires_at' => 'datetime',
         ];
     }
@@ -69,5 +73,29 @@ class FileList extends Model
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    public function hasAttachment(): bool
+    {
+        return $this->file_path !== null && $this->file_md5 !== null;
+    }
+
+    public static function matchesRules(iterable $rules, string $fileName, ?string $md5 = null): bool
+    {
+        foreach ($rules as $rule) {
+            if (str_starts_with($rule->file_name, '.')) {
+                if (str_ends_with($fileName, $rule->file_name)) {
+                    return true;
+                }
+            } elseif ($fileName === $rule->file_name) {
+                return true;
+            }
+
+            if ($md5 !== null && ! empty($rule->file_md5) && hash_equals(strtolower($rule->file_md5), strtolower($md5))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

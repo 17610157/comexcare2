@@ -7,6 +7,7 @@ use App\Models\Distribution;
 use App\Models\DistributionTarget;
 use App\Models\FileList;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 
 class RestartDistribution extends Command
 {
@@ -79,12 +80,12 @@ class RestartDistribution extends Command
 
     private function validateFilesAgainstLists(Distribution $distribution): bool
     {
-        $blacklistRules = FileList::where('type', 'blacklist')->pluck('file_name')->toArray();
-        $whitelistRules = FileList::where('type', 'whitelist')->pluck('file_name')->toArray();
+        $blacklistRules = FileList::where('type', 'blacklist')->get();
+        $whitelistRules = FileList::where('type', 'whitelist')->get();
 
         $blocked = [];
         foreach ($distribution->files as $file) {
-            if ($this->matchesList($file->file_name, $blacklistRules)) {
+            if (FileList::matchesRules($blacklistRules, $file->file_name, $this->fileMd5($file))) {
                 $blocked[] = $file->file_name;
             }
         }
@@ -97,7 +98,7 @@ class RestartDistribution extends Command
 
         $notAllowed = [];
         foreach ($distribution->files as $file) {
-            if (! $this->matchesList($file->file_name, $whitelistRules)) {
+            if (! $whitelistRules->isEmpty() && ! FileList::matchesRules($whitelistRules, $file->file_name, $this->fileMd5($file))) {
                 $notAllowed[] = $file->file_name;
             }
         }
@@ -111,18 +112,14 @@ class RestartDistribution extends Command
         return true;
     }
 
-    private function matchesList(string $fileName, array $rules): bool
+    private function fileMd5($file): ?string
     {
-        foreach ($rules as $rule) {
-            if (str_starts_with($rule, '.')) {
-                if (str_ends_with($fileName, $rule)) {
-                    return true;
-                }
-            } elseif ($fileName === $rule) {
-                return true;
-            }
+        $path = Storage::disk('public')->path($file->file_path);
+
+        if (! is_file($path)) {
+            return null;
         }
 
-        return false;
+        return md5_file($path);
     }
 }

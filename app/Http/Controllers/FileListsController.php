@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 
 class FileListsController extends Controller
 {
@@ -26,15 +27,31 @@ class FileListsController extends Controller
         $request->validate([
             'type' => 'required|in:whitelist,blacklist',
             'file_name' => 'required|string|max:255',
+            'file' => 'nullable|file|max:102400',
             'description' => 'nullable|string|max:500',
             'module_id' => 'nullable|exists:modules,id',
         ]);
 
+        $fileName = $request->file_name;
+        $filePath = null;
+        $fileMd5 = null;
+        $fileSize = null;
+
+        if ($request->hasFile('file')) {
+            $uploaded = $request->file('file');
+            $fileName = $uploaded->getClientOriginalName();
+            $filePath = $uploaded->store('file-lists', 'local');
+            $fileMd5 = md5_file($uploaded->getRealPath());
+            $fileSize = $uploaded->getSize();
+        }
+
         $exists = FileList::where('type', $request->type)
-            ->where('file_name', $request->file_name)
+            ->where('file_name', $fileName)
             ->exists();
 
         if ($exists) {
+            $this->deleteStoredFile($filePath);
+
             return response()->json([
                 'message' => 'Este archivo ya existe en la lista '.($request->type === 'whitelist' ? 'blanca' : 'negra').'.',
             ], 422);
@@ -44,7 +61,10 @@ class FileListsController extends Controller
 
         $fileList = FileList::create([
             'type' => $request->type,
-            'file_name' => $request->file_name,
+            'file_name' => $fileName,
+            'file_path' => $filePath,
+            'file_md5' => $fileMd5,
+            'file_size' => $fileSize,
             'description' => $request->description,
             'created_by' => Auth::id(),
             'status' => 'pending',
@@ -63,11 +83,15 @@ class FileListsController extends Controller
         $request->validate([
             'type' => 'required|in:whitelist,blacklist',
             'file_name' => 'required|string|max:255',
+            'file' => 'nullable|file|max:102400',
             'description' => 'nullable|string|max:500',
         ]);
 
+        $fileName = $request->file_name;
+        $newFile = $request->hasFile('file');
+
         $exists = FileList::where('type', $request->type)
-            ->where('file_name', $request->file_name)
+            ->where('file_name', $newFile ? $request->file('file')->getClientOriginalName() : $fileName)
             ->where('id', '!=', $fileList->id)
             ->exists();
 
@@ -77,11 +101,23 @@ class FileListsController extends Controller
             ], 422);
         }
 
-        $fileList->update([
+        $data = [
             'type' => $request->type,
-            'file_name' => $request->file_name,
+            'file_name' => $fileName,
             'description' => $request->description,
-        ]);
+        ];
+
+        if ($newFile) {
+            $uploaded = $request->file('file');
+            $this->deleteStoredFile($fileList->file_path);
+
+            $data['file_name'] = $uploaded->getClientOriginalName();
+            $data['file_path'] = $uploaded->store('file-lists', 'local');
+            $data['file_md5'] = md5_file($uploaded->getRealPath());
+            $data['file_size'] = $uploaded->getSize();
+        }
+
+        $fileList->update($data);
 
         return response()->json([
             'message' => 'Archivo actualizado en la lista exitosamente.',
@@ -90,11 +126,21 @@ class FileListsController extends Controller
 
     public function destroy(FileList $fileList)
     {
+        $this->deleteStoredFile($fileList->file_path);
         $fileList->delete();
 
         return response()->json([
             'message' => 'Archivo eliminado de la lista exitosamente.',
         ]);
+    }
+
+    public function download(FileList $fileList)
+    {
+        if (! $fileList->hasAttachment() || ! Storage::disk('local')->exists($fileList->file_path)) {
+            abort(404);
+        }
+
+        return Storage::disk('local')->download($fileList->file_path, $fileList->file_name);
     }
 
     public function validateFiles(Request $request)
@@ -142,6 +188,13 @@ class FileListsController extends Controller
         }
 
         return false;
+    }
+
+    private function deleteStoredFile(?string $path): void
+    {
+        if ($path && Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->delete($path);
+        }
     }
 
     private function sendAuthorizationNotifications(FileList $fileList): void

@@ -258,7 +258,9 @@ class AgentDefaultsController extends Controller
             ], 422);
         }
 
-        if (! $this->matchesFileList($originalName, $whitelistRules)) {
+        // La whitelist solo restringe cuando hay reglas configuradas;
+        // si está vacía se permite cualquier archivo no bloqueado.
+        if (! empty($whitelistRules) && ! $this->matchesFileList($originalName, $whitelistRules)) {
             return response()->json([
                 'message' => "El archivo '{$originalName}' no está en la whitelist y no puede ser subido.",
             ], 422);
@@ -340,7 +342,7 @@ class AgentDefaultsController extends Controller
                 continue;
             }
 
-            if (! $this->matchesFileList($file, $whitelistRules)) {
+            if (! empty($whitelistRules) && ! $this->matchesFileList($file, $whitelistRules)) {
                 continue;
             }
 

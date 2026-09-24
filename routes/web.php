@@ -84,6 +84,7 @@ Route::post('/login/2fa/resend', [TwoFactorController::class, 'resend'])->name('
 // Authorization routes (public - no auth required)
 Route::get('/authorization/{token}', [AuthorizationController::class, 'show'])->name('authorization.show');
 Route::post('/authorization/{token}', [AuthorizationController::class, 'process'])->name('authorization.process');
+Route::get('/authorization/{token}/file', [AuthorizationController::class, 'download'])->name('authorization.file');
 
 // API pública de reportes DBF
 Route::get('/api/dbf-report', [ReporteDbfFilesController::class, 'api']);
@@ -388,6 +389,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::resource('file-receptions', FileReceptionController::class);
 
     Route::resource('file-lists', FileListsController::class)->except(['create', 'show', 'edit']);
+    Route::get('file-lists/{fileList}/download', [FileListsController::class, 'download'])->name('file-lists.download');
     Route::post('file-lists/validate', [FileListsController::class, 'validateFiles'])->name('file-lists.validate');
 
     // Modules
