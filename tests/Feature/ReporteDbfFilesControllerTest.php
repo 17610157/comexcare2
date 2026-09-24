@@ -249,8 +249,8 @@ it('filters detail files by file_category exe', function () {
     $response->assertOk();
 
     $data = $response->json('data');
-    expect($data[0]['dbf_files'])->toHaveCount(1);
-    expect($data[0]['dbf_files'][0]['name'])->toBe('POS32.EXE');
+    expect($data)->toHaveCount(1);
+    expect($data[0]['file']['name'])->toBe('POS32.EXE');
 });
 
 it('filters detail files by file_category bat', function () {
@@ -267,8 +267,8 @@ it('filters detail files by file_category bat', function () {
     $response->assertOk();
 
     $data = $response->json('data');
-    expect($data[0]['dbf_files'])->toHaveCount(1);
-    expect($data[0]['dbf_files'][0]['name'])->toBe('BACKUP.BAT');
+    expect($data)->toHaveCount(1);
+    expect($data[0]['file']['name'])->toBe('BACKUP.BAT');
 });
 
 it('filters detail files by file_category other is ignored', function () {
@@ -285,7 +285,7 @@ it('filters detail files by file_category other is ignored', function () {
     $response->assertOk();
 
     $data = $response->json('data');
-    expect($data[0]['dbf_files'])->toHaveCount(3);
+    expect($data)->toHaveCount(3);
 });
 
 it('does not include checksum in file data', function () {
@@ -299,6 +299,36 @@ it('does not include checksum in file data', function () {
     $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data'));
     $response->assertOk();
 
-    $file = $response->json('data.0.dbf_files.0');
+    $file = $response->json('data.0.file');
     expect($file)->not->toHaveKey('checksum');
+});
+
+it('paginates by file rows so pagination matches displayed data', function () {
+    createComputer([
+        'computer_name' => 'PC-MULTI',
+        'agent_config' => ['dbf_files' => [
+            ['name' => 'A.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\A.EXE'],
+            ['name' => 'B.EXE', 'hash_md5' => 'BB2222', 'size' => 1024, 'path' => 'D:\\pvsi\\B.EXE'],
+            ['name' => 'C.EXE', 'hash_md5' => 'CC3333', 'size' => 1024, 'path' => 'D:\\pvsi\\C.EXE'],
+            ['name' => 'D.EXE', 'hash_md5' => 'DD4444', 'size' => 1024, 'path' => 'D:\\pvsi\\D.EXE'],
+        ]],
+    ]);
+
+    // Una sola computadora con 4 archivos ahora cuenta 4 registros (filas mostradas)
+    $all = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['start' => 0, 'length' => 100]));
+    $all->assertOk();
+    expect($all->json('recordsTotal'))->toBe(4);
+    expect($all->json('data'))->toHaveCount(4);
+
+    // Página de 2: solo devuelve las 2 filas que indica la paginación
+    $page1 = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['start' => 0, 'length' => 2]));
+    $page1->assertOk();
+    expect($page1->json('data'))->toHaveCount(2);
+
+    $page2 = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['start' => 2, 'length' => 2]));
+    $page2->assertOk();
+    expect($page2->json('data'))->toHaveCount(2);
+
+    $keys = array_map(fn ($r) => $r['file']['name'], $page1->json('data'));
+    expect($keys)->not->toContain($page2->json('data')[0]['file']['name']);
 });

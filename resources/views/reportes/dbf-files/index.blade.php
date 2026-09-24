@@ -145,7 +145,7 @@
               <th style="cursor:pointer" data-sort="plaza">Plaza <i class="fas fa-sort"></i></th>
               <th style="cursor:pointer" data-sort="status">Estado <i class="fas fa-sort"></i></th>
               <th>Categoria</th>
-              <th>Nombre</th>
+              <th style="cursor:pointer" data-sort="archivo">Nombre <i class="fas fa-sort"></i></th>
               <th>Ruta</th>
               <th>Tamano</th>
               <th>Modificacion</th>
@@ -334,7 +334,8 @@ function loadData() {
 }
 
 function renderStats(json) {
-  $('#total_computadoras').text('Total: ' + (json.recordsTotal || 0) + ' computadoras');
+  var txt = 'Computadoras: ' + (json.total_computadoras || 0) + ' | Archivos: ' + (json.recordsTotal || 0);
+  $('#total_computadoras').text(txt);
 }
 
 function getCategoryInfo(file) {
@@ -361,51 +362,44 @@ function renderTable(json) {
   $tbody.empty();
 
   if (data.length === 0) {
-    $tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No se encontraron computadoras</td></tr>');
+    $tbody.html('<tr><td colspan="13" class="text-center py-4 text-muted">No se encontraron registros</td></tr>');
     $('#paginationControls').addClass('d-none');
     return;
   }
 
-  var estadoFiltro = $('#estado_filter').val();
-  var rows = 0;
-  data.forEach(function(comp) {
-    var files = comp.dbf_files || [];
+  data.forEach(function(row) {
+    var comp = {
+      nombre_instalacion: row.nombre_instalacion,
+      plaza: row.plaza,
+      status: row.status
+    };
+    var file = row.file || {};
     var statusBadge = comp.status === 'online'
       ? '<span class="badge bg-success">Online</span>'
       : '<span class="badge bg-danger">Offline</span>';
-    files.forEach(function(file) {
-      // Filtro por estado individual del archivo
-      if (estadoFiltro === 'actualizado' && !file.rbf_matched) return;
-      if (estadoFiltro === 'desactualizado' && file.rbf_matched) return;
 
-      var cat = getCategoryInfo(file);
-      var size = file.size ? (file.size / 1024).toFixed(2) + ' KB' : 'N/A';
-      var modified = formatAgentModifiedDate(file.modified || '');
-      var rbfStatus = file.rbf_matched
-        ? '<span class="badge bg-success">OK</span>'
-        : '<span class="badge bg-danger">Falta</span>';
-      $tbody.append('<tr>' +
-        '<td><strong>' + (comp.nombre_instalacion || 'N/A') + '</strong></td>' +
-        '<td>' + (comp.plaza || 'N/A') + '</td>' +
-        '<td>' + statusBadge + '</td>' +
-        '<td class="text-center"><span class="badge ' + cat.badge + '">' + cat.label + '</span></td>' +
-        '<td><strong>' + (file.name || 'N/A') + '</strong></td>' +
-        '<td style="word-break:break-all;">' + (file.path || 'N/A') + '</td>' +
-        '<td>' + size + '</td>' +
-        '<td style="white-space:nowrap;">' + modified + '</td>' +
-        '<td style="word-break:break-all;"><code style="font-size:0.65rem;">' + (file.hash_md5 ? file.hash_md5.slice(-5) : '') + '</code></td>' +
-        '<td style="word-break:break-all;">' + (file.rbf_path || '') + '</td>' +
-        '<td style="word-break:break-all;"><code style="font-size:0.65rem;">' + (file.rbf_hash || '') + '</code></td>' +
-        '<td style="white-space:nowrap;">' + (file.rbf_last_modified || '<span class="text-muted">-</span>') + '</td>' +
-        '<td class="text-center">' + rbfStatus + '</td>' +
-      '</tr>');
-      rows++;
-    });
+    var cat = getCategoryInfo(file);
+    var size = file.size ? (file.size / 1024).toFixed(2) + ' KB' : 'N/A';
+    var modified = formatAgentModifiedDate(file.modified || '');
+    var rbfStatus = file.rbf_matched
+      ? '<span class="badge bg-success">OK</span>'
+      : '<span class="badge bg-danger">Falta</span>';
+    $tbody.append('<tr>' +
+      '<td><strong>' + (comp.nombre_instalacion || 'N/A') + '</strong></td>' +
+      '<td>' + (comp.plaza || 'N/A') + '</td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td class="text-center"><span class="badge ' + cat.badge + '">' + cat.label + '</span></td>' +
+      '<td><strong>' + (file.name || 'N/A') + '</strong></td>' +
+      '<td style="word-break:break-all;">' + (file.path || 'N/A') + '</td>' +
+      '<td>' + size + '</td>' +
+      '<td style="white-space:nowrap;">' + modified + '</td>' +
+      '<td style="word-break:break-all;"><code style="font-size:0.65rem;">' + (file.hash_md5 ? file.hash_md5.slice(-5) : '') + '</code></td>' +
+      '<td style="word-break:break-all;">' + (file.rbf_path || '') + '</td>' +
+      '<td style="word-break:break-all;"><code style="font-size:0.65rem;">' + (file.rbf_hash || '') + '</code></td>' +
+      '<td style="white-space:nowrap;">' + (file.rbf_last_modified || '<span class="text-muted">-</span>') + '</td>' +
+      '<td class="text-center">' + rbfStatus + '</td>' +
+    '</tr>');
   });
-
-  if (rows === 0) {
-    $tbody.html('<tr><td colspan="13" class="text-center py-4 text-muted">No se encontraron archivos</td></tr>');
-  }
 
   updatePagination();
 }

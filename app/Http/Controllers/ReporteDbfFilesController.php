@@ -197,11 +197,9 @@ class ReporteDbfFilesController extends Controller
     public function data(Request $request)
     {
         $draw = (int) ($request->query('draw') ?? $request->input('draw', 1));
-        $startIdx = (int) ($request->query('start') ?? $request->input('start', 0));
+        $startIdx = max(0, (int) ($request->query('start') ?? $request->input('start', 0)));
         $length = (int) ($request->query('length') ?? $request->input('length', 50));
         $search = $request->query('search') ?? $request->input('search.value', '');
-        $lengthInt = (int) $length;
-        $offsetInt = (int) $startIdx;
         $sortColumn = $request->query('sort') ?? 'nombre_instalacion';
         $sortDirection = $request->query('direction') ?? 'asc';
 
@@ -241,9 +239,14 @@ class ReporteDbfFilesController extends Controller
                 });
             }
 
-            $allComputers = $query->orderBy('nombre_instalacion')->get();
+            $allComputers = $query->orderBy('nombre_instalacion')->orderBy('id')->get();
 
             $rbfLookup = $this->getRbfHashLookup();
+
+            $fileCategoryFilter = $request->query('file_category') ?? $request->input('file_category', '');
+            $archivoFilter = $request->query('archivo') ?? $request->input('archivo', '');
+            $estadoInput = $request->query('estado') ?? $request->input('estado', '');
+            $conexionInput = $request->query('conexion') ?? '';
 
             $globalMatched = 0;
             $globalTotal = 0;
@@ -254,9 +257,11 @@ class ReporteDbfFilesController extends Controller
             $computerMatchMap = [];
             $globalCategoryStats = ['exe' => ['total' => 0, 'matched' => 0], 'bat' => ['total' => 0, 'matched' => 0], 'dbf' => ['total' => 0, 'matched' => 0], 'qbck' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
 
+            $flatRows = [];
+
             foreach ($allComputers as $computer) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
-                $dbfFiles = array_filter($dbfFiles, fn ($f) => $this->isValidDbfFile($f));
+                $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->isValidDbfFile($f)));
                 $plaza = $computer->plaza ?? 'N/A';
                 $groupName = $computer->group->name ?? 'N/A';
                 $isOnline = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5;
@@ -282,6 +287,37 @@ class ReporteDbfFilesController extends Controller
                     if ($isMatched) {
                         $fileStats[$fileName]['matched']++;
                     }
+
+                    if (! empty($fileCategoryFilter) && in_array($fileCategoryFilter, ['exe', 'bat', 'dbf', 'qbck']) && $cat !== $fileCategoryFilter) {
+                        continue;
+                    }
+
+                    if (! empty($archivoFilter) && stripos($fileName, $archivoFilter) === false) {
+                        continue;
+                    }
+
+                    $rbfRecord = $rbfLookup[$key] ?? null;
+
+                    $flatRows[] = [
+                        'id' => $computer->id,
+                        'nombre_instalacion' => $computer->nombre_instalacion,
+                        'plaza' => $plaza,
+                        'group_name' => $groupName,
+                        'group_id' => $computer->group_id,
+                        'status' => $isOnline ? 'online' : 'offline',
+                        'last_seen' => $computer->last_seen ? $computer->last_seen->format('Y-m-d H:i:s') : 'Never',
+                        'file' => [
+                            'name' => $fileName,
+                            'path' => $file['path'] ?? '',
+                            'size' => $file['size'] ?? null,
+                            'modified' => $file['modified'] ?? '',
+                            'hash_md5' => $file['hash_md5'] ?? '',
+                            'rbf_path' => $rbfRecord ? $rbfRecord->path : null,
+                            'rbf_hash' => $rbfRecord ? $rbfRecord->hash : null,
+                            'rbf_last_modified' => $rbfRecord?->last_modified?->format('Y-m-d H:i:s'),
+                            'rbf_matched' => $rbfRecord !== null,
+                        ],
+                    ];
                 }
 
                 $computerTotal = count($dbfFiles);
@@ -332,96 +368,52 @@ class ReporteDbfFilesController extends Controller
                 }
             }
 
-            $estadoInput = $request->query('estado') ?? $request->input('estado', '');
+            // Filtro de estado por archivo (la columna "Estado Archivo" es por archivo)
             if (! empty($estadoInput) && in_array($estadoInput, ['actualizado', 'desactualizado'])) {
-                $allComputers = $allComputers->filter(function ($computer) use ($computerMatchMap, $estadoInput) {
-                    $map = $computerMatchMap[$computer->id] ?? ['matched' => 0, 'total' => 0];
-                    if ($map['total'] === 0) {
-                        return $estadoInput === 'desactualizado';
-                    }
-                    $allMatched = $map['matched'] === $map['total'];
-
-                    return $estadoInput === 'actualizado' ? $allMatched : ! $allMatched;
-                })->values();
+                $flatRows = array_values(array_filter($flatRows, fn ($row) => $estadoInput === 'actualizado' ? $row['file']['rbf_matched'] : ! $row['file']['rbf_matched']));
             }
 
-            $conexionInput = $request->query('conexion') ?? '';
             if (! empty($conexionInput) && in_array($conexionInput, ['online', 'offline'])) {
-                $allComputers = $allComputers->filter(function ($computer) use ($conexionInput) {
-                    $isOnline = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5;
-                    return $conexionInput === 'online' ? $isOnline : ! $isOnline;
-                })->values();
+                $flatRows = array_values(array_filter($flatRows, fn ($row) => $row['status'] === $conexionInput));
             }
 
-            $total = $allComputers->count();
+            // Total de filas mostradas (una por archivo), para que recordsTotal coincida con la paginación
+            $total = count($flatRows);
 
-            $allComputers = $allComputers->sortBy(function ($computer) use ($computerMatchMap, $sortColumn) {
-                $map = $computerMatchMap[$computer->id] ?? ['matched' => 0, 'total' => 0, 'exe' => ['total' => 0, 'matched' => 0], 'bat' => ['total' => 0, 'matched' => 0], 'dbf' => ['total' => 0, 'matched' => 0], 'qbck' => ['total' => 0, 'matched' => 0], 'other' => ['total' => 0, 'matched' => 0]];
-                $total = $map['total'];
-                $matched = $map['matched'];
-                $pct = $total > 0 ? round(($matched / $total) * 100) : 0;
+            foreach ($flatRows as &$row) {
+                $map = $computerMatchMap[$row['id']] ?? ['matched' => 0, 'total' => 0];
+                $row['dbf_files_count'] = $map['total'];
+                $row['dbf_files_matched'] = $map['matched'];
+                $row['pct'] = $map['total'] > 0 ? round(($map['matched'] / $map['total']) * 100) : 0;
+            }
+            unset($row);
 
-                return match ($sortColumn) {
-                    'nombre_instalacion' => strtolower($computer->nombre_instalacion ?? ''),
-                    'plaza' => strtolower($computer->plaza ?? ''),
-                    'group_name' => strtolower($computer->group->name ?? ''),
-                    'status' => ($computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5) ? 0 : 1,
-                    'last_seen' => $computer->last_seen ? $computer->last_seen->timestamp : 0,
-                    'dbf_files_count' => $total,
-                    'dbf_files_matched' => $matched,
-                    'pct' => $pct,
-                    default => strtolower($computer->nombre_instalacion ?? ''),
+            usort($flatRows, function ($a, $b) use ($sortColumn, $sortDirection) {
+                $sortFn = function ($r) use ($sortColumn) {
+                    return match ($sortColumn) {
+                        'nombre_instalacion' => strtolower($r['nombre_instalacion'] ?? ''),
+                        'plaza' => strtolower($r['plaza'] ?? ''),
+                        'group_name' => strtolower($r['group_name'] ?? ''),
+                        'status' => ($r['status'] ?? 'offline') === 'online' ? 0 : 1,
+                        'last_seen' => ($r['last_seen'] ?? 'Never') === 'Never' ? 0 : strtotime($r['last_seen']),
+                        'dbf_files_count' => (int) ($r['dbf_files_count'] ?? 0),
+                        'dbf_files_matched' => (int) ($r['dbf_files_matched'] ?? 0),
+                        'pct' => (int) ($r['pct'] ?? 0),
+                        'archivo' => strtolower($r['file']['name'] ?? ''),
+                        default => strtolower($r['nombre_instalacion'] ?? ''),
+                    };
                 };
-            }, SORT_REGULAR, $sortDirection === 'desc')->values();
 
-            $computers = $allComputers->slice($offsetInt, $lengthInt);
+                $valA = $sortFn($a);
+                $valB = $sortFn($b);
+                $cmp = is_string($valA) ? strcmp($valA, $valB) : $valA <=> $valB;
 
-            $fileCategoryFilter = $request->query('file_category') ?? '';
-            $archivoFilter = $request->query('archivo') ?? $request->input('archivo', '');
-            $data = $computers->map(function ($computer) use ($rbfLookup, $fileCategoryFilter, $archivoFilter) {
-                $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
-                $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->isValidDbfFile($f)));
+                return $sortDirection === 'desc' ? -$cmp : $cmp;
+            });
 
-                $dbfFiles = array_map(function ($file) use ($computer, $rbfLookup) {
-                    $key = strtolower($computer->plaza ?? '').'|'.strtoupper(substr($file['hash_md5'] ?? '', -5)).'|'.strtolower($file['name'] ?? '');
-                    $rbfRecord = $rbfLookup[$key] ?? null;
-                    $file['rbf_path'] = $rbfRecord ? $rbfRecord->path : null;
-                    $file['rbf_hash'] = $rbfRecord ? $rbfRecord->hash : null;
-                    $file['rbf_last_modified'] = $rbfRecord?->last_modified?->format('Y-m-d H:i:s');
-                    $file['rbf_matched'] = $rbfRecord !== null;
-
-                    unset($file['checksum']);
-
-                    return $file;
-                }, $dbfFiles);
-
-                if (! empty($fileCategoryFilter) && in_array($fileCategoryFilter, ['exe', 'bat', 'dbf', 'qbck'])) {
-                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->getFileCategory($f) === $fileCategoryFilter));
-                }
-
-                if (! empty($archivoFilter)) {
-                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => stripos($f['name'] ?? '', $archivoFilter) !== false));
-                }
-
-                $computerMatched = count(array_filter($dbfFiles, fn ($f) => $f['rbf_matched']));
-                $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
-
-                return [
-                    'id' => $computer->id,
-                    'nombre_instalacion' => $computer->nombre_instalacion,
-                    'plaza' => $computer->plaza ?? 'N/A',
-                    'group_name' => $computer->group->name ?? 'N/A',
-                    'group_id' => $computer->group_id,
-                    'status' => $status,
-                    'last_seen' => $computer->last_seen ? $computer->last_seen->format('Y-m-d H:i:s') : 'Never',
-                    'dbf_files_count' => count($dbfFiles),
-                    'dbf_files_matched' => $computerMatched,
-                    'dbf_files' => $dbfFiles,
-                    'pvsi_bepartners_version' => $computer->pvsi_bepartners_version ?? null,
-                    'pvsi_bepartners_fecha' => $computer->pvsi_bepartners_fecha ?? null,
-                    'pvsi_bepartners_hora' => $computer->pvsi_bepartners_hora ?? null,
-                ];
-            })->values();
+            $slicedRows = $length < 0
+                ? array_slice($flatRows, $startIdx)
+                : array_slice($flatRows, $startIdx, $length);
 
             $perPlaza = [];
             foreach ($plazaStats as $plaza => $stats) {
@@ -467,7 +459,8 @@ class ReporteDbfFilesController extends Controller
                 'draw' => $draw,
                 'recordsTotal' => (int) $total,
                 'recordsFiltered' => (int) $total,
-                'data' => $data,
+                'total_computadoras' => count($computerMatchMap),
+                'data' => $slicedRows,
                 'rbf_stats' => [
                     'total_files' => $globalTotal,
                     'total_matched' => $globalMatched,
