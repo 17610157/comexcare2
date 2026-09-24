@@ -105,10 +105,9 @@
       </div>
       <div class="table-responsive table-scroll">
         <table class="table table-sm table-hover table-striped mb-0" id="filesTable">
-          <thead class="table-dark">
+            <thead class="table-dark">
             <tr>
               <th>Tienda</th>
-              <th>Clave</th>
               <th>Plaza</th>
               <th>Grupo</th>
               <th class="text-center">Estado del Agente</th>
@@ -150,7 +149,7 @@
                 <th>Ruta</th>
                 <th>Hash</th>
                 <th>Fecha modificación de archivo</th>
-                <th>Fecha consulta API</th>
+                <th class="col-fecha-api">Fecha consulta API</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -190,10 +189,11 @@
 .ruta-seg { color: #ffffff; display: inline-block; }
 .ruta-sep { color: #ffffff; padding: 0 1px; }
 .btn-view { padding: 0.1rem 0.35rem; font-size: 0.65rem; line-height: 1.2; }
-#viewRutasTable td.hist-fila, tr.hist-fila td { background-color: #343a40; color: #fff; }
-tr.hist-fila td { vertical-align: middle; }
-tr.hist-fila .text-muted { color: #adb5bd !important; }
-tr.hist-fila code, tr.hist-fila small { color: #fff; }
+#viewRutasTable tr.hist-fila td { vertical-align: middle; }
+#viewRutasTable tr.hist-fila td { background-color: inherit; }
+#viewRutasTable tr.hist-fila .ruta-sep, #viewRutasTable tr.hist-fila .ruta-seg { color: inherit; }
+#viewRutasTable th.col-fecha-api { min-width: 190px; white-space: nowrap; }
+#viewRutasTable td:nth-child(5) { min-width: 190px; white-space: nowrap; font-family: monospace; font-size: 0.75rem; }
 </style>
 @endsection
 
@@ -286,7 +286,7 @@ function renderTable(json) {
   renderHashHeader(columnas);
 
   if (data.length === 0) {
-    var noCols = 6 + columnas.length;
+    var noCols = 5 + columnas.length;
     $tbody.html('<tr><td colspan="' + noCols + '" class="text-center py-4 text-muted">No se encontraron tiendas</td></tr>');
     $('#paginationControls').addClass('d-none');
     return;
@@ -298,11 +298,13 @@ function renderTable(json) {
     var rowColors = computeRowColors(row, columnas);
     var html = '<tr>';
     html += '<td><strong>' + (row.nombre_instalacion || 'N/A') + '</strong></td>';
-    html += '<td><code>' + (row.short_key || 'N/A') + '</code></td>';
     html += '<td>' + (row.plaza || 'N/A') + '</td>';
     html += '<td>' + (row.grupo || 'N/A') + '</td>';
     html += '<td class="text-center">' + estadoBadge(row.estado) + '</td>';
-    html += '<td><div class="d-flex align-items-center gap-1"><code>' + (row.archivo || 'N/A') + '</code>' +
+    html += '<td><div class="d-flex align-items-center gap-1"><div>' +
+            '<code>' + (row.archivo || 'N/A') + '</code>' +
+            (row.fecha_modificacion_qbck ? '<div class="ruta-path">Mod: ' + formatFecha(row.fecha_modificacion_qbck) + '</div>' : '') +
+            '</div>' +
             '<button type="button" class="btn btn-info btn-sm btn-view ml-1" data-view-idx="' + row.__idx + '" title="Ver ruta"><i class="fas fa-eye"></i></button></div></td>';
 
     columnas.forEach(function(disp) {
@@ -377,7 +379,15 @@ function renderHashCell(cell, rowColors) {
   if (!cell || !cell.hash) return '<span class="celda-vacia">no se encuentra archivo en ubicacion</span>';
   var color = rowColors[cell.hash] || '#dc3545';
   var title = cell.path ? ' title="' + cell.path + '"' : '';
-  return '<span class="hash-chip" style="background:' + color + ';"' + title + '>' + cell.hash + '</span>';
+  var extra = '';
+  if (cell.desfase_punto) {
+    var d = cell.desfase_punto;
+    var txt = (d.dias > 0 ? d.dias + 'd ' : '') + d.horas + 'h';
+    if (d.total_h <= 0) txt = '0h';
+    var c = d.estado === 'ok' ? '#28a745' : (d.estado === 'warn' ? '#d39e00' : '#dc3545');
+    extra = '<div style="font-size:0.62rem;color:' + c + ';">' + txt + '</div>';
+  }
+  return '<span class="hash-chip" style="background:' + color + ';"' + title + '>' + cell.hash + '</span>' + extra;
 }
 
 function renderHashHeader(columnas) {
@@ -404,6 +414,12 @@ function debounce(fn, ms) {
     clearTimeout(t);
     t = setTimeout(fn, ms);
   };
+}
+
+function formatFecha(v) {
+  if (!v) return '—';
+  if (typeof v === 'string' && v.length >= 19) return v.substring(0, 19).replace('T', ' ');
+  return v;
 }
 
 $(function() {
@@ -507,12 +523,6 @@ $(function() {
     loadData();
   });
 
-  function formatFecha(v) {
-    if (!v) return '—';
-    if (typeof v === 'string' && v.length >= 19) return v.substring(0, 19).replace('T', ' ');
-    return v;
-  }
-
   function desglosarRuta(ruta) {
     if (!ruta) return '';
     var partes = String(ruta).split(/[\\/]+/).filter(function(p) { return p !== ''; });
@@ -563,11 +573,11 @@ $(function() {
           var hLabel = h.disparador === 'cortefin/pvsi' ? 'CORTEFIN/PVSI' : String(h.disparador || '').toUpperCase();
           $tbody.append(
             '<tr class="hist-fila">' +
-              '<td><span class="small">' + (hLabel === dispLabel ? '' : hLabel) + '</span></td>' +
-              '<td><span class="small">↳ ' + desglosarRuta(r.ruta) + '</span></td>' +
+              '<td>' + (hLabel === dispLabel ? '' : hLabel) + '</td>' +
+              '<td>↳ ' + desglosarRuta(r.ruta) + '</td>' +
               '<td><span class="hash-chip" style="background:#495057;">' + val(h.hash) + '</span></td>' +
-              '<td><span class="small">' + formatFecha(h.fecha_modificacion) + '</span></td>' +
-              '<td><span class="small">' + formatFecha(h.fecha_consulta_api) + '</span></td>' +
+              '<td>' + formatFecha(h.fecha_modificacion) + '</td>' +
+              '<td>' + formatFecha(h.fecha_consulta_api) + '</td>' +
             '</tr>'
           );
         });

@@ -5,6 +5,8 @@ use App\Models\ConciliacionHashArchivo;
 use App\Models\Group;
 use App\Models\HashArchivoHistorial;
 use App\Models\HashArchivoLote;
+use App\Models\RbfConfigStatus;
+use App\Models\RbfFileHash;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -135,6 +137,61 @@ it('builds a dynamic trazabilidad table with disparadores as columns', function 
     expect($rbf['hash'])->toBe('231B7');
     expect($rbf['es_ancla'])->toBeFalse();
     expect($rbf['desactualizado'])->toBeTrue();
+});
+
+it('uses the latest rbf_file_hashes for the rbf column when available', function () {
+    createTrazabilidadData();
+
+    // Config de zona RBF para la tienda
+    RbfConfigStatus::create([
+        'pl' => 'CHETU',
+        'rs' => 'CHETU',
+        'ti' => 'CALVO',
+        'ca' => 'CALVO',
+        'li' => 'norte',
+        'of' => 'norte',
+        'pr' => 'norte',
+        'co' => 'norte',
+        'db' => 'norte',
+        'synced_at' => now(),
+    ]);
+
+    // Hash RBF actualizado (más reciente que el de conciliacion_hash_archivos = 231B7)
+    RbfFileHash::create([
+        'servicio' => 'dbf',
+        'plaza' => 'CHETU',
+        'zona' => 'norte',
+        'path' => '/dbf/chetu/norte/AJTFLU.DBF',
+        'name' => 'AJTFLU.DBF',
+        'hash' => 'XYZ99',
+        'last_modified' => now(),
+        'last_sync' => now(),
+        'manual' => 0,
+    ]);
+
+    $response = $this->actingAs($this->user)->get(route('reportes.trazabilidad.archivos', ['short_key' => 'CALVO']));
+    $response->assertOk();
+
+    $file = collect($response->json('files'))->first(fn ($f) => $f['archivo'] === 'ajtflu.dbf');
+    expect($file)->not->toBeNull();
+
+    $rbf = $file['disparadores']['rbf'];
+    // Debe reflejar el hash actualizado de rbf_file_hashes, no el viejo de conciliacion
+    expect($rbf['hash'])->toBe('XYZ99');
+    expect($rbf['path'])->toBe('/dbf/chetu/norte/AJTFLU.DBF');
+});
+
+it('falls back to conciliation hash for rbf when no rbf_file_hashes match', function () {
+    createTrazabilidadData();
+
+    $response = $this->actingAs($this->user)->get(route('reportes.trazabilidad.archivos', ['short_key' => 'CALVO']));
+    $response->assertOk();
+
+    $file = collect($response->json('files'))->first(fn ($f) => $f['archivo'] === 'ajtflu.dbf');
+    expect($file)->not->toBeNull();
+
+    $rbf = $file['disparadores']['rbf'];
+    expect($rbf['hash'])->toBe('231B7');
 });
 
 it('only includes .dbf files in the trazabilidad', function () {
@@ -422,4 +479,135 @@ it('data endpoint dedupes repeated hashes in the historial per point', function 
 
     expect($rbfRuta['historial'])->toHaveCount(1);
     expect($rbfRuta['historial'][0]['hash'])->toBe('a1111');
+});
+
+it('data endpoint computes the desfase (QBCK vs otros disparadores) por fecha de modificación', function () {
+    $computer = createTrazabilidadData();
+
+    // QBCK con fecha de modificación reciente (esta es la referencia)
+    $computer->agent_config = [
+        'dbf_files' => [
+            ['name' => 'AJTFLU.DBF', 'hash_md5' => '231B7', 'path' => 'C:\\PVSI\\quickbck\\AJTFLU.DBF', 'modified' => now()->toDateTimeString()],
+        ],
+    ];
+    $computer->save();
+
+    // El disparador rbf tiene el hash 50 horas más viejo que QBCK -> desfase 2d 2h, danger
+    ConciliacionHashArchivo::where('archivo', 'AJTFLU.DBF')->where('disparador', 'rbf')
+        ->update(['fecha_modificacion' => now()->subHours(50)->toDateTimeString()]);
+
+    $response = $this->actingAs($this->user)->get(route('reportes.trazabilidad.data'));
+
+    $response->assertOk();
+    $row = collect($response->json('data'))->first(fn ($r) => $r['short_key'] === 'CALVO');
+
+    expect($row['fecha_modificacion_qbck'])->not->toBeNull();
+    expect($row['desfase'])->not->toBeNull();
+    expect($row['desfase']['total_h'])->toBe(50);
+    expect($row['desfase']['dias'])->toBe(2);
+    expect($row['desfase']['horas'])->toBe(2);
+    expect($row['desfase']['estado'])->toBe('danger');
+    expect($row['hashes']['rbf']['desfase_punto']['total_h'])->toBe(50);
+    expect($row['hashes']['rbf']['desfase_punto']['dias'])->toBe(2);
+    expect($row['hashes']['rbf']['desfase_punto']['horas'])->toBe(2);
+    expect($row['hashes']['rbf']['desfase_punto']['estado'])->toBe('danger');
+    expect($row['hashes']['quickbck'])->not->toHaveKey('desfase_punto');
+});
+
+it('archivos-disponibles solo lista archivos de estock para usuario con permiso archivos-estock', function () {
+    Permission::firstOrCreate(['name' => 'reportes.trazabilidad.archivos-estock', 'guard_name' => 'web']);
+    $user = User::factory()->create();
+    $user->givePermissionTo(['reportes.trazabilidad.ver', 'reportes.trazabilidad.archivos-estock']);
+
+    ConciliacionHashArchivo::create([
+        'sucursal' => 'CALVO', 'ip' => '192.168.1.100',
+        'archivo' => 'EYSIPAR.DBF', 'md5' => 'aaa11',
+        'disparador' => 'rbf', 'fecha_modificacion' => now(),
+    ]);
+    ConciliacionHashArchivo::create([
+        'sucursal' => 'CALVO', 'ip' => '192.168.1.100',
+        'archivo' => 'CANOTA.DBF', 'md5' => 'bbb22',
+        'disparador' => 'rbf', 'fecha_modificacion' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->get(route('reportes.trazabilidad.archivos-disponibles'));
+
+    $response->assertOk();
+    $archivos = $response->json('archivos');
+
+    expect($archivos)->toContain('eysipar.dbf');
+    expect($archivos)->not->toContain('canota.dbf');
+    expect($archivos)->not->toContain('flujores.dbf');
+});
+
+it('archivos-disponibles solo lista archivos externos para usuario con permiso externos', function () {
+    Permission::firstOrCreate(['name' => 'reportes.trazabilidad.externos', 'guard_name' => 'web']);
+    $user = User::factory()->create();
+    $user->givePermissionTo(['reportes.trazabilidad.ver', 'reportes.trazabilidad.externos']);
+
+    ConciliacionHashArchivo::create([
+        'sucursal' => 'CALVO', 'ip' => '192.168.1.100',
+        'archivo' => 'EYSIPAR.DBF', 'md5' => 'aaa11',
+        'disparador' => 'rbf', 'fecha_modificacion' => now(),
+    ]);
+    ConciliacionHashArchivo::create([
+        'sucursal' => 'CALVO', 'ip' => '192.168.1.100',
+        'archivo' => 'CANOTA.DBF', 'md5' => 'bbb22',
+        'disparador' => 'rbf', 'fecha_modificacion' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->get(route('reportes.trazabilidad.archivos-disponibles'));
+
+    $response->assertOk();
+    $archivos = $response->json('archivos');
+
+    expect($archivos)->toContain('canota.dbf');
+    expect($archivos)->not->toContain('eysipar.dbf');
+});
+
+it('archivos-disponibles lista todos los archivos con ambos permisos', function () {
+    Permission::firstOrCreate(['name' => 'reportes.trazabilidad.archivos-estock', 'guard_name' => 'web']);
+    Permission::firstOrCreate(['name' => 'reportes.trazabilidad.externos', 'guard_name' => 'web']);
+    $user = User::factory()->create();
+    $user->givePermissionTo(['reportes.trazabilidad.ver', 'reportes.trazabilidad.archivos-estock', 'reportes.trazabilidad.externos']);
+
+    ConciliacionHashArchivo::create([
+        'sucursal' => 'CALVO', 'ip' => '192.168.1.100',
+        'archivo' => 'EYSIPAR.DBF', 'md5' => 'aaa11',
+        'disparador' => 'rbf', 'fecha_modificacion' => now(),
+    ]);
+    ConciliacionHashArchivo::create([
+        'sucursal' => 'CALVO', 'ip' => '192.168.1.100',
+        'archivo' => 'CANOTA.DBF', 'md5' => 'bbb22',
+        'disparador' => 'rbf', 'fecha_modificacion' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->get(route('reportes.trazabilidad.archivos-disponibles'));
+
+    $response->assertOk();
+    $archivos = $response->json('archivos');
+
+    expect($archivos)->toContain('eysipar.dbf');
+    expect($archivos)->toContain('canota.dbf');
+});
+
+it('archivos-disponibles lista todos los archivos sin permisos nuevos', function () {
+    ConciliacionHashArchivo::create([
+        'sucursal' => 'CALVO', 'ip' => '192.168.1.100',
+        'archivo' => 'EYSIPAR.DBF', 'md5' => 'aaa11',
+        'disparador' => 'rbf', 'fecha_modificacion' => now(),
+    ]);
+    ConciliacionHashArchivo::create([
+        'sucursal' => 'CALVO', 'ip' => '192.168.1.100',
+        'archivo' => 'CANOTA.DBF', 'md5' => 'bbb22',
+        'disparador' => 'rbf', 'fecha_modificacion' => now(),
+    ]);
+
+    $response = $this->actingAs($this->user)->get(route('reportes.trazabilidad.archivos-disponibles'));
+
+    $response->assertOk();
+    $archivos = $response->json('archivos');
+
+    expect($archivos)->toContain('eysipar.dbf');
+    expect($archivos)->toContain('canota.dbf');
 });
