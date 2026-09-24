@@ -53,11 +53,6 @@
     <label for="pass">CONTRASEÑA</label>
     <input id="pass" name="password" type="password" placeholder="****" autocomplete="current-password" required>
 
-    <label id="remember" for="remember_check">
-      <input type="checkbox" name="remember" id="remember_check" {{ old('remember') ? 'checked' : '' }}>
-      <span>RECORDARME</span>
-    </label>
-
     @if($errors->any())
       <div id="error">
         @foreach($errors->all() as $err)

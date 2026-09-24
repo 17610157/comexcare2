@@ -4,6 +4,7 @@ use App\Http\Controllers\AgentDefaultsController;
 use App\Http\Controllers\AgentVersionsController;
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\AuthorizableEmailsController;
 use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\AuthorizationReportController;
@@ -75,6 +76,10 @@ Route::middleware('auth')->prefix('alerts')->group(function () {
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+Route::get('/login/2fa', [TwoFactorController::class, 'show'])->name('2fa.show');
+Route::post('/login/2fa/verify', [TwoFactorController::class, 'verify'])->name('2fa.verify');
+Route::post('/login/2fa/resend', [TwoFactorController::class, 'resend'])->name('2fa.resend');
 
 // Authorization routes (public - no auth required)
 Route::get('/authorization/{token}', [AuthorizationController::class, 'show'])->name('authorization.show');
