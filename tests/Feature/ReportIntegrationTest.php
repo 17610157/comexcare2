@@ -9,12 +9,14 @@ class ReportIntegrationTest extends TestCase
 {
     protected $connection;
 
+    private static bool $pgdmAvailable = false;
+    private static bool $pgdmChecked = false;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         config([
-            'database.default' => 'pgsql',
             'database.connections.pgsql.host' => env('PGSQL_HOST', '193.122.172.135'),
             'database.connections.pgsql.port' => env('PGSQL_PORT', '5432'),
             'database.connections.pgsql.database' => env('PGSQL_DATABASE', 'pgdm-Index'),
@@ -23,12 +25,29 @@ class ReportIntegrationTest extends TestCase
             'database.connections.pgsql.persistent' => false,
         ]);
 
+        if (! self::$pgdmChecked) {
+            self::$pgdmChecked = true;
+            try {
+                $tmp = DB::connection('pgsql');
+                $tmp->getPdo();
+                self::$pgdmAvailable = true;
+            } catch (\Exception $e) {
+                self::$pgdmAvailable = false;
+            }
+        }
+
+        if (! self::$pgdmAvailable) {
+            $this->markTestSkipped('Servidor pgdm-Index no disponible en este entorno');
+        }
+
         $this->connection = DB::connection('pgsql');
     }
 
     protected function tearDown(): void
     {
-        $this->connection->disconnect();
+        if ($this->connection) {
+            $this->connection->disconnect();
+        }
         parent::tearDown();
     }
 

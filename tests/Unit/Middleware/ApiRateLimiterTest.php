@@ -37,7 +37,8 @@ class ApiRateLimiterTest extends TestCase
         $request = Request::create('/api/test_block', 'GET');
         $request->server->set('REMOTE_ADDR', '10.255.255.1');
 
-        for ($i = 0; $i < 100; $i++) {
+        // El límite por defecto (api_general) es 300
+        for ($i = 0; $i < 301; $i++) {
             RateLimiter::hit('api_general:10.255.255.1:api/test_block', 60);
         }
 
@@ -72,7 +73,8 @@ class ApiRateLimiterTest extends TestCase
         }, 'api_auth');
 
         $this->assertEquals(200, $response->getStatusCode());
-        $this->assertEquals(5, $response->headers->get('X-RateLimit-Limit'));
+        // El límite de api_auth es 30
+        $this->assertEquals(30, $response->headers->get('X-RateLimit-Limit'));
     }
 
     public function test_request_with_computer_id_uses_computer_key(): void
