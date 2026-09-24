@@ -65,7 +65,9 @@ class DistributionsControllerTest extends TestCase
 
         $response->assertStatus(200);
         $distributions = $response->viewData('distributions');
-        $this->assertCount(20, $distributions);
+
+        // La paginación es client-side (DataTables); la vista recibe todos los registros.
+        $this->assertCount(25, $distributions);
     }
 
     public function test_create_displays_form_with_groups()
@@ -179,12 +181,12 @@ class DistributionsControllerTest extends TestCase
             'name' => 'Test Distribution',
             'type' => 'immediate',
             'target_type' => 'group',
-            'group_id' => 999, // Non-existent group
+            'group_ids' => [999], // Non-existent group
         ];
 
         $response = $this->post(route('admin.distributions.store'), $data);
 
-        $response->assertSessionHasErrors(['group_id']);
+        $response->assertSessionHasErrors(['group_ids.0']);
     }
 
     public function test_store_validates_scheduled_at_is_date_when_provided()

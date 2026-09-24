@@ -45,7 +45,46 @@ class ProcessDistributionJob implements ShouldQueue
             $distribution->update(['status' => 'in_progress']);
         }
 
-        $targets = $distribution->targets->where('status', 'pending');
+        $unavailableThreshold = now()->subMinutes(5);
+
+        $targets = $distribution->targets
+            ->where('status', 'pending')
+            ->filter(function ($target) use ($unavailableThreshold) {
+                $computer = $target->computer;
+
+                if (! $computer) {
+                    return true;
+                }
+
+                if ($computer->status === 'offline') {
+                    return false;
+                }
+
+                if ($computer->last_seen && $computer->last_seen->lt($unavailableThreshold)) {
+                    return false;
+                }
+
+                return true;
+            });
+
+        foreach ($distribution->targets->where('status', 'pending') as $target) {
+            $computer = $target->computer;
+            $isAvailable = $targets->contains('id', $target->id);
+
+            if (! $isAvailable) {
+                $reason = $computer && $computer->status === 'offline'
+                    ? 'Equipo offline al momento de la distribución'
+                    : 'Equipo sin comunicación con el servidor (offline)';
+
+                $target->update([
+                    'status' => 'failed',
+                    'progress' => 0,
+                    'error_message' => $reason.' al momento de la distribución',
+                ]);
+
+                Log::info("ProcessDistributionJob: Target {$target->id} (computer {$computer?->id}) marcado como failed por no disponibilidad: {$reason}");
+            }
+        }
 
         Log::info('ProcessDistributionJob: Processing '.$targets->count().' pending targets');
 
