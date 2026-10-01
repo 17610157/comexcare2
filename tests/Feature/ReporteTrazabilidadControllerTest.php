@@ -139,10 +139,24 @@ it('builds a dynamic trazabilidad table with disparadores as columns', function 
     expect($rbf['desactualizado'])->toBeTrue();
 });
 
-it('uses the latest rbf_file_hashes for the rbf column when available', function () {
+it('takes the rbf hash and path from the tienda own lote, ignoring rbf_file_hashes', function () {
     createTrazabilidadData();
 
-    // Config de zona RBF para la tienda
+    // Lote RBF de la tienda: ruta_base propia de la sucursal
+    HashArchivoLote::create([
+        'sucursal' => 'CALVO',
+        'ip' => '192.168.1.100',
+        'nombre_carpeta' => 'calvo',
+        'ruta_base' => 'D:\\_raiz_qbck\\cre\\chetu\\calvo',
+        'fecha_envio' => now(),
+        'disparador' => 'rbf',
+        'num_archivos' => 1,
+        'peso_total' => 0,
+        'estado' => 'exitoso',
+        'payload' => '{}',
+    ]);
+
+    // Hashes de rbf_file_hashes pertenecientes a otra zona: no deben ganar
     RbfConfigStatus::create([
         'pl' => 'CHETU',
         'rs' => 'CHETU',
@@ -155,8 +169,6 @@ it('uses the latest rbf_file_hashes for the rbf column when available', function
         'db' => 'norte',
         'synced_at' => now(),
     ]);
-
-    // Hash RBF actualizado (más reciente que el de conciliacion_hash_archivos = 231B7)
     RbfFileHash::create([
         'servicio' => 'dbf',
         'plaza' => 'CHETU',
@@ -164,8 +176,8 @@ it('uses the latest rbf_file_hashes for the rbf column when available', function
         'path' => '/dbf/chetu/norte/AJTFLU.DBF',
         'name' => 'AJTFLU.DBF',
         'hash' => 'XYZ99',
-        'last_modified' => now(),
-        'last_sync' => now(),
+        'last_modified' => now()->addDay(),
+        'last_sync' => now()->addDay(),
         'manual' => 0,
     ]);
 
@@ -176,12 +188,63 @@ it('uses the latest rbf_file_hashes for the rbf column when available', function
     expect($file)->not->toBeNull();
 
     $rbf = $file['disparadores']['rbf'];
-    // Debe reflejar el hash actualizado de rbf_file_hashes, no el viejo de conciliacion
-    expect($rbf['hash'])->toBe('XYZ99');
-    expect($rbf['path'])->toBe('/dbf/chetu/norte/AJTFLU.DBF');
+    expect($rbf['hash'])->toBe('231B7');
+    expect($rbf['path'])->toBe('D:\\_raiz_qbck\\cre\\chetu\\calvo\\AJTFLU.DBF');
 });
 
-it('falls back to conciliation hash for rbf when no rbf_file_hashes match', function () {
+it('resuelve el rbf de todos los archivos de la tienda con la misma ruta base del lote', function () {
+    createTrazabilidadData();
+
+    foreach (['EYSIPAR.DBF', 'EYSIENC.DBF'] as $archivo) {
+        ConciliacionHashArchivo::create([
+            'sucursal' => 'CALVO',
+            'ip' => '192.168.1.100',
+            'archivo' => $archivo,
+            'md5' => 'aaa11',
+            'disparador' => 'rbf',
+            'fecha_modificacion' => now(),
+        ]);
+    }
+
+    HashArchivoLote::create([
+        'sucursal' => 'CALVO',
+        'ip' => '192.168.1.100',
+        'nombre_carpeta' => 'calvo',
+        'ruta_base' => 'D:\\_raiz_qbck\\cre\\chetu\\calvo',
+        'fecha_envio' => now(),
+        'disparador' => 'rbf',
+        'num_archivos' => 2,
+        'peso_total' => 0,
+        'estado' => 'exitoso',
+        'payload' => '{}',
+    ]);
+
+    // Zonas de otras tiendas en rbf_file_hashes, con fecha más reciente
+    RbfFileHash::create([
+        'servicio' => 'vales', 'plaza' => 'CHETU', 'zona' => 'otra',
+        'path' => '/vales/chetu/otra/EYSIPAR.DBF', 'name' => 'EYSIPAR.DBF',
+        'hash' => 'ZZ111', 'last_modified' => now()->addDay(), 'last_sync' => now()->addDay(), 'manual' => 0,
+    ]);
+    RbfFileHash::create([
+        'servicio' => 'vales', 'plaza' => 'CHETU', 'zona' => 'otra',
+        'path' => '/vales/chetu/otra/EYSIENC.DBF', 'name' => 'EYSIENC.DBF',
+        'hash' => 'YY222', 'last_modified' => now()->addDay(), 'last_sync' => now()->addDay(), 'manual' => 0,
+    ]);
+
+    $response = $this->actingAs($this->user)->get(route('reportes.trazabilidad.archivos', ['short_key' => 'CALVO']));
+    $response->assertOk();
+
+    $porArchivo = collect($response->json('files'))->keyBy('archivo');
+
+    expect($porArchivo['eysipar.dbf']['disparadores']['rbf']['path'])
+        ->toBe('D:\\_raiz_qbck\\cre\\chetu\\calvo\\EYSIPAR.DBF');
+    expect($porArchivo['eysienc.dbf']['disparadores']['rbf']['path'])
+        ->toBe('D:\\_raiz_qbck\\cre\\chetu\\calvo\\EYSIENC.DBF');
+    expect($porArchivo['eysipar.dbf']['disparadores']['rbf']['hash'])->toBe('aaa11');
+    expect($porArchivo['eysienc.dbf']['disparadores']['rbf']['hash'])->toBe('aaa11');
+});
+
+it('uses the conciliation hash of the tienda for rbf', function () {
     createTrazabilidadData();
 
     $response = $this->actingAs($this->user)->get(route('reportes.trazabilidad.archivos', ['short_key' => 'CALVO']));

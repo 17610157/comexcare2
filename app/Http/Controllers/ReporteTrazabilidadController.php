@@ -7,8 +7,6 @@ use App\Models\ConciliacionHashArchivo;
 use App\Models\Group;
 use App\Models\HashArchivoHistorial;
 use App\Models\HashArchivoLote;
-use App\Models\RbfConfigStatus;
-use App\Models\RbfFileHash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,17 +18,6 @@ class ReporteTrazabilidadController extends Controller
     private const EXCLUIDOS = ['quickbck', 'tienda'];
 
     private const SIN_FILTRO_IP = ['canov', 'rebsa', 'rbf', 'guada', 'guate', 'nicar','valla'];
-
-    private const FILE_TO_SERVICE = [
-        'LISTA.DBF' => ['servicio' => 'lista', 'config_col' => 'li'],
-        'CABLISTA.DBF' => ['servicio' => 'lista', 'config_col' => 'li'],
-        'OFERTAS.DBF' => ['servicio' => 'oferta', 'config_col' => 'of'],
-        'PROMARTS.DBF' => ['servicio' => 'promo', 'config_col' => 'pr'],
-        'ARCERO.DBF' => ['servicio' => 'promo', 'config_col' => 'pr'],
-        'PCOMB.DBF' => ['servicio' => 'combo', 'config_col' => 'co'],
-        'PDCOMB.DBF' => ['servicio' => 'combo', 'config_col' => 'co'],
-        'CLIECATP.DBF' => ['servicio' => 'dbf', 'config_col' => 'db'],
-    ];
 
     private const ARCHIVOS_PERMITIDOS = [
         'AJTFLU.DBF', 'ASISTE.DBF', 'CAJAS.DBF', 'CANCFDI.DBF', 'CANOTA.DBF',
@@ -133,8 +120,6 @@ class ReporteTrazabilidadController extends Controller
             $colSet = [];
             $rowIndex = 0;
             $endIdx = $length ? ($startIdx + $length) : null;
-            $rbfHashesByPlaza = $this->rbfHashesByPlaza();
-            $rbfHashLookup = $this->buildRbfHashLookup($rbfHashesByPlaza);
 
             // Precarga ligera: pares (archivo, disparador) por sucursal, en una sola
             // consulta, para contar filas y columnas sin construir el detalle completo
@@ -227,7 +212,7 @@ class ReporteTrazabilidadController extends Controller
                 }
 
                 // Solo las tiendas con filas visibles en la página se construyen a detalle.
-                $col = $this->construirTrazabilidadTienda($c, null, null, null, $rbfHashLookup, $rbfHashesByPlaza);
+                $col = $this->construirTrazabilidadTienda($c, null, null, null);
 
                 $localIdx = 0;
                 foreach ($col['files'] as $file) {
@@ -525,7 +510,7 @@ class ReporteTrazabilidadController extends Controller
         }
     }
 
-    private function construirTrazabilidadTienda(Computer $computer, ?array $recordsPorSucursal = null, ?array $rutaBasePorSucursal = null, ?array $historialPorSucursal = null, ?array $rbfHashLookup = null, $rbfHashesByPlaza = null): array
+    private function construirTrazabilidadTienda(Computer $computer, ?array $recordsPorSucursal = null, ?array $rutaBasePorSucursal = null, ?array $historialPorSucursal = null): array
     {
         $shortKey = strtolower(trim((string) $computer->short_key));
 
@@ -538,11 +523,6 @@ class ReporteTrazabilidadController extends Controller
                 })
                 ->whereNotIn(DB::raw('lower(disparador)'), array_merge(self::EXCLUIDOS, ['pruebas', 'pruebas2', 'pruebat']))
                 ->get();
-
-        // Construir lookup de hashes RBF desde la tabla rbf_file_hashes
-        // (se precarga una sola vez por petición para evitar consultas por tienda)
-        $rbfHashLookup = $rbfHashLookup ?? $this->buildRbfHashLookup();
-        $rbfHashesByPlaza = $rbfHashesByPlaza ?? $this->rbfHashesByPlaza();
 
         $porArchivo = [];
         foreach ($records as $r) {
@@ -669,40 +649,7 @@ class ReporteTrazabilidadController extends Controller
                     continue;
                 }
                 $rec = $dispMap[$disp] ?? null;
-                // Para el disparador RBF, usar el lookup de rbf_file_hashes si está disponible
-                if ($disp === 'rbf') {
-                    $rbfRecord = $this->buscarRbfHash($computer, $archivo, $rbfHashLookup, $rbfHashesByPlaza);
-                    if ($rbfRecord) {
-                        $rbfHash = strtoupper($rbfRecord->hash ?? '');
-                        $fileRow['disparadores']['rbf'] = [
-                            'hash' => $rbfHash,
-                            'path' => $rbfRecord->path ?? null,
-                            'fecha_modificacion' => $rbfRecord->last_modified ?? null,
-                            'fecha_creacion' => null,
-                            'fecha_consulta_api' => $rbfRecord->last_sync ?? null,
-                            'es_ancla' => false,
-                            'desactualizado' => $primerHash !== null && strtolower($rbfHash) !== $primerHash,
-                            'historial' => $this->historialDePunto($historial, $archivo, ['rbf']),
-                        ];
-                    } else {
-                        // Fallback: usar el registro de conciliacion_hash_archivos si existe
-                        if ($rec) {
-                            $recHash = strtolower($rec->md5);
-                            $fileRow['disparadores']['rbf'] = [
-                                'hash' => $rec->md5,
-                                'path' => $this->rutaDeDisparador($rutaBasePorDisparador, 'rbf', $archivo),
-                                'fecha_modificacion' => isset($rec->fecha_modificacion) ? $rec->fecha_modificacion : null,
-                                'fecha_creacion' => isset($rec->created_at) ? $rec->created_at : null,
-                                'fecha_consulta_api' => isset($rec->fecha_consulta_api) ? $rec->fecha_consulta_api : null,
-                                'es_ancla' => false,
-                                'desactualizado' => $primerHash !== null && $recHash !== $primerHash,
-                                'historial' => $this->historialDePunto($historial, $archivo, ['rbf']),
-                            ];
-                        } else {
-                            $fileRow['disparadores']['rbf'] = null;
-                        }
-                    }
-                } elseif ($rec) {
+                if ($rec) {
                     $recHash = strtolower($rec->md5);
                     $fileRow['disparadores'][$disp] = [
                         'hash' => $rec->md5,
@@ -807,8 +754,6 @@ class ReporteTrazabilidadController extends Controller
             ), fn ($a) => $a !== ''));
 
             $colecciones = [];
-            $rbfHashesByPlaza = $this->rbfHashesByPlaza();
-            $rbfHashLookup = $this->buildRbfHashLookup($rbfHashesByPlaza);
             foreach ($computers as $computer) {
                 $estado = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5
                     ? 'online'
@@ -818,7 +763,7 @@ class ReporteTrazabilidadController extends Controller
                     continue;
                 }
 
-                $colecciones[] = $this->construirTrazabilidadTienda($computer, null, null, null, $rbfHashLookup, $rbfHashesByPlaza);
+                $colecciones[] = $this->construirTrazabilidadTienda($computer, null, null, null);
             }
 
             $colDisparadores = $this->calcularColumnasGlobales($colecciones);
@@ -1039,76 +984,5 @@ class ReporteTrazabilidadController extends Controller
         $ts = strtotime($fecha);
 
         return $ts === false ? 0 : (int) $ts;
-    }
-
-    private function buildRbfHashLookup($rbfHashesByPlaza = null): array
-    {
-        $configs = RbfConfigStatus::all()->keyBy(
-            fn ($r) => strtolower($r->pl) . '|' . strtolower($r->ca)
-        );
-        $hashesByPlaza = $rbfHashesByPlaza ?? $this->rbfHashesByPlaza();
-
-        $lookup = [];
-        foreach ($configs as $configKey => $config) {
-            $plaza = strtolower($config->pl);
-            $plazaHashes = $hashesByPlaza[$plaza] ?? collect();
-            $configArr = $config->toArray();
-
-            foreach (self::FILE_TO_SERVICE as $fileName => $serviceInfo) {
-                $zona = strtolower($configArr[$serviceInfo['config_col']] ?? '');
-                if ($zona === '' || $zona === 'vacio') {
-                    continue;
-                }
-
-                $hashRecord = $plazaHashes->first(
-                    fn ($h) =>
-                        strtolower($h->servicio ?? '') === $serviceInfo['servicio']
-                        && strtolower($h->zona ?? '') === $zona
-                        && strtolower($h->name ?? '') === strtolower($fileName)
-                );
-
-                if ($hashRecord) {
-                    $lookup[$configKey . '|' . strtolower($fileName)] = $hashRecord;
-                }
-            }
-        }
-
-        return $lookup;
-    }
-
-    private function rbfHashesByPlaza(): \Illuminate\Support\Collection
-    {
-        // Ordenar cada grupo del más reciente al más viejo: cuando hay registros
-        // duplicados (varias zonas/servicios con el mismo archivo), los ->first()
-        // de buscarRbfHash/buildRbfConfigHashLookup toman el hash vigente y no uno viejo.
-        return RbfFileHash::all()
-            ->groupBy(fn ($r) => strtolower($r->plaza ?? ''))
-            ->map(fn ($rows) => $rows->sortByDesc(fn ($r) => [
-                $r->last_modified?->getTimestamp() ?? 0,
-                $r->last_sync?->getTimestamp() ?? 0,
-            ])->values());
-    }
-
-    private function buscarRbfHash(Computer $computer, string $archivo, array $rbfHashLookup, $rbfHashesByPlaza): ?object
-    {
-        $configKey = strtolower($computer->plaza ?? '') . '|' . strtolower($computer->short_key ?? '');
-        $fileName = strtoupper($archivo);
-
-        // Intento 1: via config de plaza+tienda+servicio+zona
-        $rbfRecord = $rbfHashLookup[$configKey . '|' . strtolower($fileName)] ?? null;
-
-        if ($rbfRecord) {
-            return $rbfRecord;
-        }
-
-        // Intento 2 (fallback): cualquier registro de esta plaza con ese nombre
-        // de archivo. Este es el caso de los archivos transaccionales DBF
-        // (AJTFLU, PEDIDO1, XCORTE, ...) que no pertenecen a un servicio
-        // dedicado (lista/oferta/promo/combo), pero igual son rastreados por RBF.
-        $plazaHashes = $rbfHashesByPlaza[strtolower($computer->plaza ?? '')] ?? collect();
-
-        return $plazaHashes->first(
-            fn ($h) => strtolower($h->name ?? '') === strtolower($fileName)
-        );
     }
 }
