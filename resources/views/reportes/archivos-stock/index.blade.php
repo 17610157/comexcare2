@@ -76,7 +76,7 @@
             @foreach($archivos as $archivo)
             <div class="form-check archivo-item px-1" data-label="{{ strtolower($archivo) }}">
               <input type="checkbox" name="archivo[]" value="{{ $archivo }}" id="archivo_{{ $loop->index }}"
-                     class="form-check-input archivo-checkbox">
+                     class="form-check-input archivo-checkbox" checked>
               <label for="archivo_{{ $loop->index }}" class="form-check-label">{{ $archivo }}</label>
             </div>
             @endforeach
@@ -84,10 +84,7 @@
               <span class="text-muted small">Sin coincidencias</span>
             </div>
           </div>
-          <div class="d-flex align-items-center justify-content-between mt-1">
-            <small class="text-muted"><span id="archivo_selected_count">0</span> sel.</small>
-            <button type="button" id="archivo_clear" class="btn btn-link btn-sm p-0 small">Limpiar</button>
-          </div>
+          <small class="text-muted d-block mt-1 text-end"><span id="archivo_selected_count">0</span> sel.</small>
         </div>
         <div class="col-6 col-md-2">
           <label class="form-label small mb-1">Buscar Agente</label>
@@ -703,7 +700,8 @@ $(function() {
   $('#btn_reset_filters').on('click', function() {
     $('.group-type-checkbox').prop('checked', false);
     $('.plaza-checkbox').prop('checked', false);
-    $('.archivo-checkbox').prop('checked', false);
+    // Los archivos vuelven a su estado por defecto: los 14 marcados.
+    $('.archivo-checkbox').prop('checked', true);
     $('.filter-search').val('');
     $('.group-type-item, .plaza-item, .archivo-item').show();
     $('.no-filter-results').addClass('d-none');
@@ -747,13 +745,6 @@ $(function() {
     currentPage = 0;
     loadData();
   });
-  $('#archivo_clear').on('click', function() {
-    $('.archivo-checkbox').prop('checked', false);
-    refreshAllSelectAll();
-    currentPage = 0;
-    loadData();
-  });
-
   $('.plaza-checkbox, .group-type-checkbox').on('change', function() {
     refreshAllSelectAll();
     currentPage = 0;

@@ -417,6 +417,24 @@ it('ignores file filters that are not part of the stock set', function () {
         ->and($response->json('data.0.archivo'))->toBe('STOCK.DBF');
 });
 
+it('treats an empty file selection as no filter', function () {
+    crearComputadorStock('ptula');
+    foreach (['STOCK.DBF', 'PEDIDO.DBF'] as $i => $archivo) {
+        crearConciliacionStock('ptula', 'rbf', $archivo, "hash{$i}0000000000000", '2026-10-01 09:00:00', '2026-10-01 10:00:00');
+        crearConciliacionStock('ptula', 'rebsa', $archivo, "hash{$i}0000000000000", '2026-10-01 09:00:00', '2026-10-01 10:00:00');
+    }
+
+    // La vista marca los 14 por defecto; desmarcarlos todos debe seguir
+    // mostrando el reporte completo en vez de vaciarlo.
+    $sinFiltro = $this->actingAs($this->user)->getJson(route('reportes.archivos-stock.data'));
+    $ninguno = $this->actingAs($this->user)
+        ->getJson(route('reportes.archivos-stock.data', ['archivo' => []]));
+
+    $ninguno->assertOk();
+    expect($ninguno->json('recordsTotal'))->toBe($sinFiltro->json('recordsTotal'))
+        ->and($ninguno->json('recordsTotal'))->toBe(2);
+});
+
 it('exports only the agents selected with checkboxes', function () {
     $ptula = crearComputadorStock('ptula');
     crearComputadorStock('chetu');
