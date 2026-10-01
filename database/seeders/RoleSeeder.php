@@ -56,6 +56,7 @@ class RoleSeeder extends Seeder
             'reportes.trazabilidad.ver',
             'reportes.trazabilidad.archivos-estock',
             'reportes.trazabilidad.externos',
+            'reportes.archivos-stock.ver',
             'file-lists.ver', 'file-lists.crear', 'file-lists.editar', 'file-lists.eliminar', 'file-lists.autorizar',
             'agent-defaults.ver', 'agent-defaults.crear', 'agent-defaults.editar', 'agent-defaults.eliminar',
             'monitored-files.ver', 'monitored-files.crear', 'monitored-files.editar', 'monitored-files.eliminar',

@@ -296,6 +296,9 @@ class PermissionSeeder extends Seeder
             'reportes.trazabilidad.archivos-estock',
             'reportes.trazabilidad.externos',
 
+            // Reporte Archivos de Stock
+            'reportes.archivos-stock.ver',
+
             // RBF Config Status
             'reportes.rbf-config-status.ver',
 

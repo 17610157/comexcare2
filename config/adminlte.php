@@ -544,6 +544,12 @@ return [
                     'can' => 'reportes.trazabilidad.ver',
                 ],
                 [
+                    'text' => 'Reporte de Archivos de Stock',
+                    'icon' => 'fas fa-boxes',
+                    'url' => 'reportes/archivos-stock',
+                    'can' => 'reportes.archivos-stock.ver',
+                ],
+                [
                     'text' => 'Reporte Distribuciones',
                     'icon' => 'far fa-file-alt',
                     'url' => 'reportes/distribuciones',

@@ -23,6 +23,7 @@ use App\Http\Controllers\RbfFileHashesController;
 use App\Http\Controllers\RbfPlazaTimeConfigController;
 use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\ReporteApiDemoController;
+use App\Http\Controllers\ReporteArchivosStockController;
 use App\Http\Controllers\ReporteComprasDirectoController;
 use App\Http\Controllers\ReporteDbfFilesController;
 use App\Http\Controllers\ReporteDbfFilesEspecificosController;
@@ -303,6 +304,16 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.trazabilidad.archivos-disponibles')->middleware('can:reportes.trazabilidad.ver');
     Route::get('trazabilidad/export', [ReporteTrazabilidadController::class, 'export'])
         ->name('reportes.trazabilidad.export')->middleware('can:reportes.trazabilidad.ver');
+
+    // REPORTE: Archivos de Stock (cruce de disparadores RBF y Rebsamen)
+    Route::get('archivos-stock', [ReporteArchivosStockController::class, 'index'])
+        ->name('reportes.archivos-stock')->middleware('can:reportes.archivos-stock.ver');
+    Route::get('archivos-stock/data', [ReporteArchivosStockController::class, 'data'])
+        ->name('reportes.archivos-stock.data')->middleware('can:reportes.archivos-stock.ver');
+    Route::get('archivos-stock/agentes', [ReporteArchivosStockController::class, 'agentes'])
+        ->name('reportes.archivos-stock.agentes')->middleware('can:reportes.archivos-stock.ver');
+    Route::get('archivos-stock/export', [ReporteArchivosStockController::class, 'export'])
+        ->name('reportes.archivos-stock.export')->middleware('can:reportes.archivos-stock.ver');
 
     // REPORTE: Vales
     Route::get('vales', [ReporteValesController::class, 'index'])
