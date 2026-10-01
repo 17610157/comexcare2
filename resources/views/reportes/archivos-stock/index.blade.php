@@ -115,6 +115,7 @@
             <option value="">Todos</option>
             <option value="actualizado">Actualizado</option>
             <option value="desactualizado">Desactualizado</option>
+            <option value="vacio">Archivo vacío</option>
           </select>
         </div>
       </div>
@@ -171,6 +172,14 @@
             <div class="card-body py-2 px-3 text-center">
               <span class="d-block fs-4 fw-bold" id="statUnmatchedFiles">0</span>
               <small>Desactualizados</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md col-sm-6">
+          <div class="card text-bg-secondary h-100">
+            <div class="card-body py-2 px-3 text-center">
+              <span class="d-block fs-4 fw-bold" id="statEmptyFiles">0</span>
+              <small>Archivos vacíos</small>
             </div>
           </div>
         </div>
@@ -505,6 +514,7 @@ function renderStats(json) {
   $('#statTotalFiles').text(s.total_archivos);
   $('#statMatchedFiles').text(s.total_matched);
   $('#statUnmatchedFiles').text(s.total_unmatched);
+  $('#statEmptyFiles').text(s.total_vacios || 0);
   $('#statPercent').text(s.percent + '%');
 
   if (s.total_archivos === 0) {
@@ -525,13 +535,17 @@ function initChart(id, config) {
 }
 
 function initAllCharts(s) {
-  var green = '#28a745', red = '#dc3545';
+  var green = '#28a745', red = '#dc3545', gray = '#6c757d';
+  var vacios = s.total_vacios || 0;
 
   initChart('pieFilesChart', {
     type: 'doughnut',
     data: {
-      labels: ['Actualizados', 'Desactualizados'],
-      datasets: [{ data: [s.total_matched, s.total_unmatched], backgroundColor: [green, red], borderWidth: 0 }]
+      labels: vacios > 0 ? ['Actualizados', 'Desactualizados', 'Vacíos'] : ['Actualizados', 'Desactualizados'],
+      datasets: [{
+        data: vacios > 0 ? [s.total_matched, s.total_unmatched, vacios] : [s.total_matched, s.total_unmatched],
+        backgroundColor: [green, red, gray], borderWidth: 0
+      }]
     },
     options: {
       responsive: true, maintainAspectRatio: false, resizeDelay: 100, cutout: '60%',
@@ -552,6 +566,7 @@ function initAllCharts(s) {
         labels: s.per_plaza.map(function(p) { return p.plaza; }),
         datasets: [
           { label: 'Actualizados', data: s.per_plaza.map(function(p) { return p.matched; }), backgroundColor: green, borderRadius: 3 },
+          { label: 'Vacíos', data: s.per_plaza.map(function(p) { return p.vacios || 0; }), backgroundColor: gray, borderRadius: 3 },
           { label: 'Desactualizados', data: s.per_plaza.map(function(p) { return p.unmatched; }), backgroundColor: red, borderRadius: 3 }
         ]
       },
@@ -565,7 +580,7 @@ function initAllCharts(s) {
           legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
           tooltip: { callbacks: { label: function(ctx) {
             var plaza = s.per_plaza[ctx.dataIndex];
-            var total = plaza.matched + plaza.unmatched;
+            var total = plaza.total;
             var pct = total > 0 ? ((ctx.parsed.y / total) * 100).toFixed(1) : 0;
             return ctx.dataset.label + ': ' + ctx.parsed.y + ' (' + pct + '%)';
           }}}
@@ -623,7 +638,9 @@ function renderTable(json) {
 
     var statusBadge = row.estado === 'actualizado'
       ? '<span class="badge bg-success">Actualizado</span>'
-      : '<span class="badge bg-danger">Desactualizado</span>';
+      : (row.estado === 'vacio'
+          ? '<span class="badge bg-secondary">Archivo vacío</span>'
+          : '<span class="badge bg-danger">Desactualizado</span>');
 
     var motivo = '';
     if (row.estado === 'desactualizado') {
@@ -632,7 +649,15 @@ function renderTable(json) {
       } else {
         motivo = '<div class="celda-vacia">hash diferente</div>';
       }
+    } else if (row.estado === 'vacio') {
+      motivo = '<div class="celda-vacia">menos de 1 KB en ambos lados</div>';
     }
+
+    // El peso llega formateado desde el servidor (separador de miles).
+    var pesoRbf = rbf.peso_texto !== null && rbf.peso_texto !== undefined
+      ? esc(rbf.peso_texto) : '<span class="celda-vacia">-</span>';
+    var pesoReb = reb.peso_texto !== null && reb.peso_texto !== undefined
+      ? esc(reb.peso_texto) : '<span class="celda-vacia">-</span>';
 
     $tbody.append(
       '<tr>' +
@@ -642,11 +667,11 @@ function renderTable(json) {
         '<td>' + (hayRbf ? '<strong>' + esc(rbf.archivo) + '</strong>' : '<span class="celda-vacia">-</span>') + '</td>' +
         '<td>' + renderHash(rbf) + '</td>' +
         '<td style="white-space:nowrap;">' + formatFecha(rbf.fecha_modificacion) + '</td>' +
-        '<td class="text-center">' + (rbf.peso !== null && rbf.peso !== undefined ? esc(rbf.peso) : '<span class="celda-vacia">-</span>') + '</td>' +
+        '<td class="text-center">' + pesoRbf + '</td>' +
         '<td>' + (hayRebsa ? '<strong>' + esc(reb.archivo) + '</strong>' : '<span class="celda-vacia">-</span>') + '</td>' +
         '<td>' + renderHash(reb) + '</td>' +
         '<td style="white-space:nowrap;">' + formatFecha(reb.fecha_modificacion) + '</td>' +
-        '<td class="text-center">' + (reb.peso !== null && reb.peso !== undefined ? esc(reb.peso) : '<span class="celda-vacia">-</span>') + '</td>' +
+        '<td class="text-center">' + pesoReb + '</td>' +
         '<td class="text-center"><div>' + statusBadge + motivo + '</div></td>' +
       '</tr>'
     );

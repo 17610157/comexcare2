@@ -435,6 +435,65 @@ it('treats an empty file selection as no filter', function () {
         ->and($ninguno->json('recordsTotal'))->toBe(2);
 });
 
+it('marks the row as vacio when both sides weigh less than 1 kb', function () {
+    crearComputadorStock('ptula');
+    crearConciliacionStock('ptula', 'rbf', 'NOHAY.DBF', 'aabbccddeeff0011', '2026-10-01 09:00:00', '2026-10-01 10:00:00');
+    crearConciliacionStock('ptula', 'rebsa', 'NOHAY.DBF', 'aabbccddeeff0011', '2026-10-01 09:00:00', '2026-10-01 10:00:00');
+    // 512 bytes en cada lado: hashes iguales pero el archivo esta vacio.
+    crearLoteStock('ptula', 'rbf', [['Nombre' => 'NOHAY.DBF', 'Peso' => 512]], 101);
+    crearLoteStock('ptula', 'rebsa', [['Nombre' => 'NOHAY.DBF', 'Peso' => 512]], 102);
+
+    $response = $this->actingAs($this->user)->getJson(route('reportes.archivos-stock.data'));
+
+    $response->assertOk();
+    expect($response->json('data.0.estado'))->toBe('vacio')
+        ->and($response->json('data.0.rbf.peso'))->toBe(0.5)
+        ->and($response->json('stock_stats.total_vacios'))->toBe(1)
+        // No es una desincronizacion: no cuenta como desactualizado.
+        ->and($response->json('stock_stats.total_unmatched'))->toBe(0);
+});
+
+it('keeps desactualizado when only one side weighs less than 1 kb', function () {
+    crearComputadorStock('ptula');
+    crearConciliacionStock('ptula', 'rbf', 'STOCK.DBF', 'aabbccddeeff0011', '2026-10-01 09:00:00', '2026-10-01 10:00:00');
+    crearConciliacionStock('ptula', 'rebsa', 'STOCK.DBF', 'ffffffffffffffff', '2026-10-01 10:17:41', '2026-10-01 10:20:00');
+    // Solo RBF esta vacio: Rebsamen si tiene contenido, luego es una desincronizacion
+    // real y no debe ocultarse detrás de "Archivo vacío".
+    crearLoteStock('ptula', 'rbf', [['Nombre' => 'STOCK.DBF', 'Peso' => 512]], 201);
+    crearLoteStock('ptula', 'rebsa', [['Nombre' => 'STOCK.DBF', 'Peso' => 10485760]], 202);
+
+    $response = $this->actingAs($this->user)->getJson(route('reportes.archivos-stock.data'));
+
+    expect($response->json('data.0.estado'))->toBe('desactualizado')
+        ->and($response->json('stock_stats.total_vacios'))->toBe(0)
+        ->and($response->json('data.0.rbf.peso_texto'))->toBe('0.5')
+        ->and($response->json('data.0.rebsamen.peso_texto'))->toBe('10,240.0');
+});
+
+it('filters by the vacio state and formats the weight with thousand separators', function () {
+    crearComputadorStock('ptula');
+    foreach ([['NOHAY.DBF', 512, 512], ['STOCK.DBF', 15000000, 15000000]] as $i => [$archivo, $pesoR, $pesoRe]) {
+        crearConciliacionStock('ptula', 'rbf', $archivo, "hash{$i}0000000000000", '2026-10-01 09:00:00', '2026-10-01 10:00:00');
+        crearConciliacionStock('ptula', 'rebsa', $archivo, "hash{$i}0000000000000", '2026-10-01 09:00:00', '2026-10-01 10:00:00');
+    }
+    crearLoteStock('ptula', 'rbf', [['Nombre' => 'NOHAY.DBF', 'Peso' => 512], ['Nombre' => 'STOCK.DBF', 'Peso' => 15000000]], 301);
+    crearLoteStock('ptula', 'rebsa', [['Nombre' => 'NOHAY.DBF', 'Peso' => 512], ['Nombre' => 'STOCK.DBF', 'Peso' => 15000000]], 302);
+
+    $filtrado = $this->actingAs($this->user)
+        ->getJson(route('reportes.archivos-stock.data', ['estado' => 'vacio']));
+
+    $filtrado->assertOk();
+    expect($filtrado->json('recordsTotal'))->toBe(1)
+        ->and($filtrado->json('data.0.archivo'))->toBe('NOHAY.DBF');
+
+    // 15000000 bytes = 14648.4 KB, con separador de miles.
+    $todos = $this->actingAs($this->user)->getJson(route('reportes.archivos-stock.data'));
+    $stock = collect($todos->json('data'))->firstWhere('archivo', 'STOCK.DBF');
+
+    expect($stock['rbf']['peso_texto'])->toBe('14,648.4')
+        ->and($stock['rbf']['peso'])->toBe(14648.4);
+});
+
 it('exports only the agents selected with checkboxes', function () {
     $ptula = crearComputadorStock('ptula');
     crearComputadorStock('chetu');

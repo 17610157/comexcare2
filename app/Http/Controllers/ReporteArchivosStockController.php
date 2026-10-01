@@ -14,6 +14,12 @@ class ReporteArchivosStockController extends Controller
 
     private const DISPARADOR_REBSAMEN = 'rebsa';
 
+    /**
+     * Un DBF de menos de 1 KB no trae informacion util: el servidor lo reporto
+     * vacio. Se distingue de "desactualizado" porque no hay nada que sincronizar.
+     */
+    private const PESO_VACIO_KB = 1.0;
+
     private const ARCHIVOS_STOCK = [
         'EYSIPAR.DBF', 'DD_CONTROL.DBF', 'CATPROD3.DBF', 'NOHAY.DBF', 'PEDIDO.DBF',
         'PEDIDO1.DBF', 'PROVPROD.DBF', 'PEDIDO2.DBF', 'DD_DATOS.DBF', 'STOCK.DBF',
@@ -117,8 +123,12 @@ class ReporteArchivosStockController extends Controller
 
             $rows = $this->construirFilas($computers, $archivosFiltro);
 
+            // Los pesos se resuelven antes de filtrar por estado y de calcular
+            // las estadisticas porque "archivo vacio" depende del peso.
+            $this->aplicarPesos($rows);
+
             $estadoInput = strtolower(trim((string) ($request->query('estado') ?? $request->input('estado', ''))));
-            if (in_array($estadoInput, ['actualizado', 'desactualizado'], true)) {
+            if (in_array($estadoInput, ['actualizado', 'desactualizado', 'vacio'], true)) {
                 $rows = array_values(array_filter($rows, fn ($row) => $row['estado'] === $estadoInput));
             }
 
@@ -129,7 +139,7 @@ class ReporteArchivosStockController extends Controller
                 'plaza' => fn ($r) => strtolower($r['plaza']),
                 'nombre_instalacion' => fn ($r) => strtolower($r['nombre_instalacion']),
                 'archivo' => fn ($r) => strtolower($r['archivo']),
-                'estado' => fn ($r) => ['actualizado' => 0, 'desactualizado' => 1][$r['estado']] ?? 1,
+                'estado' => fn ($r) => ['actualizado' => 0, 'vacio' => 1, 'desactualizado' => 2][$r['estado']] ?? 2,
             ];
             $sortFn = $sortMap[$sortColumn] ?? $sortMap['plaza'];
 
@@ -143,8 +153,6 @@ class ReporteArchivosStockController extends Controller
             });
 
             $pagina = array_slice($rows, $startIdx, $length);
-
-            $this->aplicarPesos($pagina);
 
             return response()->json([
                 'draw' => $draw,
@@ -372,7 +380,33 @@ class ReporteArchivosStockController extends Controller
 
             $filas[$i]['rbf']['peso'] = $pesoRbf;
             $filas[$i]['rebsamen']['peso'] = $pesoRebsa;
+            $filas[$i]['rbf']['peso_texto'] = $this->formatearPeso($pesoRbf);
+            $filas[$i]['rebsamen']['peso_texto'] = $this->formatearPeso($pesoRebsa);
+
+            // El estado se recalcula aqui porque depende del peso, que solo se
+            // conoce despues de consultar los lotes.
+            if ($this->esArchivoVacio($pesoRbf) && $this->esArchivoVacio($pesoRebsa)) {
+                $filas[$i]['estado'] = 'vacio';
+            }
         }
+    }
+
+    /**
+     * Peso en KB con separador de miles. Devuelve cadena porque el formato es
+     * de presentacion y el valor numerico se conserva en 'peso'.
+     */
+    private function formatearPeso(?float $peso): ?string
+    {
+        if ($peso === null) {
+            return null;
+        }
+
+        return number_format($peso, 1, '.', ',');
+    }
+
+    private function esArchivoVacio(?float $peso): bool
+    {
+        return $peso !== null && $peso < self::PESO_VACIO_KB;
     }
 
     private function consultarPesos(array $sucursales): array
@@ -389,20 +423,23 @@ class ReporteArchivosStockController extends Controller
     private function consultarPesosPgsql(array $sucursales, array $archivos): array
     {
         // MATERIALIZED es lo que hace viable la consulta: primero resuelve los ids del
-        // último lote por (sucursal, disparador) usando el índice de lower(sucursal) y
-        // solo después convierte a jsonb los ~50 payloadsGanadores, en lugar de los miles
-        // que leería el planner si el CTE seFusionara.
+        // último lote por (sucursal, disparador) y solo después convierte a jsonb los
+        // ~800 payloads ganadores, en lugar de los miles que leería el planner si el
+        // CTE se fusionara. max(id) grouped por sucursal/disparador es más rápido que
+        // DISTINCT ON con ORDER BY (331 -> 143 ms) y usa el mismo criterio de "último".
         $sql = "WITH ids AS MATERIALIZED (
-                    SELECT DISTINCT ON (lower(l.sucursal), lower(l.disparador))
-                           lower(l.sucursal) AS s,
-                           lower(l.disparador) AS d,
-                           l.id
-                    FROM hash_archivos_lotes l
-                    WHERE lower(l.disparador) IN ('rbf', 'rebsa')
-                      AND l.payload IS NOT NULL
-                      AND l.payload <> ''
-                      AND lower(l.sucursal) = ANY (?)
-                    ORDER BY lower(l.sucursal), lower(l.disparador), l.id DESC
+                    SELECT s, d, max(l.id) AS id
+                    FROM (
+                        SELECT lower(l.sucursal) AS s,
+                               lower(l.disparador) AS d,
+                               l.id
+                        FROM hash_archivos_lotes l
+                        WHERE lower(l.disparador) IN ('rbf', 'rebsa')
+                          AND l.payload IS NOT NULL
+                          AND l.payload <> ''
+                          AND lower(l.sucursal) = ANY (?)
+                    ) l
+                    GROUP BY s, d
                 ), latest AS (
                     SELECT ids.s, ids.d, l.payload::jsonb AS j
                     FROM ids
@@ -501,34 +538,42 @@ class ReporteArchivosStockController extends Controller
     {
         $total = count($filas);
         $actualizados = 0;
+        $vacios = 0;
         $porPlaza = [];
 
         foreach ($filas as $fila) {
             if ($fila['estado'] === 'actualizado') {
                 $actualizados++;
+            } elseif ($fila['estado'] === 'vacio') {
+                $vacios++;
             }
 
             $plaza = $fila['plaza'];
             if (! isset($porPlaza[$plaza])) {
-                $porPlaza[$plaza] = ['plaza' => $plaza, 'total' => 0, 'matched' => 0];
+                $porPlaza[$plaza] = ['plaza' => $plaza, 'total' => 0, 'matched' => 0, 'vacios' => 0];
             }
             $porPlaza[$plaza]['total']++;
             if ($fila['estado'] === 'actualizado') {
                 $porPlaza[$plaza]['matched']++;
+            } elseif ($fila['estado'] === 'vacio') {
+                $porPlaza[$plaza]['vacios']++;
             }
         }
 
-        $desactualizados = $total - $actualizados;
+        // "vacio" no cuenta como desactualizado: ambos lados coinciden en que el
+        // archivo esta vacio, no hay nada que sincronizar.
+        $desactualizados = $total - $actualizados - $vacios;
 
         $perPlaza = array_map(function ($stats) {
-            $desactualizadosPlaza = $stats['total'] - $stats['matched'];
+            $desactualizadosPlaza = $stats['total'] - $stats['matched'] - $stats['vacios'];
 
             return [
                 'plaza' => $stats['plaza'],
                 'total' => $stats['total'],
                 'matched' => $stats['matched'],
+                'vacios' => $stats['vacios'],
                 'unmatched' => $desactualizadosPlaza,
-                'percent' => $stats['total'] > 0 ? round(($stats['matched'] / $stats['total']) * 100, 1) : 0,
+                'percent' => $stats['total'] > 0 ? round((($stats['matched'] + $stats['vacios']) / $stats['total']) * 100, 1) : 0,
             ];
         }, $porPlaza);
 
@@ -537,8 +582,9 @@ class ReporteArchivosStockController extends Controller
         return [
             'total_archivos' => $total,
             'total_matched' => $actualizados,
+            'total_vacios' => $vacios,
             'total_unmatched' => $desactualizados,
-            'percent' => $total > 0 ? round(($actualizados / $total) * 100, 1) : 0,
+            'percent' => $total > 0 ? round((($actualizados + $vacios) / $total) * 100, 1) : 0,
             'per_plaza' => $perPlaza,
         ];
     }
@@ -550,8 +596,11 @@ class ReporteArchivosStockController extends Controller
 
             $filas = $this->construirFilas($computers, $archivosFiltro);
 
+            // Antes de filtrar por estado: "archivo vacio" depende del peso.
+            $this->aplicarPesos($filas);
+
             $estadoInput = strtolower(trim((string) ($request->query('estado') ?? $request->input('estado', ''))));
-            if (in_array($estadoInput, ['actualizado', 'desactualizado'], true)) {
+            if (in_array($estadoInput, ['actualizado', 'desactualizado', 'vacio'], true)) {
                 $filas = array_values(array_filter($filas, fn ($row) => $row['estado'] === $estadoInput));
             }
 
@@ -563,8 +612,6 @@ class ReporteArchivosStockController extends Controller
 
                 return $cmp !== 0 ? $cmp : strcmp(strtolower($a['archivo']), strtolower($b['archivo']));
             });
-
-            $this->aplicarPesos($filas);
 
             $filename = 'Reporte_Archivos_Stock_'.date('Ymd_His');
 
@@ -593,12 +640,12 @@ class ReporteArchivosStockController extends Controller
                         $fila['rbf']['archivo'] ?? '',
                         $fila['rbf']['hash'] ?? '',
                         $this->formatearFecha($fila['rbf']['fecha_modificacion'] ?? null),
-                        $fila['rbf']['peso'] ?? '',
+                        $fila['rbf']['peso_texto'] ?? '',
                         $fila['rebsamen']['archivo'] ?? '',
                         $fila['rebsamen']['hash'] ?? '',
                         $this->formatearFecha($fila['rebsamen']['fecha_modificacion'] ?? null),
-                        $fila['rebsamen']['peso'] ?? '',
-                        $fila['estado'] === 'actualizado' ? 'Actualizado' : 'Desactualizado',
+                        $fila['rebsamen']['peso_texto'] ?? '',
+                        $fila['estado'] === 'actualizado' ? 'Actualizado' : ($fila['estado'] === 'vacio' ? 'Archivo vacío' : 'Desactualizado'),
                     ], ';');
                 }
 
