@@ -68,23 +68,22 @@
           <input type="text" class="form-control form-control-sm mb-1 filter-search"
                  placeholder="Buscar archivo..." aria-label="Buscar archivo de stock"
                  data-target="#archivo_list" autocomplete="off">
-          <div class="border rounded p-1" id="archivo_list" style="max-height: 100px; overflow-y: auto;">
-            <div class="form-check px-1">
+          <div class="border rounded p-2" id="archivo_list" style="max-height: 100px; overflow-y: auto;">
+            <div class="form-check">
               <input type="checkbox" id="select_all_archivos" class="form-check-input">
               <label for="select_all_archivos" class="form-check-label font-weight-bold"><strong>Todos</strong></label>
             </div>
             @foreach($archivos as $archivo)
-            <div class="form-check archivo-item px-1" data-label="{{ strtolower($archivo) }}">
+            <div class="form-check archivo-item" data-label="{{ strtolower($archivo) }}">
               <input type="checkbox" name="archivo[]" value="{{ $archivo }}" id="archivo_{{ $loop->index }}"
-                     class="form-check-input archivo-checkbox" checked>
+                     class="form-check-input archivo-checkbox">
               <label for="archivo_{{ $loop->index }}" class="form-check-label">{{ $archivo }}</label>
             </div>
             @endforeach
-            <div class="form-check d-none no-filter-results px-1" data-empty-for="#archivo_list">
+            <div class="form-check d-none no-filter-results" data-empty-for="#archivo_list">
               <span class="text-muted small">Sin coincidencias</span>
             </div>
           </div>
-          <small class="text-muted d-block mt-1 text-end"><span id="archivo_selected_count">0</span> sel.</small>
         </div>
         <div class="col-6 col-md-2">
           <label class="form-label small mb-1">Buscar Agente</label>
@@ -446,15 +445,10 @@ function updateSelectAll($selector, $container, $itemSelector) {
     .prop('indeterminate', marcados > 0 && marcados < visibles);
 }
 
-function refreshArchivoCount() {
-  $('#archivo_selected_count').text($('.archivo-checkbox:checked').length);
-}
-
 function refreshAllSelectAll() {
   updateSelectAll($('#select_all_types'), $('#group_type_list'), '.group-type-item');
   updateSelectAll($('#select_all_plazas'), $('#plaza_list'), '.plaza-item');
   updateSelectAll($('#select_all_archivos'), $('#archivo_list'), '.archivo-item');
-  refreshArchivoCount();
 }
 
 function getFilters() {
@@ -719,8 +713,7 @@ $(function() {
   $('#btn_reset_filters').on('click', function() {
     $('.group-type-checkbox').prop('checked', false);
     $('.plaza-checkbox').prop('checked', false);
-    // Los archivos vuelven a su estado por defecto: los 14 marcados.
-    $('.archivo-checkbox').prop('checked', true);
+    $('.archivo-checkbox').prop('checked', false);
     $('.filter-search').val('');
     $('.group-type-item, .plaza-item, .archivo-item').show();
     $('.no-filter-results').addClass('d-none');
