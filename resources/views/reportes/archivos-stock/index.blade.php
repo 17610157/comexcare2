@@ -244,7 +244,7 @@
         <p class="mt-2">Cargando datos...</p>
       </div>
       <div class="table-responsive table-scroll">
-        <table class="table table-sm table-hover table-striped mb-0" id="filesTable">
+        <table class="table table-sm table-hover table-striped table-dark mb-0" id="filesTable">
           <thead class="table-dark">
             <tr>
               <th style="cursor:pointer" data-sort="plaza">Plaza <i class="fas fa-sort"></i></th>
@@ -341,11 +341,10 @@
   font-size: 0.68rem;
   font-weight: 600;
   color: #fff;
-  border-radius: 3px;
-  padding: 0 4px;
   white-space: nowrap;
 }
-.celda-vacia { font-size: 0.62rem; color: #6c757d; font-style: italic; }
+.celda-vacia { font-size: 0.62rem; color: #adb5bd; font-style: italic; }
+.table-dark .celda-vacia { color: #adb5bd; }
 </style>
 @endsection
 
@@ -603,9 +602,7 @@ function formatFecha(v) {
 
 function renderHash(celda) {
   if (!celda || !celda.hash_corto) return '<span class="celda-vacia">no se encuentra archivo en ubicacion</span>';
-  var coincide = celda.hash === celda.hash_otro;
-  var color = coincide === true ? '#28a745' : (coincide === false ? '#dc3545' : '#6c757d');
-  return '<span class="hash-chip" style="background:' + color + ';" title="' + esc(celda.hash) + '">' + esc(celda.hash_corto) + '</span>';
+  return '<span class="hash-chip" title="' + esc(celda.hash) + '">' + esc(celda.hash_corto) + '</span>';
 }
 
 function renderTable(json) {
@@ -628,9 +625,6 @@ function renderTable(json) {
     // El color de cada chip depende de si su hash coincide con el del otro disparador.
     var hayRbf = !!rbf.archivo;
     var hayRebsa = !!reb.archivo;
-
-    rbf.hash_otro = reb.hash || null;
-    reb.hash_otro = rbf.hash || null;
 
     var connectionDot = row.estado_equipo === 'online'
       ? '<span class="d-inline-block align-middle" style="width:10px;height:10px;border-radius:50%;background:#28a745;" title="Online"></span>'
