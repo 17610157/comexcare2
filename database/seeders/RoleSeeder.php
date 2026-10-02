@@ -70,6 +70,11 @@ class RoleSeeder extends Seeder
 
         $userPlazaPermissions = ['user-plaza-tienda.ver', 'user-plaza-tienda.editar'];
 
+        // Ver el Panel de Control tambien es un permiso. Todos los roles de
+        // abajo lo reciben para no quitarle el acceso a quien ya lo tenia;
+        // un rol sin home.ver entra directo a su primer reporte permitido.
+        $dashboardPermissions = ['home.ver'];
+
         // Rol: Super Admin - Todos los permisos
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $superAdmin->givePermissionTo(Permission::all());
@@ -77,32 +82,32 @@ class RoleSeeder extends Seeder
 
         // Rol: Administrador
         $admin = Role::firstOrCreate(['name' => 'administrador', 'guard_name' => 'web']);
-        $admin->givePermissionTo(array_merge($adminPermissions, $reportesPermissions, $metasPermissions, $tiendasPermissions, $distributionPermissions, $userPlazaPermissions));
+        $admin->givePermissionTo(array_merge($dashboardPermissions, $adminPermissions, $reportesPermissions, $metasPermissions, $tiendasPermissions, $distributionPermissions, $userPlazaPermissions));
         $this->command->info('✓ Rol creado: administrador');
 
         // Rol: Gerente de Plaza
         $gerentePlaza = Role::firstOrCreate(['name' => 'gerente_plaza', 'guard_name' => 'web']);
-        $gerentePlaza->givePermissionTo(array_merge($reportesPermissions, $metasPermissions, $userPlazaPermissions));
+        $gerentePlaza->givePermissionTo(array_merge($dashboardPermissions, $reportesPermissions, $metasPermissions, $userPlazaPermissions));
         $this->command->info('✓ Rol creado: gerente_plaza');
 
         // Rol: Coordinador
         $coordinador = Role::firstOrCreate(['name' => 'coordinador', 'guard_name' => 'web']);
-        $coordinador->givePermissionTo(array_merge($reportesPermissions, $metasPermissions));
+        $coordinador->givePermissionTo(array_merge($dashboardPermissions, $reportesPermissions, $metasPermissions));
         $this->command->info('✓ Rol creado: coordinador');
 
         // Rol: Gerente de Tienda
         $gerenteTienda = Role::firstOrCreate(['name' => 'gerente_tienda', 'guard_name' => 'web']);
-        $gerenteTienda->givePermissionTo($reportesPermissions);
+        $gerenteTienda->givePermissionTo(array_merge($dashboardPermissions, $reportesPermissions));
         $this->command->info('✓ Rol creado: gerente_tienda');
 
         // Rol: Vendedor
         $vendedor = Role::firstOrCreate(['name' => 'vendedor', 'guard_name' => 'web']);
-        $vendedor->givePermissionTo(['reportes.vendedores.ver', 'reportes.metas-ventas.ver']);
+        $vendedor->givePermissionTo(array_merge($dashboardPermissions, ['reportes.vendedores.ver', 'reportes.metas-ventas.ver']));
         $this->command->info('✓ Rol creado: vendedor');
 
         // Rol: Solo Lectura
         $soloLectura = Role::firstOrCreate(['name' => 'solo_lectura', 'guard_name' => 'web']);
-        $soloLectura->givePermissionTo(['reportes.ver', 'reportes.vendedores.ver', 'reportes.metas-ventas.ver']);
+        $soloLectura->givePermissionTo(array_merge($dashboardPermissions, ['reportes.ver', 'reportes.vendedores.ver', 'reportes.metas-ventas.ver']));
         $this->command->info('✓ Rol creado: solo_lectura');
 
         $this->command->info('✓ Roles creados: super_admin, administrador, gerente_plaza, coordinador, gerente_tienda, vendedor, solo_lectura');

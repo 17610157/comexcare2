@@ -311,6 +311,7 @@ return [
             'text' => 'Panel de Control',
             'url' => '/home',
             'icon' => 'fas fa-tachometer-alt',
+            'can' => 'home.ver',
         ],
 
         [

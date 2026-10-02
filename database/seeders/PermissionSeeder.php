@@ -13,6 +13,9 @@ class PermissionSeeder extends Seeder
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissions = [
+            // General
+            'home.ver',
+
             // Admin
             'admin.ver',
             'admin.usuarios.ver',

@@ -48,21 +48,32 @@ use App\Http\Controllers\TiendasController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPlazaTiendaController;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use App\Services\LandingPage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('home') : redirect()->route('login');
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    return redirect()->to(LandingPage::forUser(auth()->user()));
 });
 
-Route::get('/home', [HomeController::class, 'index'])->middleware('auth')->name('home');
-Route::get('/home/stats', [HomeController::class, 'stats'])->middleware('auth')->name('home.stats');
-Route::get('/home/server-stats', [HomeController::class, 'serverStats'])->middleware('auth')->name('home.server-stats');
-Route::get('/home/map-stats', [HomeController::class, 'mapStats'])->middleware('auth')->name('home.map-stats');
-Route::get('/home/map-computers', [HomeController::class, 'mapComputers'])->middleware('auth')->name('home.map-computers');
-Route::get('/home/activity', [HomeController::class, 'activity'])->middleware('auth')->name('home.activity');
-Route::get('/home/fleet-health', [HomeController::class, 'fleetHealth'])->middleware('auth')->name('home.fleet-health');
-Route::get('/home/dbf-overview', [HomeController::class, 'dbfOverview'])->middleware('auth')->name('home.dbf-overview');
+// Ver el Panel de Control es un permiso: sin el, se redirige al primer
+// reporte que el rol si permite. Los endpoints JSON responden 403.
+Route::get('/home', [HomeController::class, 'index'])->middleware(['auth', 'dashboard.access'])->name('home');
+Route::get('/home/stats', [HomeController::class, 'stats'])->middleware('can:home.ver')->name('home.stats');
+Route::get('/home/server-stats', [HomeController::class, 'serverStats'])->middleware('can:home.ver')->name('home.server-stats');
+Route::get('/home/map-stats', [HomeController::class, 'mapStats'])->middleware('can:home.ver')->name('home.map-stats');
+Route::get('/home/map-computers', [HomeController::class, 'mapComputers'])->middleware('can:home.ver')->name('home.map-computers');
+Route::get('/home/activity', [HomeController::class, 'activity'])->middleware('can:home.ver')->name('home.activity');
+Route::get('/home/fleet-health', [HomeController::class, 'fleetHealth'])->middleware('can:home.ver')->name('home.fleet-health');
+Route::get('/home/dbf-overview', [HomeController::class, 'dbfOverview'])->middleware('can:home.ver')->name('home.dbf-overview');
+
+// Un rol sin ninguna opcion visible necesita una pagina propia: sin ella el
+// menu quedaria vacio y no habria a donde ir.
+Route::view('/sin-accesos', 'sin-accesos')->middleware('auth')->name('sin-accesos');
 
 Route::middleware(['auth', 'can:alertas.configurar'])->prefix('alerts')->group(function () {
     Route::get('/page', [DashboardAlertController::class, 'page'])->name('alerts.page');
