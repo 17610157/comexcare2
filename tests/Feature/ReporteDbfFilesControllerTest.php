@@ -288,6 +288,118 @@ it('filters detail files by file_category other is ignored', function () {
     expect($data)->toHaveCount(3);
 });
 
+it('filters detail files by several file_category values at once', function () {
+    createComputer([
+        'computer_name' => 'PC-CAT',
+        'agent_config' => ['dbf_files' => [
+            ['name' => 'POS32.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\POS32.exe'],
+            ['name' => 'BACKUP.BAT', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\BACKUP.BAT'],
+            ['name' => 'LISTA.DBF', 'hash_md5' => 'CC3333', 'size' => 256, 'path' => 'D:\\pvsi\\LISTA.DBF'],
+        ]],
+    ]);
+
+    $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['file_category' => ['exe', 'dbf']]));
+    $response->assertOk();
+
+    $names = array_map(fn ($r) => $r['file']['name'], $response->json('data'));
+    sort($names);
+    expect($names)->toBe(['LISTA.DBF', 'POS32.EXE']);
+});
+
+it('filters detail files by several archivo values at once', function () {
+    if (config('database.default') !== 'pgsql') {
+        $this->markTestSkipped('ILIKE requires PostgreSQL');
+    }
+
+    createComputer([
+        'computer_name' => 'PC-CAT',
+        'agent_config' => ['dbf_files' => [
+            ['name' => 'POS32.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\POS32.exe'],
+            ['name' => 'BACKUP.BAT', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\BACKUP.BAT'],
+            ['name' => 'LISTA.DBF', 'hash_md5' => 'CC3333', 'size' => 256, 'path' => 'D:\\pvsi\\LISTA.DBF'],
+        ]],
+    ]);
+
+    $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['archivo' => ['BACKUP.BAT', 'LISTA.DBF']]));
+    $response->assertOk();
+
+    $names = array_map(fn ($r) => $r['file']['name'], $response->json('data'));
+    sort($names);
+    expect($names)->toBe(['BACKUP.BAT', 'LISTA.DBF']);
+});
+
+it('filters by several conexion values at once', function () {
+    createComputer(['computer_name' => 'PC-ON', 'last_seen' => now()->subMinutes(2)]);
+    createComputer(['computer_name' => 'PC-OFF', 'last_seen' => now()->subDays(3)]);
+
+    $todos = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['conexion' => ['online', 'offline']]));
+    $todos->assertOk();
+    expect($todos->json('recordsTotal'))->toBe(2);
+
+    $soloOnline = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', ['conexion' => ['online']]));
+    $soloOnline->assertOk();
+    expect($soloOnline->json('recordsTotal'))->toBe(1);
+    expect($soloOnline->json('data.0.status'))->toBe('online');
+});
+
+it('ignores unknown values in multi value filters', function () {
+    createComputer([
+        'computer_name' => 'PC-CAT',
+        'agent_config' => ['dbf_files' => [
+            ['name' => 'POS32.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\POS32.exe'],
+        ]],
+    ]);
+
+    $response = $this->actingAs($this->user)->getJson(route('reportes.dbf-files.data', [
+        'file_category' => ['inventado'],
+        'conexion' => ['desconocido'],
+        'estado' => ['vencido'],
+    ]));
+    $response->assertOk();
+
+    expect($response->json('recordsTotal'))->toBe(1);
+});
+
+it('renders every filter as a searchable checkbox list', function () {
+    createComputer(['computer_name' => 'PC-UI']);
+
+    $response = $this->actingAs($this->user)->get(route('reportes.dbf-files'));
+    $response->assertOk();
+
+    $html = $response->getContent();
+
+    foreach (['plaza_list', 'group_type_list', 'file_category_list', 'archivo_list', 'conexion_list', 'estado_list'] as $listId) {
+        expect($html)->toContain('id="'.$listId.'"');
+        expect($html)->toContain('data-target="#'.$listId.'"');
+    }
+
+    foreach (['plaza-checkbox', 'group-type-checkbox', 'file-category-checkbox', 'archivo-checkbox', 'conexion-checkbox', 'estado-checkbox'] as $checkboxClass) {
+        expect($html)->toContain($checkboxClass);
+    }
+
+    expect($html)->toContain('filter-search');
+    expect($html)->toContain('no-filter-results');
+});
+
+it('exports only the rows matching the selected filters', function () {
+    createComputer([
+        'computer_name' => 'PC-EXPORT',
+        'agent_config' => ['dbf_files' => [
+            ['name' => 'POS32.EXE', 'hash_md5' => 'AA1111', 'size' => 1024, 'path' => 'D:\\pvsi\\POS32.exe'],
+            ['name' => 'LISTA.DBF', 'hash_md5' => 'BB2222', 'size' => 512, 'path' => 'D:\\pvsi\\LISTA.DBF'],
+        ]],
+    ]);
+
+    $response = $this->actingAs($this->user)->get(route('reportes.dbf-files.export', [
+        'file_category' => ['exe'],
+    ]));
+    $response->assertOk();
+
+    $csv = $response->streamedContent();
+    expect($csv)->toContain('POS32.EXE');
+    expect($csv)->not->toContain('LISTA.DBF');
+});
+
 it('does not include checksum in file data', function () {
     createComputer([
         'computer_name' => 'PC-CHECK',

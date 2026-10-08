@@ -25,6 +25,7 @@ use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\ReporteApiDemoController;
 use App\Http\Controllers\ReporteArchivosStockController;
 use App\Http\Controllers\ReporteComprasDirectoController;
+use App\Http\Controllers\ReporteCortesController;
 use App\Http\Controllers\ReporteDbfFilesController;
 use App\Http\Controllers\ReporteDbfFilesEspecificosController;
 use App\Http\Controllers\ReporteDbfFilesQuickbckController;
@@ -47,8 +48,8 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TiendasController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPlazaTiendaController;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use App\Services\LandingPage;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -325,6 +326,10 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.archivos-stock.agentes')->middleware('can:reportes.archivos-stock.ver');
     Route::get('archivos-stock/export', [ReporteArchivosStockController::class, 'export'])
         ->name('reportes.archivos-stock.export')->middleware('can:reportes.archivos-stock.ver');
+    Route::post('archivos-stock/ejecutar', [ReporteArchivosStockController::class, 'ejecutar'])
+        ->name('reportes.archivos-stock.ejecutar')->middleware('can:reportes.archivos-stock.ejecutar');
+    Route::get('archivos-stock/bitacora', [ReporteArchivosStockController::class, 'bitacora'])
+        ->name('reportes.archivos-stock.bitacora')->middleware('can:reportes.archivos-stock.ver');
 
     // REPORTE: Vales
     Route::get('vales', [ReporteValesController::class, 'index'])
@@ -333,6 +338,12 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.vales.data')->middleware('can:reportes.vales.ver');
     Route::get('vales/export', [ReporteValesController::class, 'export'])
         ->name('reportes.vales.export')->middleware('can:reportes.vales.ver');
+
+    // REPORTE: Cortes (xcorte_api)
+    Route::get('cortes', [ReporteCortesController::class, 'index'])
+        ->name('reportes.cortes')->middleware('can:cortes.ver');
+    Route::get('cortes/data', [ReporteCortesController::class, 'data'])
+        ->name('reportes.cortes.data')->middleware('can:cortes.ver');
 
     // Redenciones Club Comex
     Route::get('redenciones-club', [ReporteRedencionesClubController::class, 'index'])
@@ -363,8 +374,7 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.api-demo.data')->middleware('can:reportes.api-demo.ver');
 
     // Reporte de Autorizaciones
-Route::get('authorization-report', [AuthorizationReportController::class, 'index'])
-
+    Route::get('authorization-report', [AuthorizationReportController::class, 'index'])
         ->name('reportes.authorization-report.index')->middleware('can:authorization-report.ver');
 
     Route::get('authorization-report/data', [AuthorizationReportController::class, 'data'])

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -16,10 +17,13 @@ class Computer extends Model
         'short_key',
         'plaza',
         'mac_address',
+        'machine_key',
         'ip_address',
         'group_id',
         'agent_version',
         'resurtido_agent_version',
+        'resurtido_version',
+        'resurtido_fecha',
         'pvsi_version',
         'pvsi_fecha',
         'pvsi_hora',
@@ -104,6 +108,11 @@ class Computer extends Model
         }
 
         return $paths;
+    }
+
+    public function scopeFindByMachineKey(Builder $query, string $machineKey): Builder
+    {
+        return $query->where('machine_key', $machineKey);
     }
 
     public function getDownloadPathsCount(): int

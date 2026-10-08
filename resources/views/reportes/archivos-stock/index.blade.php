@@ -112,10 +112,21 @@
           <label class="form-label small mb-1">Estado</label>
           <select id="estado_filter" class="form-control form-control-sm">
             <option value="">Todos</option>
-            <option value="actualizado">Actualizado</option>
-            <option value="desactualizado">Desactualizado</option>
-            <option value="vacio">Archivo vacío</option>
+            <option value="verde">Verde</option>
+            <option value="amarillo">Amarillo</option>
+            <option value="rojo">Rojo</option>
+            <option value="no_cuenta">No cuenta</option>
+            <option value="no_aplica">No aplica</option>
           </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1" title="Días desde la última modificación más antigua del archivo">Días</label>
+          <div class="d-flex gap-1">
+            <input type="number" min="0" step="1" id="dias_min" class="form-control form-control-sm"
+                   placeholder="Desde" aria-label="Días desde la última modificación (mínimo)">
+            <input type="number" min="0" step="1" id="dias_max" class="form-control form-control-sm"
+                   placeholder="Hasta" aria-label="Días desde la última modificación (máximo)">
+          </div>
         </div>
       </div>
       <div class="row mt-2">
@@ -153,32 +164,25 @@
         <div class="col-md col-sm-6">
           <div class="card text-bg-light h-100">
             <div class="card-body py-2 px-3 text-center">
-              <span class="d-block fs-4 fw-bold" id="statTotalFiles">0</span>
-              <small class="text-muted">Total Archivos</small>
+              <span class="d-block fs-4 fw-bold" id="statContempladas">0</span>
+              <small class="text-muted d-block">Contempladas</small>
+              <small class="text-muted d-block" id="statFuera">0 fuera del calculo</small>
             </div>
           </div>
         </div>
         <div class="col-md col-sm-6">
           <div class="card text-bg-success h-100">
             <div class="card-body py-2 px-3 text-center">
-              <span class="d-block fs-4 fw-bold" id="statMatchedFiles">0</span>
-              <small>Actualizados</small>
+              <span class="d-block fs-4 fw-bold" id="statListas">0</span>
+              <small>Listas</small>
             </div>
           </div>
         </div>
         <div class="col-md col-sm-6">
           <div class="card text-bg-danger h-100">
             <div class="card-body py-2 px-3 text-center">
-              <span class="d-block fs-4 fw-bold" id="statUnmatchedFiles">0</span>
-              <small>Desactualizados</small>
-            </div>
-          </div>
-        </div>
-        <div class="col-md col-sm-6">
-          <div class="card text-bg-secondary h-100">
-            <div class="card-body py-2 px-3 text-center">
-              <span class="d-block fs-4 fw-bold" id="statEmptyFiles">0</span>
-              <small>Archivos vacíos</small>
+              <span class="d-block fs-4 fw-bold" id="statPendientes">0</span>
+              <small>Pendientes</small>
             </div>
           </div>
         </div>
@@ -186,31 +190,42 @@
           <div class="card text-bg-info h-100">
             <div class="card-body py-2 px-3 text-center">
               <span class="d-block fs-4 fw-bold" id="statPercent">0%</span>
-              <small>Cumplimiento</small>
+              <small>Instalaciones listas</small>
             </div>
           </div>
         </div>
       </div>
       <div id="chartsSection" class="row g-3 mb-0 d-none">
-        <div class="col-lg-6 col-md-6">
+        <div class="col-lg-4 col-md-6">
           <div class="card h-100">
             <div class="card-header py-2 d-flex align-items-center gap-2">
               <i class="fas fa-chart-pie text-info"></i>
-              <small class="fw-bold">Actualizacion Archivos</small>
+              <small class="fw-bold">Instalaciones</small>
             </div>
             <div class="card-body py-3 text-center">
               <canvas id="pieFilesChart"></canvas>
             </div>
           </div>
         </div>
-        <div class="col-lg-6 col-md-6">
+        <div class="col-lg-8 col-md-6">
           <div class="card h-100">
             <div class="card-header py-2 d-flex align-items-center gap-2">
               <i class="fas fa-map-marker-alt text-warning"></i>
-              <small class="fw-bold">Actualizacion por Plaza</small>
+              <small class="fw-bold">Instalaciones por Plaza</small>
             </div>
             <div class="card-body py-3">
               <canvas id="barPlazaChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-12" id="causasCard">
+          <div class="card h-100">
+            <div class="card-header py-2 d-flex align-items-center gap-2">
+              <i class="fas fa-exclamation-triangle text-danger"></i>
+              <small class="fw-bold">Motivos de pendencia</small>
+            </div>
+            <div class="card-body py-3">
+              <canvas id="barCausasChart"></canvas>
             </div>
           </div>
         </div>
@@ -219,9 +234,14 @@
   </div>
 
   <div class="card">
-    <div class="card-header bg-primary text-white d-flex justify-content-end align-items-center flex-wrap gap-2">
-      <div class="d-flex align-items-center" style="gap: .25rem;">
-        <label for="pageSizeSelect" class="mb-0 small text-white">Mostrar</label>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center flex-wrap">
+        <button class="btn btn-success btn-sm" id="btn_run_stock" style="margin-right:4px; margin-bottom:2px; margin-top:2px;"><i class="fas fa-play"></i> Stock</button>
+        <button class="btn btn-secondary btn-sm" id="btn_bitacora" style="margin-bottom:2px; margin-top:2px;"><i class="fas fa-history"></i> Bitacora</button>
+      </div>
+      <div class="d-flex align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center" style="gap: .25rem;">
+        <label for="pageSizeSelect" class="mb-0 small">Mostrar</label>
         <select id="pageSizeSelect" class="form-control form-control-sm" style="width: auto;">
           <option value="10" selected>10</option>
           <option value="25">25</option>
@@ -230,7 +250,7 @@
         </select>
       </div>
       <div id="paginationControls" class="d-flex align-items-center flex-wrap gap-2 d-none">
-        <small class="text-white" id="paginationInfo"></small>
+        <small id="paginationInfo" class="text-muted"></small>
         <nav><ul class="pagination pagination-sm mb-0" id="paginationNumbers"></ul></nav>
       </div>
       <button type="button" class="btn-card-minimize" title="Minimizar">
@@ -243,34 +263,71 @@
         <p class="mt-2">Cargando datos...</p>
       </div>
       <div class="table-responsive table-scroll">
-        <table class="table table-sm table-hover table-striped table-dark mb-0" id="filesTable">
+        <table class="table table-sm table-hover table-striped mb-0" id="filesTable">
           <thead class="table-dark">
             <tr>
+              <th class="text-center" style="width:30px;"><input type="checkbox" id="select_all_computers" class="form-check-input"></th>
               <th style="cursor:pointer" data-sort="plaza">Plaza <i class="fas fa-sort"></i></th>
               <th style="cursor:pointer" data-sort="nombre_instalacion">Agente <i class="fas fa-sort"></i></th>
               <th class="text-center">Estado Equipo</th>
-              <th colspan="4" class="text-center border-start border-light">RBF</th>
-              <th colspan="4" class="text-center border-start border-light">Rebsamen</th>
+              <th style="cursor:pointer" data-sort="archivo">Archivo RBF <i class="fas fa-sort"></i></th>
+              <th>Hash RBF</th>
+              <th>Fecha RBF</th>
+              <th class="text-center">Peso RBF</th>
+              <th>Archivo Rebs.</th>
+              <th>Hash Rebs.</th>
+              <th>Fecha Rebs.</th>
+              <th class="text-center">Peso Rebs.</th>
               <th class="text-center" style="cursor:pointer" data-sort="estado">Estado <i class="fas fa-sort"></i></th>
-            </tr>
-            <tr>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th style="cursor:pointer" data-sort="archivo">Archivo <i class="fas fa-sort"></i></th>
-              <th>Hash</th>
-              <th>Fecha Mod</th>
-              <th class="text-center">Peso (KB)</th>
-              <th>Archivo</th>
-              <th>Hash</th>
-              <th>Fecha Mod</th>
-              <th class="text-center">Peso (KB)</th>
-              <th></th>
+              <th class="text-center" style="cursor:pointer" data-sort="dias"
+                  title="Días desde la última modificación más antigua (RBF o Rebsamen)">Días <i class="fas fa-sort"></i></th>
             </tr>
           </thead>
           <tbody id="filesTableBody">
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirmModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-play-circle"></i> Confirmar Ejecucion</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage" class="mb-2"></p>
+        <div id="confirmModalList" style="max-height: 45vh; overflow-y: auto;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success btn-sm" id="confirmEjecutarBtn">
+          <i class="fas fa-play"></i> Enviar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="bitacoraModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-secondary text-white">
+        <h5 class="modal-title"><i class="fas fa-history"></i> Bitacora de Ejecuciones</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div id="bitacoraLoading" class="text-center py-4">
+          <i class="fas fa-spinner fa-spin fa-2x"></i>
+          <p class="mt-2">Cargando bitacora...</p>
+        </div>
+        <div id="bitacoraContent" class="d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>
@@ -306,20 +363,37 @@
 }
 #filesTable { font-size: 0.75rem; }
 #filesTable thead th { white-space: nowrap; font-size: 0.7rem; }
-#filesTable thead tr:nth-child(2) th { font-size: 0.65rem; font-weight: 500; }
 #filesTable tbody td { font-size: 0.75rem; vertical-align: middle; }
+/* Bootstrap 4 (AdminLTE 3) define .form-check-input como position:absolute con
+   margin-left:-1.25rem porque asume que el checkbox vive dentro de un .form-check,
+   que compensa ese desplazamiento con padding-left. Sueltos en un <td> no hay quien
+   lo compense: el checkbox se posicionaba fuera de la columna, el encabezado y el
+   cuerpo quedaban desalineados, y el contenedor con overflow lo recortaba al hacer
+   scroll vertical. Aqui se devuelve al flujo normal dentro de su celda. */
+#filesTable .form-check-input {
+  position: static;
+  margin: 0;
+  vertical-align: middle;
+}
+/* Con 14 columnas el texto largo de las celdas fijaba el ancho minimo de la tabla y
+   esta se salia de la tarjeta. Se recorta con ellipsis y el valor completo queda en
+   el title, que es donde ya vive el detalle de los hash. */
+#filesTable th, #filesTable td { padding: 0.2rem 0.3rem; }
+#filesTable .celda-texto {
+  display: block;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#filesTable .celda-texto-ancha { max-width: 210px; }
 .table-scroll { max-height: 55vh; overflow-y: auto; }
-.table-scroll #filesTable thead tr:first-child th {
+.table-scroll #filesTable thead th {
   position: sticky;
   top: 0;
-  z-index: 3;
-  background-color: #23272f;
-}
-.table-scroll #filesTable thead tr:nth-child(2) th {
-  position: sticky;
-  top: 28px;
   z-index: 2;
   background-color: #343a40;
+  color: #fff;
 }
 #paginationNumbers .page-link { padding: 0.15rem 0.45rem; }
 .btn-card-minimize {
@@ -339,11 +413,11 @@
   font-family: monospace;
   font-size: 0.68rem;
   font-weight: 600;
-  color: #fff;
+  color: #0d6efd;
   white-space: nowrap;
 }
-.celda-vacia { font-size: 0.62rem; color: #adb5bd; font-style: italic; }
-.table-dark .celda-vacia { color: #adb5bd; }
+/* Sobre la tabla clara el gris claro del tema oscuro quedaba ilegible. */
+.celda-vacia { font-size: 0.62rem; color: #6c757d; font-style: italic; }
 </style>
 @endsection
 
@@ -353,10 +427,30 @@
 var DATA_URL = "{{ url('/reportes/archivos-stock/data') }}";
 var EXPORT_URL = "{{ url('/reportes/archivos-stock/export') }}";
 var AGENTES_URL = "{{ url('/reportes/archivos-stock/agentes') }}";
+var EJECUTAR_URL = "{{ url('/reportes/archivos-stock/ejecutar') }}";
+var BITACORA_URL = "{{ url('/reportes/archivos-stock/bitacora') }}";
+var CSRF_TOKEN = '{{ csrf_token() }}';
+var COOLDOWN_MINUTOS = 5;
 
 // Agentes marcados con checkbox. Se conservan al cambiar plaza/tipo/busqueda
 // para que el filtro no se pierda, pero si no hay ninguno no se envía.
 var selectedAgents = {};
+
+// Equipos marcados en la tabla para enviarles DASTOCK.BAT. Se lleva el id
+// del equipo, no el de la fila: un equipo puede tener varios archivos y solo
+// debe recibir un unico comando.
+var selectedComputerIds = {};
+// id -> instante (ms) en que se encolo DASTOCK.BAT, para bloquear el checkbox
+// durante la ventana de espera.
+var stockEnEjecucion = {};
+
+var ESTADOS_BADGE = {
+  verde: '<span class="badge bg-success">Verde</span>',
+  amarillo: '<span class="badge bg-warning text-dark">Amarillo</span>',
+  rojo: '<span class="badge bg-danger">Rojo</span>',
+  no_aplica: '<span class="badge bg-secondary">No aplica</span>',
+  no_cuenta: '<span class="badge bg-light text-dark border">No cuenta</span>'
+};
 
 function selectedAgentIds() {
   return Object.keys(selectedAgents).filter(function(id) { return selectedAgents[id]; }).map(Number);
@@ -463,7 +557,67 @@ function getFilters() {
   if (agentes.length) d.agente = agentes;
   if ($('#conexion_filter').val()) d.conexion = $('#conexion_filter').val();
   if ($('#estado_filter').val()) d.estado = $('#estado_filter').val();
+  if ($('#dias_min').val()) d.dias_min = $('#dias_min').val();
+  if ($('#dias_max').val()) d.dias_max = $('#dias_max').val();
   return d;
+}
+
+function getSelectedComputerIds() {
+  return Object.keys(selectedComputerIds).filter(function(id) { return selectedComputerIds[id]; }).map(Number);
+}
+
+function clearSelection() {
+  selectedComputerIds = {};
+  $('#select_all_computers').prop('checked', false).prop('indeterminate', false);
+  $('#filesTableBody .computer-checkbox:not(:disabled)').prop('checked', false);
+}
+
+function toggleComputer(id) {
+  id = String(id);
+  if (selectedComputerIds[id]) {
+    delete selectedComputerIds[id];
+  } else {
+    selectedComputerIds[id] = true;
+  }
+  refreshSelectAllComputers();
+}
+
+function refreshSelectAllComputers() {
+  var $boxes = $('#filesTableBody .computer-checkbox:not(:disabled)');
+  var total = $boxes.length;
+  var checked = $boxes.filter(':checked').length;
+  $('#select_all_computers').prop('checked', total > 0 && checked === total).prop('indeterminate', checked > 0 && checked < total);
+}
+
+// El thead tiene una sola fila fija: no hay segunda fila que haya que anclar
+// debajo, asi que no hace falta compensar ningun desplazamiento vertical.
+function sincronizarEncabezado() {
+  $('#filesTable thead th').css('top', 0);
+}
+
+// El bloqueo del checkbox es solo una ayuda visual: la ventana de espera se
+// vuelve a evaluar en cada recarga, y el servidor la descarta igual aunque
+// alguien llame al endpoint a mano.
+function enEsperaBloqueo(id) {
+  var desde = stockEnEjecucion[String(id)];
+  return !!desde && (Date.now() - desde) < COOLDOWN_MINUTOS * 60000;
+}
+
+function refreshCooldownChecks() {
+  $('#filesTableBody .computer-checkbox').each(function() {
+    var bloqueado = enEsperaBloqueo($(this).data('computer-id'));
+    $(this).prop('disabled', bloqueado)
+      .attr('title', bloqueado ? 'Ya se ejecuto DASTOCK.BAT en los ultimos ' + COOLDOWN_MINUTOS + ' minutos' : '');
+  });
+  refreshSelectAllComputers();
+}
+
+// Días sin formato: "hoy" es 0, para no sumar un día que no ha transcurrido.
+function renderDias(dias) {
+  if (dias === null || dias === undefined) return '<span class="celda-vacia">-</span>';
+  var n = Number(dias);
+  var clase = n >= 30 ? 'text-danger' : (n >= 7 ? 'text-warning' : '');
+  return '<span class="' + clase + '">' + n + '</span>';
 }
 
 var currentPage = 0;
@@ -495,22 +649,22 @@ function loadData() {
     },
     error: function() {
       $('#tableLoading').addClass('d-none');
-      $('#filesTableBody').html('<tr><td colspan="12" class="text-center py-4 text-muted">Error al cargar los datos</td></tr>');
+      $('#filesTableBody').html('<tr><td colspan="14" class="text-center py-4 text-muted">Error al cargar los datos</td></tr>');
     }
   });
 }
 
 function renderStats(json) {
   $('#total_records').text('Total: ' + (json.recordsTotal || 0) + ' registros');
-  if (!json.stock_stats) return;
-  var s = json.stock_stats;
-  $('#statTotalFiles').text(s.total_archivos);
-  $('#statMatchedFiles').text(s.total_matched);
-  $('#statUnmatchedFiles').text(s.total_unmatched);
-  $('#statEmptyFiles').text(s.total_vacios || 0);
+  if (!json.instalaciones_stats) return;
+  var s = json.instalaciones_stats;
+  $('#statContempladas').text(s.total_instalaciones);
+  $('#statFuera').text(s.no_contempladas + ' fuera del calculo');
+  $('#statListas').text(s.listas);
+  $('#statPendientes').text(s.pendientes);
   $('#statPercent').text(s.percent + '%');
 
-  if (s.total_archivos === 0) {
+  if (s.total_instalaciones === 0) {
     $('#chartsSection').addClass('d-none');
     return;
   }
@@ -528,24 +682,24 @@ function initChart(id, config) {
 }
 
 function initAllCharts(s) {
-  var green = '#28a745', red = '#dc3545', gray = '#6c757d';
-  var vacios = s.total_vacios || 0;
+  var green = '#28a745', red = '#dc3545', amber = '#ffc107';
+  var legend = { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } };
 
   initChart('pieFilesChart', {
     type: 'doughnut',
     data: {
-      labels: vacios > 0 ? ['Actualizados', 'Desactualizados', 'Vacíos'] : ['Actualizados', 'Desactualizados'],
+      labels: ['Listas', 'Pendientes'],
       datasets: [{
-        data: vacios > 0 ? [s.total_matched, s.total_unmatched, vacios] : [s.total_matched, s.total_unmatched],
-        backgroundColor: [green, red, gray], borderWidth: 0
+        data: [s.listas, s.pendientes],
+        backgroundColor: [green, red], borderWidth: 0
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false, resizeDelay: 100, cutout: '60%',
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+        legend: legend,
         tooltip: { callbacks: { label: function(ctx) {
-          var pct = s.total_archivos > 0 ? ((ctx.parsed / s.total_archivos) * 100).toFixed(1) : 0;
+          var pct = s.total_instalaciones > 0 ? ((ctx.parsed / s.total_instalaciones) * 100).toFixed(1) : 0;
           return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
         }}}
       }
@@ -558,9 +712,8 @@ function initAllCharts(s) {
       data: {
         labels: s.per_plaza.map(function(p) { return p.plaza; }),
         datasets: [
-          { label: 'Actualizados', data: s.per_plaza.map(function(p) { return p.matched; }), backgroundColor: green, borderRadius: 3 },
-          { label: 'Vacíos', data: s.per_plaza.map(function(p) { return p.vacios || 0; }), backgroundColor: gray, borderRadius: 3 },
-          { label: 'Desactualizados', data: s.per_plaza.map(function(p) { return p.unmatched; }), backgroundColor: red, borderRadius: 3 }
+          { label: 'Listas', data: s.per_plaza.map(function(p) { return p.listas; }), backgroundColor: green, borderRadius: 3 },
+          { label: 'Pendientes', data: s.per_plaza.map(function(p) { return p.pendientes; }), backgroundColor: red, borderRadius: 3 }
         ]
       },
       options: {
@@ -570,12 +723,45 @@ function initAllCharts(s) {
           y: { stacked: true, beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color: '#f0f0f0' } }
         },
         plugins: {
-          legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+          legend: legend,
           tooltip: { callbacks: { label: function(ctx) {
             var plaza = s.per_plaza[ctx.dataIndex];
             var total = plaza.total;
             var pct = total > 0 ? ((ctx.parsed.y / total) * 100).toFixed(1) : 0;
             return ctx.dataset.label + ': ' + ctx.parsed.y + ' (' + pct + '%)';
+          }}}
+        }
+      }
+    });
+  }
+
+  // Una instalacion puede fallar por mas de un archivo, por eso las barras de
+  // motivos suman mas que las pendientes.
+  var causas = s.causas || [];
+  $('#causasCard').toggleClass('d-none', causas.length === 0);
+  if (causas.length > 0) {
+    initChart('barCausasChart', {
+      type: 'bar',
+      data: {
+        labels: causas.map(function(c) { return c.etiqueta; }),
+        datasets: [{
+          label: 'Instalaciones',
+          data: causas.map(function(c) { return c.cantidad; }),
+          backgroundColor: causas.map(function(c) { return c.codigo === 'PESO' ? amber : red; }),
+          borderRadius: 3
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false, resizeDelay: 100,
+        scales: {
+          x: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 }, grid: { color: '#f0f0f0' } },
+          y: { ticks: { font: { size: 10 } }, grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(ctx) {
+            return ctx.parsed.x + ' instalacion(es) pendiente(s) por este motivo';
           }}}
         }
       }
@@ -590,12 +776,19 @@ function esc(valor) {
 function formatFecha(v) {
   if (!v) return '<span class="celda-vacia">-</span>';
   var value = String(v);
-  if (value.length >= 19) return esc(value.substring(0, 19).replace('T', ' '));
+  // Se muestran los segundos solo en el title: 'dd/mm/yyyy hh:mm:ss' ocupaba
+  // ~150px en cada una de las dos columnas y empujaba la tabla fuera de la tarjeta.
+  if (value.length >= 19) {
+    var completo = value.substring(0, 19).replace('T', ' ');
+    return '<span title="' + esc(completo) + '">' + esc(completo.substring(0, 16)) + '</span>';
+  }
   return esc(value);
 }
 
 function renderHash(celda) {
-  if (!celda || !celda.hash_corto) return '<span class="celda-vacia">no se encuentra archivo en ubicacion</span>';
+  if (!celda || !celda.hash_corto) {
+    return '<span class="celda-vacia" title="No se encuentra archivo en esta ubicacion">no encontrado</span>';
+  }
   return '<span class="hash-chip" title="' + esc(celda.hash) + '">' + esc(celda.hash_corto) + '</span>';
 }
 
@@ -607,7 +800,7 @@ function renderTable(json) {
   $tbody.empty();
 
   if (data.length === 0) {
-    $tbody.html('<tr><td colspan="12" class="text-center py-4 text-muted">No se encontraron archivos de stock</td></tr>');
+    $tbody.html('<tr><td colspan="14" class="text-center py-4 text-muted">No se encontraron archivos de stock</td></tr>');
     $('#paginationControls').addClass('d-none');
     return;
   }
@@ -624,21 +817,30 @@ function renderTable(json) {
       ? '<span class="d-inline-block align-middle" style="width:10px;height:10px;border-radius:50%;background:#28a745;" title="Online"></span>'
       : '<span class="d-inline-block align-middle" style="width:10px;height:10px;border-radius:50%;background:#dc3545;" title="Offline"></span>';
 
-    var statusBadge = row.estado === 'actualizado'
-      ? '<span class="badge bg-success">Actualizado</span>'
-      : (row.estado === 'vacio'
-          ? '<span class="badge bg-secondary">Archivo vacío</span>'
-          : '<span class="badge bg-danger">Desactualizado</span>');
+    var statusBadge = ESTADOS_BADGE[row.estado]
+      || '<span class="badge bg-secondary">' + esc(row.estado) + '</span>';
+
+    var hashDiferente = hayRbf && hayRebsa && !!rbf.hash && !!reb.hash && rbf.hash !== reb.hash;
 
     var motivo = '';
-    if (row.estado === 'desactualizado') {
-      if (!hayRbf || !hayRebsa) {
-        motivo = '<div class="celda-vacia">' + (hayRbf ? 'falta en Rebsamen' : 'falta en RBF') + '</div>';
-      } else {
-        motivo = '<div class="celda-vacia">hash diferente</div>';
-      }
-    } else if (row.estado === 'vacio') {
-      motivo = '<div class="celda-vacia">menos de 1 KB en ambos lados</div>';
+    if (row.estado === 'no_cuenta') {
+      motivo = '<div class="celda-vacia">no entra en el %</div>';
+    } else if (row.estado === 'no_aplica') {
+      motivo = '<div class="celda-vacia">solo almacenes</div>';
+    } else if (!row.existe) {
+      motivo = '<div class="celda-vacia">no aparece en el respaldo</div>';
+    } else if (row.estado === 'amarillo' || row.estado === 'rojo') {
+      motivo = (row.dias === null || row.dias === undefined)
+        ? '<div class="celda-vacia">sin fecha de modificación</div>'
+        : '<div class="celda-vacia">' + esc(row.dias) + ' días</div>';
+    } else if (hashDiferente) {
+      motivo = '<div class="celda-vacia">hash distinto</div>';
+    }
+
+    var senalHtml = '';
+    if (row.peso_senal) {
+      senalHtml = '<div class="mt-1"><span class="badge ' + (row.peso_senal.bloquea ? 'bg-danger' : 'bg-secondary') +
+        '" title="' + esc(row.peso_senal.detalle) + '">' + esc(row.peso_senal.etiqueta) + '</span></div>';
     }
 
     // El peso llega formateado desde el servidor (separador de miles).
@@ -648,24 +850,175 @@ function renderTable(json) {
       ? esc(reb.peso_texto) : '<span class="celda-vacia">-</span>';
 
     $tbody.append(
-      '<tr>' +
+      '<tr data-computer-id="' + esc(row.id) + '">' +
+'<td class="text-center"><input type="checkbox" class="form-check-input computer-checkbox"' +
+          (selectedComputerIds[String(row.id)] ? ' checked' : '') +
+          (enEsperaBloqueo(row.id) ? ' disabled title="Ya se ejecuto DASTOCK.BAT en los ultimos ' + COOLDOWN_MINUTOS + ' minutos"' : '') +
+          ' data-computer-id="' + esc(row.id) + '"></td>' +
         '<td>' + esc(row.plaza) + '</td>' +
-        '<td><strong>' + esc(row.nombre_instalacion) + '</strong></td>' +
+        '<td><strong class="celda-texto celda-texto-ancha" title="' + esc(row.nombre_instalacion) + '">' + esc(row.nombre_instalacion) + '</strong></td>' +
         '<td class="text-center">' + connectionDot + '</td>' +
-        '<td>' + (hayRbf ? '<strong>' + esc(rbf.archivo) + '</strong>' : '<span class="celda-vacia">-</span>') + '</td>' +
+        '<td>' + (hayRbf ? '<strong class="celda-texto" title="' + esc(rbf.archivo) + '">' + esc(rbf.archivo) + '</strong>' : '<span class="celda-vacia">-</span>') + '</td>' +
         '<td>' + renderHash(rbf) + '</td>' +
-        '<td style="white-space:nowrap;">' + formatFecha(rbf.fecha_modificacion) + '</td>' +
+        '<td class="text-nowrap">' + formatFecha(rbf.fecha_modificacion) + '</td>' +
         '<td class="text-center">' + pesoRbf + '</td>' +
-        '<td>' + (hayRebsa ? '<strong>' + esc(reb.archivo) + '</strong>' : '<span class="celda-vacia">-</span>') + '</td>' +
+        '<td>' + (hayRebsa ? '<strong class="celda-texto" title="' + esc(reb.archivo) + '">' + esc(reb.archivo) + '</strong>' : '<span class="celda-vacia">-</span>') + '</td>' +
         '<td>' + renderHash(reb) + '</td>' +
-        '<td style="white-space:nowrap;">' + formatFecha(reb.fecha_modificacion) + '</td>' +
+        '<td class="text-nowrap">' + formatFecha(reb.fecha_modificacion) + '</td>' +
         '<td class="text-center">' + pesoReb + '</td>' +
-        '<td class="text-center"><div>' + statusBadge + motivo + '</div></td>' +
+        '<td class="text-center"><div>' + statusBadge + motivo + senalHtml + '</div></td>' +
+        '<td class="text-center">' + renderDias(row.dias) + '</td>' +
       '</tr>'
     );
   });
 
+  refreshSelectAllComputers();
+
   updatePagination();
+
+  sincronizarEncabezado();
+}
+
+function previewAndConfirmStock() {
+  var ids = getSelectedComputerIds();
+  if (ids.length === 0) {
+    alert('Selecciona al menos un equipo de la tabla.');
+    return;
+  }
+
+  $('#btn_run_stock').prop('disabled', true);
+
+  $.ajax({
+    url: EJECUTAR_URL,
+    type: 'POST',
+    data: { _token: CSRF_TOKEN, computer_ids: ids, preview: true },
+    success: function(json) {
+      if (!json.success) {
+        alert('Error: ' + (json.message || 'Desconocido'));
+        return;
+      }
+      if (json.count === 0) {
+        alert('Ningun equipo seleccionado tiene archivos en amarillo o rojo, o ya recibio DASTOCK.BAT en los ultimos ' + COOLDOWN_MINUTOS + ' minutos.');
+        return;
+      }
+
+      $('#confirmModalMessage').text(
+        'Se enviara el comando ' + json.bat + ' a ' + json.count + ' equipo(s). Solo a los que tienen archivos en amarillo o rojo:'
+      );
+      var listHtml = '<div class="list-group list-group-flush">';
+      json.computers.forEach(function(c) {
+        listHtml += '<div class="list-group-item py-1 px-2"><small><strong>' + esc(c.nombre_instalacion) +
+          '</strong> (' + esc(c.plaza) + ') - ' + c.archivos + ' archivo(s) en amarillo o rojo</small></div>';
+      });
+      listHtml += '</div>';
+      $('#confirmModalList').html(listHtml);
+      $('#confirmModal').modal('show');
+    },
+    error: function(xhr) {
+      alert('Error al ejecutar: ' + (xhr.responseJSON?.message || xhr.statusText));
+    },
+    complete: function() {
+      $('#btn_run_stock').prop('disabled', false);
+    }
+  });
+}
+
+function doEjecutarStock() {
+  var ids = getSelectedComputerIds();
+  if (ids.length === 0) {
+    $('#confirmModal').modal('hide');
+    alert('La seleccion cambio: no hay equipos a los que enviar el comando.');
+    return;
+  }
+
+  $('#confirmEjecutarBtn').prop('disabled', true);
+
+  $.ajax({
+    url: EJECUTAR_URL,
+    type: 'POST',
+    data: { _token: CSRF_TOKEN, computer_ids: ids, preview: false },
+    success: function(json) {
+      $('#confirmModal').modal('hide');
+      if (json.success) {
+        alert('Comando ' + json.bat + ' enviado a ' + json.count + ' equipo(s).' +
+          (json.en_espera > 0 ? ' ' + json.en_espera + ' equipo(s) ya lo habian recibido hace menos de ' + COOLDOWN_MINUTOS + ' minutos.' : ''));
+        // Los equipos encolados quedan bloqueados hasta que expire la ventana de espera.
+        (json.computer_ids || []).forEach(function(id) { stockEnEjecucion[String(id)] = Date.now(); });
+        clearSelection();
+        loadData();
+        setTimeout(refreshCooldownChecks, COOLDOWN_MINUTOS * 60000 + 500);
+      } else {
+        alert('Error: ' + (json.message || 'Desconocido'));
+      }
+    },
+    error: function(xhr) {
+      $('#confirmModal').modal('hide');
+      alert('Error al ejecutar: ' + (xhr.responseJSON?.message || xhr.statusText));
+    },
+    complete: function() {
+      $('#confirmEjecutarBtn').prop('disabled', false);
+    }
+  });
+}
+
+function renderBitacora(json) {
+  var statusBadges = {
+    completed: '<span class="badge bg-success">Completado</span>',
+    failed: '<span class="badge bg-danger">Failed</span>',
+    running: '<span class="badge bg-primary">Running</span>',
+    pending: '<span class="badge bg-secondary">Pending</span>'
+  };
+
+  var html = '<div class="bitacora-list">';
+  json.groups.forEach(function(group, idx) {
+    var countsHtml = '';
+    ['completed', 'failed', 'running', 'pending'].forEach(function(s) {
+      if (group.counts[s]) countsHtml += ' ' + (statusBadges[s] || s) + ' ' + group.counts[s];
+    });
+
+    html += '<div class="card mb-2">';
+    html += '<div class="card-header py-1 px-2 bitacora-toggle" data-target="bitacoraBody' + idx + '" style="cursor:pointer;">';
+    html += '<div class="d-flex align-items-center gap-2">';
+    html += '<i class="fas fa-chevron-right toggle-icon"></i>';
+    html += '<small class="fw-bold">' + esc(group.created_at) + '</small>';
+    html += '<span class="badge bg-secondary">' + group.total + ' equipos</span>';
+    html += countsHtml;
+    html += '</div></div>';
+    html += '<div id="bitacoraBody' + idx + '" class="card-body p-0" style="display:none;">';
+
+    html += '<table class="table table-sm table-striped mb-0"><thead><tr>';
+    html += '<th>Computadora</th><th>Plaza</th><th>Comando</th><th>Estado</th><th>Error</th>';
+    html += '</tr></thead><tbody>';
+
+    group.items.forEach(function(item) {
+      var statusIcon = item.status === 'completed' ? '✅' : (item.status === 'failed' ? '❌' : (item.status === 'running' ? '🔄' : '⏳'));
+      var errorText = '-';
+      if (item.error) {
+        var escaped = $('<span>').text(item.error).html().replace(/\n/g, '<br>');
+        errorText = '<pre style="font-size:0.7rem;max-height:60px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;background:#f8d7da;color:#721c24;padding:4px 6px;border-radius:4px;margin:0;">' + escaped + '</pre>';
+      }
+      html += '<tr>';
+      html += '<td><strong>' + esc(item.computer) + '</strong></td>';
+      html += '<td>' + esc(item.plaza) + '</td>';
+      html += '<td>' + esc(item.label) + '</td>';
+      html += '<td>' + statusIcon + ' ' + esc(item.status) + '</td>';
+      html += '<td style="max-width:400px;">' + errorText + '</td>';
+      html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    html += '</div></div>';
+  });
+  html += '</div>';
+  $('#bitacoraContent').html(html).removeClass('d-none');
+
+  $('#bitacoraContent').off('click', '.bitacora-toggle').on('click', '.bitacora-toggle', function() {
+    var targetId = $(this).data('target');
+    var $body = $('#' + targetId);
+    var $icon = $(this).find('.toggle-icon');
+    $body.slideToggle(200);
+    $icon.toggleClass('fa-chevron-right fa-chevron-down');
+  });
 }
 
 function updatePagination() {
@@ -721,6 +1074,7 @@ $(function() {
     selectedAgents = {};
     $('#conexion_filter').val('');
     $('#estado_filter').val('');
+    $('#dias_min, #dias_max').val('');
     currentPage = 0;
     $('#select_all_types, #select_all_plazas, #select_all_archivos')
       .prop('checked', false).prop('indeterminate', false);
@@ -772,6 +1126,70 @@ $(function() {
     currentPage = 0;
     loadData();
   });
+  $('#dias_min, #dias_max').on('change', function() {
+    currentPage = 0;
+    loadData();
+  });
+
+  // Seleccion de equipos para el envio de DASTOCK.BAT.
+  $('#select_all_computers').on('change', function() {
+    var marcar = $(this).prop('checked');
+    $('#filesTableBody .computer-checkbox:not(:disabled)').each(function() {
+      var id = String($(this).data('computer-id'));
+      this.checked = marcar;
+      if (marcar) {
+        selectedComputerIds[id] = true;
+      } else {
+        delete selectedComputerIds[id];
+      }
+    });
+    refreshSelectAllComputers();
+  });
+  $('#filesTableBody').on('change', '.computer-checkbox', function(e) {
+    e.stopPropagation();
+    var id = String($(this).data('computer-id'));
+    if (this.checked) {
+      selectedComputerIds[id] = true;
+    } else {
+      delete selectedComputerIds[id];
+    }
+    refreshSelectAllComputers();
+  });
+  // Clic en la fila alterna la seleccion del equipo, igual que en dbf-files-especificos.
+  $('#filesTableBody').on('click', 'tr[data-computer-id]', function(e) {
+    if ($(e.target).is('input, label, button, a')) return;
+    var $box = $(this).find('.computer-checkbox');
+    if ($box.is(':disabled')) return;
+    toggleComputer($(this).data('computer-id'));
+    $box.prop('checked', !!selectedComputerIds[String($(this).data('computer-id'))]);
+  });
+
+  $('#btn_run_stock').on('click', function() { previewAndConfirmStock(); });
+  $('#confirmEjecutarBtn').on('click', function() { doEjecutarStock(); });
+
+  $('#btn_bitacora').on('click', function() {
+    $('#bitacoraContent').addClass('d-none').empty();
+    $('#bitacoraLoading').removeClass('d-none');
+    $('#bitacoraModal').modal('show');
+
+    $.ajax({
+      url: BITACORA_URL,
+      type: 'GET',
+      data: { limit: 100 },
+      success: function(json) {
+        $('#bitacoraLoading').addClass('d-none');
+        if (!json.success || !json.groups.length) {
+          $('#bitacoraContent').removeClass('d-none').html('<div class="text-center text-muted py-4">No hay ejecuciones registradas.</div>');
+          return;
+        }
+        renderBitacora(json);
+      },
+      error: function() {
+        $('#bitacoraLoading').addClass('d-none');
+        $('#bitacoraContent').removeClass('d-none').html('<div class="alert alert-danger mb-0">Error al cargar la bitacora.</div>');
+      }
+    });
+  });
 
   // Buscador de agentes con checkboxes: el texto solo acota la lista,
   // la seleccion se hace marcando los checkboxes.
@@ -802,6 +1220,14 @@ $(function() {
     loadData();
   });
 
+  // El encabezado fijo depende de la altura real de su primera fila: se recalcula al
+  // redimensionar la ventana (zoom, cambio de ancho de columna) y al minimizar la tarjeta.
+  var resizeEncabezadoTimer = null;
+  $(window).on('resize', function() {
+    clearTimeout(resizeEncabezadoTimer);
+    resizeEncabezadoTimer = setTimeout(sincronizarEncabezado, 150);
+  });
+
   $('#btn_export').on('click', function() {
     var f = getFilters();
     var params = new URLSearchParams();
@@ -811,6 +1237,8 @@ $(function() {
     (f.agente || []).forEach(function(v) { params.append('agente[]', v); });
     if (f.conexion) params.append('conexion', f.conexion);
     if (f.estado) params.append('estado', f.estado);
+    if (f.dias_min) params.append('dias_min', f.dias_min);
+    if (f.dias_max) params.append('dias_max', f.dias_max);
     params.append('_t', Date.now());
     window.open(EXPORT_URL + '?' + params.toString(), '_blank');
   });
@@ -821,6 +1249,7 @@ $(function() {
     var $body = $card.children('.card-body');
     $body.slideToggle(200, function() {
       window.dispatchEvent(new Event('resize'));
+      sincronizarEncabezado();
     });
     $btn.find('i').toggleClass('fa-minus fa-plus');
   });

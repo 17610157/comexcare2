@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ExtraeErrorComando;
 use App\Models\Command;
 use App\Models\Computer;
 use App\Models\ComputerLog;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Log;
 
 class ReporteDbfFilesEspecificosController extends Controller
 {
+    use ExtraeErrorComando;
+
     private const SPECIFIC_FILES = [
         'ARCERO.DBF',
         'CLIECATP.DBF',
@@ -697,41 +700,6 @@ class ReporteDbfFilesEspecificosController extends Controller
         foreach ($commands as $cmd) {
             $ts = $cmd->created_at->format('Y-m-d H:i:s');
             $bat = strtoupper($cmd->data['command'] ?? '');
-            $error = '';
-            if ($cmd->status === 'failed' && $cmd->response) {
-                if (preg_match('/\[ERROR\](.*?)\[EXIT_CODE/s', $cmd->response, $m)) {
-                    $errorSection = $m[1];
-                    $lines = explode("\n", $errorSection);
-                    $clean = [];
-                    foreach ($lines as $line) {
-                        $t = trim($line);
-                        if ($t === '') {
-                            continue;
-                        }
-                        if (preg_match('/^[#=O\-]+$/', $t)) {
-                            continue;
-                        }
-                        if (preg_match('/^(#=#=|##O#|##O=|#=#=|-#O#|-=#=|-=O#|-=O=|-=O=-)/', $t)) {
-                            continue;
-                        }
-                        if (preg_match('/^\d+%$/', $t)) {
-                            continue;
-                        }
-                        if (preg_match('/^[#=\-O]+ *\d*%*$/', $t)) {
-                            continue;
-                        }
-                        $clean[] = $t;
-                    }
-                    $error = implode("\n", $clean);
-                } elseif (str_contains($cmd->response, 'Comando fallo')) {
-                    if (preg_match('/Comando fallo[^\n]+/s', $cmd->response, $m)) {
-                        $error = trim($m[0]);
-                    }
-                }
-                if (strlen($error) > 300) {
-                    $error = mb_substr($error, 0, 300);
-                }
-            }
 
             $computer = Computer::find($cmd->computer_id);
 
@@ -742,7 +710,7 @@ class ReporteDbfFilesEspecificosController extends Controller
                 'bat' => $bat,
                 'label' => $batLabels[$bat] ?? $bat,
                 'status' => $cmd->status,
-                'error' => $error,
+                'error' => $this->extraeErrorComando($cmd->response, $cmd->status),
             ];
         }
 

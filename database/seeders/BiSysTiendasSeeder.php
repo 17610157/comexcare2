@@ -459,7 +459,7 @@ class BiSysTiendasSeeder extends Seeder
             ['clave_tienda' => 'ALTOL', 'nombre' => 'Alto Lucero', 'id_plaza' => 'XALAP', 'zona' => '4', 'clave_alterna' => 'ALTOL', 'id_tipo' => '1', 'estado' => 'A', 'grupo' => 'TIENDA'],
             ['clave_tienda' => 'AMERI', 'nombre' => 'Americas', 'id_plaza' => 'XALAP', 'zona' => '4', 'clave_alterna' => 'AMERI', 'id_tipo' => '1', 'estado' => 'A', 'grupo' => 'TIENDA'],
             ['clave_tienda' => 'ANIMA', 'nombre' => 'Indeco Animas', 'id_plaza' => 'XALAP', 'zona' => '2', 'clave_alterna' => 'ANIMA', 'id_tipo' => '1', 'estado' => 'A', 'grupo' => 'TIENDA'],
-            ['clave_tienda' => 'APSIV', 'nombre' => 'Aplicaciones Proservice', 'id_plaza' => 'XALAP', 'zona' => '', 'clave_alterna' => 'APSIV', 'id_tipo' => ' ', 'estado' => 'c', 'grupo' => 'TIENDA'],
+            ['clave_tienda' => 'APSIV', 'nombre' => 'Aplicaciones Proservice', 'id_plaza' => 'XALAP', 'zona' => '', 'clave_alterna' => 'APSIV', 'id_tipo' => '1', 'estado' => 'c', 'grupo' => 'TIENDA'],
             ['clave_tienda' => 'ARAUC', 'nombre' => 'Araucarias', 'id_plaza' => 'XALAP', 'zona' => '2', 'clave_alterna' => 'ARAUC', 'id_tipo' => '1', 'estado' => 'A', 'grupo' => 'TIENDA'],
             ['clave_tienda' => 'ARBOL', 'nombre' => 'Arbol', 'id_plaza' => 'XALAP', 'zona' => '1', 'clave_alterna' => 'ARBOL', 'id_tipo' => '1', 'estado' => 'A', 'grupo' => 'TIENDA'],
             ['clave_tienda' => 'ARCOS', 'nombre' => 'Arco Sur', 'id_plaza' => 'XALAP', 'zona' => '2', 'clave_alterna' => 'ARCOS', 'id_tipo' => '1', 'estado' => 'A', 'grupo' => 'TIENDA'],

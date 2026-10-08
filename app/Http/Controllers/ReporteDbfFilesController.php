@@ -89,6 +89,47 @@ class ReporteDbfFilesController extends Controller
         return [$archivos, $categorias];
     }
 
+    /**
+     * Los filtros llegan como listas (una entrada marcada por cada checkbox)
+     * o como valor simple cuando el reporte se consulta por API o por enlace.
+     */
+    private function toFilterList($value, array $allowed = []): array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return [];
+        }
+
+        $values = is_array($value) ? $value : [$value];
+        $list = [];
+
+        foreach ($values as $item) {
+            if (is_array($item)) {
+                continue;
+            }
+            $item = trim((string) $item);
+            if ($item === '') {
+                continue;
+            }
+            if ($allowed && ! in_array($item, $allowed, true)) {
+                continue;
+            }
+            $list[$item] = true;
+        }
+
+        return array_keys($list);
+    }
+
+    private function matchesAnyFilter(string $value, array $filters): bool
+    {
+        foreach ($filters as $filter) {
+            if (stripos($value, $filter) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function getRbfHashLookup(): array
     {
         $map = [];
@@ -222,9 +263,13 @@ class ReporteDbfFilesController extends Controller
                 $query->whereIn('group_id', $groupInput);
             }
 
-            $archivoInput = $request->query('archivo') ?? $request->input('archivo');
-            if (! empty($archivoInput)) {
-                $query->where('agent_config', 'ILIKE', '%'.$archivoInput.'%');
+            $archivoInput = $this->toFilterList($request->query('archivo') ?? $request->input('archivo'));
+            if (count($archivoInput) > 0) {
+                $query->where(function ($q) use ($archivoInput) {
+                    foreach ($archivoInput as $archivo) {
+                        $q->orWhere('agent_config', 'ILIKE', '%'.$archivo.'%');
+                    }
+                });
             }
 
             $hashInput = $request->query('hash') ?? $request->input('hash');
@@ -243,10 +288,19 @@ class ReporteDbfFilesController extends Controller
 
             $rbfLookup = $this->getRbfHashLookup();
 
-            $fileCategoryFilter = $request->query('file_category') ?? $request->input('file_category', '');
-            $archivoFilter = $request->query('archivo') ?? $request->input('archivo', '');
-            $estadoInput = $request->query('estado') ?? $request->input('estado', '');
-            $conexionInput = $request->query('conexion') ?? '';
+            $fileCategoryFilter = $this->toFilterList(
+                $request->query('file_category') ?? $request->input('file_category', ''),
+                ['exe', 'bat', 'dbf', 'qbck']
+            );
+            $archivoFilter = $archivoInput;
+            $estadoInput = $this->toFilterList(
+                $request->query('estado') ?? $request->input('estado', ''),
+                ['actualizado', 'desactualizado']
+            );
+            $conexionInput = $this->toFilterList(
+                $request->query('conexion') ?? $request->input('conexion', ''),
+                ['online', 'offline']
+            );
 
             $globalMatched = 0;
             $globalTotal = 0;
@@ -288,11 +342,11 @@ class ReporteDbfFilesController extends Controller
                         $fileStats[$fileName]['matched']++;
                     }
 
-                    if (! empty($fileCategoryFilter) && in_array($fileCategoryFilter, ['exe', 'bat', 'dbf', 'qbck']) && $cat !== $fileCategoryFilter) {
+                    if (count($fileCategoryFilter) > 0 && ! in_array($cat, $fileCategoryFilter, true)) {
                         continue;
                     }
 
-                    if (! empty($archivoFilter) && stripos($fileName, $archivoFilter) === false) {
+                    if (count($archivoFilter) > 0 && ! $this->matchesAnyFilter($fileName, $archivoFilter)) {
                         continue;
                     }
 
@@ -369,12 +423,16 @@ class ReporteDbfFilesController extends Controller
             }
 
             // Filtro de estado por archivo (la columna "Estado Archivo" es por archivo)
-            if (! empty($estadoInput) && in_array($estadoInput, ['actualizado', 'desactualizado'])) {
-                $flatRows = array_values(array_filter($flatRows, fn ($row) => $estadoInput === 'actualizado' ? $row['file']['rbf_matched'] : ! $row['file']['rbf_matched']));
+            if (count($estadoInput) > 0) {
+                $flatRows = array_values(array_filter($flatRows, function ($row) use ($estadoInput) {
+                    $estado = $row['file']['rbf_matched'] ? 'actualizado' : 'desactualizado';
+
+                    return in_array($estado, $estadoInput, true);
+                }));
             }
 
-            if (! empty($conexionInput) && in_array($conexionInput, ['online', 'offline'])) {
-                $flatRows = array_values(array_filter($flatRows, fn ($row) => $row['status'] === $conexionInput));
+            if (count($conexionInput) > 0) {
+                $flatRows = array_values(array_filter($flatRows, fn ($row) => in_array($row['status'], $conexionInput, true)));
             }
 
             // Total de filas mostradas (una por archivo), para que recordsTotal coincida con la paginación
@@ -522,8 +580,20 @@ class ReporteDbfFilesController extends Controller
         try {
             $plazaInput = $request->query('plaza') ?? $request->input('plaza', []);
             $groupInput = $request->query('group_id') ?? $request->input('group_id', []);
-            $fileCategory = $request->query('file_category') ?? $request->input('file_category', '');
-            $archivoInput = $request->query('archivo') ?? $request->input('archivo', '');
+            $fileCategory = $this->toFilterList(
+                $request->query('file_category') ?? $request->input('file_category', ''),
+                ['exe', 'bat', 'dbf', 'qbck']
+            );
+            $archivoInput = $this->toFilterList($request->query('archivo') ?? $request->input('archivo'));
+            $conexionInput = $this->toFilterList(
+                $request->query('conexion') ?? $request->input('conexion', ''),
+                ['online', 'offline']
+            );
+            $estadoInput = $this->toFilterList(
+                $request->query('estado') ?? $request->input('estado', ''),
+                ['actualizado', 'desactualizado']
+            );
+            $search = trim((string) ($request->query('search') ?? $request->input('search', '')));
             $hash = $request->query('hash') ?? $request->input('hash', '');
 
             $query = Computer::with('group');
@@ -542,8 +612,19 @@ class ReporteDbfFilesController extends Controller
                 $query->whereIn('group_id', $groupInput);
             }
 
-            if (! empty($archivoInput)) {
-                $query->where('agent_config', 'ILIKE', '%'.$archivoInput.'%');
+            if (count($archivoInput) > 0) {
+                $query->where(function ($q) use ($archivoInput) {
+                    foreach ($archivoInput as $archivo) {
+                        $q->orWhere('agent_config', 'ILIKE', '%'.$archivo.'%');
+                    }
+                });
+            }
+
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nombre_instalacion', 'ILIKE', '%'.$search.'%')
+                        ->orWhere('ip_address', 'ILIKE', '%'.$search.'%');
+                });
             }
 
             if (! empty($hash)) {
@@ -554,7 +635,7 @@ class ReporteDbfFilesController extends Controller
 
             $rbfLookup = $this->getRbfHashLookup();
 
-            $computersData = $computers->map(function ($computer) use ($rbfLookup, $fileCategory, $archivoInput) {
+            $computersData = $computers->map(function ($computer) use ($rbfLookup, $fileCategory, $archivoInput, $conexionInput, $estadoInput) {
                 $dbfFiles = $computer->agent_config['dbf_files'] ?? [];
 
                 $dbfFiles = array_map(function ($file) use ($computer, $rbfLookup) {
@@ -567,15 +648,27 @@ class ReporteDbfFilesController extends Controller
                     return $file;
                 }, $dbfFiles);
 
-                if (! empty($fileCategory) && in_array($fileCategory, ['exe', 'bat', 'dbf', 'qbck'])) {
-                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->getFileCategory($f) === $fileCategory));
+                if (count($fileCategory) > 0) {
+                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => in_array($this->getFileCategory($f), $fileCategory, true)));
                 }
 
-                if (! empty($archivoInput)) {
-                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => stripos($f['name'] ?? '', $archivoInput) !== false));
+                if (count($archivoInput) > 0) {
+                    $dbfFiles = array_values(array_filter($dbfFiles, fn ($f) => $this->matchesAnyFilter($f['name'] ?? '', $archivoInput)));
+                }
+
+                if (count($estadoInput) > 0) {
+                    $dbfFiles = array_values(array_filter($dbfFiles, function ($f) use ($estadoInput) {
+                        $estado = empty($f['rbf_path']) ? 'desactualizado' : 'actualizado';
+
+                        return in_array($estado, $estadoInput, true);
+                    }));
                 }
 
                 $status = $computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5 ? 'online' : 'offline';
+
+                if (count($conexionInput) > 0 && ! in_array($status, $conexionInput, true)) {
+                    $dbfFiles = [];
+                }
 
                 return [
                     'nombre_instalacion' => $computer->nombre_instalacion,
@@ -690,7 +783,7 @@ class ReporteDbfFilesController extends Controller
 
         $typeInput = $request->query('type') ?? $request->input('type', []);
         if (is_array($typeInput) && count($typeInput) > 0) {
-            $typeGroupIds = \App\Models\Group::whereIn('type', $typeInput)->pluck('id');
+            $typeGroupIds = Group::whereIn('type', $typeInput)->pluck('id');
             $query->whereIn('group_id', $typeGroupIds);
         }
 

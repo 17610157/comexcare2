@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\ResuelveComputadoraAgente;
 use App\Http\Controllers\Controller;
 use App\Models\AgentDefaultCategory;
 use App\Models\AgentDefaultCategoryFile;
@@ -14,9 +15,17 @@ use Illuminate\Support\Facades\Storage;
 
 class AgentDefaultsController extends Controller
 {
+    use ResuelveComputadoraAgente;
+
     public function config(int $computerId): JsonResponse
     {
-        $computer = Computer::with('group')->findOrFail($computerId);
+        $computer = $this->resuelveComputadoraAgente($computerId);
+
+        if (! $computer) {
+            abort(404, 'Computer not found');
+        }
+
+        $computer->load('group');
 
         $computerId = $computer->id;
         $groupIds = [];
@@ -85,7 +94,7 @@ class AgentDefaultsController extends Controller
     public function syncStatus(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'computer_id' => 'required|integer|exists:computers,id',
+            'computer_id' => 'required|integer',
             'files' => 'required|array',
             'files.*.file_id' => 'required|integer|exists:agent_default_category_files,id',
             'files.*.sync_status' => 'required|string|in:synced,different,error,pending',
@@ -95,7 +104,13 @@ class AgentDefaultsController extends Controller
             'files.*.ruta_servidor' => 'nullable|string',
         ]);
 
-        $computerId = $validated['computer_id'];
+        $computer = $this->resuelveComputadoraAgente($validated['computer_id']);
+
+        if (! $computer) {
+            return response()->json(['error' => 'Computer not found'], 404);
+        }
+
+        $computerId = $computer->id;
         $results = [];
 
         foreach ($validated['files'] as $fileStatus) {

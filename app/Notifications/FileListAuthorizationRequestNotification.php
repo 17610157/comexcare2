@@ -40,10 +40,7 @@ class FileListAuthorizationRequestNotification extends Notification
         }
 
         if ($this->fileList->hasAttachment() && Storage::disk('local')->exists($this->fileList->file_path)) {
-            $mail->line('El archivo se adjunta a este correo para que puedas revisarlo antes de autorizar.')
-                ->attach(Storage::disk('local')->path($this->fileList->file_path), [
-                    'as' => $this->fileList->file_name,
-                ]);
+            $mail->line('Puedes descargar el archivo desde el enlace de autorización para revisarlo antes de autorizar.');
         }
 
         return $mail

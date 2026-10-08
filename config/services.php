@@ -41,4 +41,10 @@ return [
         'hash_archivos_max_lote_bytes' => env('HASH_ARCHIVOS_MAX_LOTE_MB', 10) * 1024 * 1024,
     ],
 
+    'cortes' => [
+        'api_key_agente' => env('XCORTE_API_KEY_AGENTE'),
+        'api_key_app' => env('XCORTE_API_KEY_APP'),
+        'rate_limit' => env('XCORTE_RATE_LIMIT_PER_MINUTE', 60),
+    ],
+
 ];

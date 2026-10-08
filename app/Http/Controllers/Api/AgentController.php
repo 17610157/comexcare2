@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\DistributionProgressUpdated;
+use App\Http\Controllers\Concerns\ResuelveComputadoraAgente;
 use App\Http\Controllers\Controller;
 use App\Models\AgentDefaultCategoryFile;
 use App\Models\AgentDefaultDownload;
@@ -24,6 +25,8 @@ use Illuminate\Support\Facades\Validator;
 
 class AgentController extends Controller
 {
+    use ResuelveComputadoraAgente;
+
     public function register(Request $request)
     {
         try {
@@ -38,6 +41,7 @@ class AgentController extends Controller
                 'id' => 'nullable|integer',
                 'computer_name' => 'required|string|max:255',
                 'mac_address' => 'required|string',
+                'machine_key' => 'nullable|string|max:64',
                 'agent_version' => 'required|string',
                 'system_info' => 'nullable|array',
                 'download_path' => 'nullable|string',
@@ -48,11 +52,69 @@ class AgentController extends Controller
                 return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()->toArray(), 'data' => $data], 422);
             }
 
-            $computer = DB::transaction(function () use ($data, $request) {
+            $machineKey = ! empty($data['machine_key']) ? strtolower($data['machine_key']) : null;
+
+            $computer = DB::transaction(function () use ($data, $request, $machineKey) {
+                if ($machineKey) {
+                    $existingByMachineKey = Computer::findByMachineKey($machineKey)
+                        ->withTrashed()
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($existingByMachineKey) {
+                        $existingByMachineKey->restore();
+
+                        $this->deactivateDuplicatesWithoutMachineKey($existingByMachineKey, $data);
+
+                        $groupId = $this->resolveGroupIdFromData($data);
+
+                        $updateData = [
+                            'computer_name' => $data['computer_name'],
+                            'mac_address' => $data['mac_address'],
+                            'machine_key' => $machineKey,
+                            'ip_address' => $request->ip(),
+                            'agent_version' => $data['agent_version'],
+                            'status' => 'online',
+                            'last_seen' => now(),
+                            'system_info' => $data['system_info'] ?? null,
+                            'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
+                            'deleted_at' => null,
+                        ];
+                        if (! empty($data['short_key'])) {
+                            $shortKeyToSet = strtoupper($data['short_key']);
+                            $otherWithSameKey = Computer::where('short_key', $shortKeyToSet)
+                                ->where('id', '!=', $existingByMachineKey->id)
+                                ->first();
+                            if ($otherWithSameKey) {
+                                $otherWithSameKey->update(['short_key' => null]);
+                            }
+                            $updateData['short_key'] = $shortKeyToSet;
+                        }
+                        if ($groupId && ! $existingByMachineKey->group_id) {
+                            $updateData['group_id'] = $groupId;
+                        }
+                        $existingByMachineKey->update($updateData);
+
+                        Log::info('Agent matched by machine_key', [
+                            'computer_id' => $existingByMachineKey->id,
+                            'machine_key' => $machineKey,
+                            'computer_name' => $data['computer_name'],
+                        ]);
+
+                        return $existingByMachineKey->fresh();
+                    }
+                }
+
                 if (! empty($data['id'])) {
                     $existing = Computer::lockForUpdate()->find($data['id']);
-                    if ($existing) {
-                        $existing->update([
+                    $conflicto = $existing && $machineKey && $existing->machine_key && strtolower($existing->machine_key) !== $machineKey;
+
+                    if ($existing && ! $conflicto) {
+                        if ($machineKey) {
+                            $this->deactivateDuplicatesWithoutMachineKey($existing, $data);
+                        }
+
+                        $updateData = [
                             'computer_name' => $data['computer_name'],
                             'mac_address' => $data['mac_address'],
                             'ip_address' => $request->ip(),
@@ -61,7 +123,13 @@ class AgentController extends Controller
                             'last_seen' => now(),
                             'system_info' => $data['system_info'] ?? null,
                             'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
-                        ]);
+                        ];
+
+                        if ($machineKey) {
+                            $updateData['machine_key'] = $machineKey;
+                        }
+
+                        $existing->update($updateData);
 
                         if (! empty($data['short_key'])) {
                             $existing->update(['short_key' => strtoupper($data['short_key'])]);
@@ -94,6 +162,10 @@ class AgentController extends Controller
                 }
 
                 if ($existingWithMac) {
+                    if ($machineKey) {
+                        $this->deactivateDuplicatesWithoutMachineKey($existingWithMac, $data);
+                    }
+
                     $existingWithMac->restore();
                     $updateData = [
                         'computer_name' => $data['computer_name'],
@@ -105,6 +177,9 @@ class AgentController extends Controller
                         'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
                         'deleted_at' => null,
                     ];
+                    if ($machineKey) {
+                        $updateData['machine_key'] = $machineKey;
+                    }
                     if (! empty($data['short_key'])) {
                         $shortKeyToSet = strtoupper($data['short_key']);
                         $otherWithSameKey = Computer::where('short_key', $shortKeyToSet)
@@ -123,95 +198,9 @@ class AgentController extends Controller
                     return $existingWithMac->fresh();
                 }
 
-                $existingByShortKey = null;
-                if (! empty($data['short_key'])) {
-                    $existingByShortKey = Computer::withTrashed()
-                        ->where('short_key', strtoupper($data['short_key']))
-                        ->lockForUpdate()
-                        ->first();
-                }
-
-                if ($existingByShortKey) {
-                    $existingByShortKey->restore();
-
-                    if ($existingByShortKey->mac_address !== $data['mac_address']) {
-                        $duplicateWithNewMac = Computer::withTrashed()
-                            ->where('mac_address', $data['mac_address'])
-                            ->where('id', '!=', $existingByShortKey->id)
-                            ->first();
-
-                        if ($duplicateWithNewMac) {
-                            $duplicateWithNewMac->restore();
-
-                            $existingByShortKey->update(['short_key' => null]);
-
-                            $updateForDuplicate = [
-                                'computer_name' => $data['computer_name'],
-                                'ip_address' => $request->ip(),
-                                'agent_version' => $data['agent_version'],
-                                'status' => 'online',
-                                'last_seen' => now(),
-                                'system_info' => $data['system_info'] ?? null,
-                                'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
-                                'short_key' => strtoupper($data['short_key']),
-                                'deleted_at' => null,
-                            ];
-                            if ($groupId && ! $duplicateWithNewMac->group_id) {
-                                $updateForDuplicate['group_id'] = $groupId;
-                            }
-                            $duplicateWithNewMac->update($updateForDuplicate);
-
-                            return $duplicateWithNewMac->fresh();
-                        }
-                    }
-
-                    $updateData = [
-                        'computer_name' => $data['computer_name'],
-                        'mac_address' => $data['mac_address'],
-                        'ip_address' => $request->ip(),
-                        'agent_version' => $data['agent_version'],
-                        'status' => 'online',
-                        'last_seen' => now(),
-                        'system_info' => $data['system_info'] ?? null,
-                        'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
-                        'deleted_at' => null,
-                    ];
-                    if ($groupId && ! $existingByShortKey->group_id) {
-                        $updateData['group_id'] = $groupId;
-                    }
-                    $existingByShortKey->update($updateData);
-
-                    return $existingByShortKey->fresh();
-                }
-
-                $existingByName = Computer::withTrashed()
-                    ->where('computer_name', $data['computer_name'])
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($existingByName) {
-                    $existingByName->restore();
-
-                    $updateData = [
-                        'mac_address' => $data['mac_address'],
-                        'ip_address' => $request->ip(),
-                        'agent_version' => $data['agent_version'],
-                        'status' => 'online',
-                        'last_seen' => now(),
-                        'system_info' => $data['system_info'] ?? null,
-                        'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
-                        'deleted_at' => null,
-                    ];
-                    if (! empty($data['short_key'])) {
-                        $updateData['short_key'] = strtoupper($data['short_key']);
-                    }
-                    if ($groupId && ! $existingByName->group_id) {
-                        $updateData['group_id'] = $groupId;
-                    }
-                    $existingByName->update($updateData);
-
-                    return $existingByName->fresh();
-                }
+                // Identidad por hardware únicamente (machine_key → mac). No se empareja por
+                // short_key (clave de tienda) ni por computer_name (no único): eso causaba
+                // sustituciones entre equipos distintos.
 
                 $generatedMac = $data['mac_address'] ?? '';
                 if (empty($generatedMac)) {
@@ -238,8 +227,17 @@ class AgentController extends Controller
                     'download_path' => $data['download_path'] ?? 'C:\ProgramData\DistributionAgent\files',
                 ];
 
+                if ($machineKey) {
+                    $createData['machine_key'] = $machineKey;
+                }
+
                 if (! empty($data['short_key'])) {
-                    $createData['short_key'] = strtoupper($data['short_key']);
+                    $shortKeyToSet = strtoupper($data['short_key']);
+                    $otherWithSameKey = Computer::where('short_key', $shortKeyToSet)->first();
+                    if ($otherWithSameKey) {
+                        $otherWithSameKey->update(['short_key' => null]);
+                    }
+                    $createData['short_key'] = $shortKeyToSet;
                 }
 
                 if ($groupId) {
@@ -264,12 +262,111 @@ class AgentController extends Controller
                 'group_id' => $computer->group_id,
                 'group_name' => $computer->group?->name,
                 'short_key' => $computer->short_key,
+                'machine_key' => $computer->machine_key,
             ]);
         } catch (\Exception $e) {
             Log::error('Registration error', ['exception' => $e->getMessage(), 'data' => $data ?? null]);
 
             return response()->json(['error' => 'Server error', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    protected function resolveGroupIdFromData(array $data): ?int
+    {
+        if (empty($data['short_key'])) {
+            return null;
+        }
+
+        $group = Group::findByShortKey(strtoupper($data['short_key']));
+        if ($group) {
+            Log::info('Agent registered with short_key', [
+                'short_key' => $data['short_key'],
+                'group_id' => $group->id,
+                'group_name' => $group->name,
+            ]);
+
+            return $group->id;
+        }
+
+        Log::info('Agent short_key not found', ['short_key' => $data['short_key']]);
+
+        return null;
+    }
+
+    protected function deactivateDuplicatesWithoutMachineKey(Computer $primary, array $data): void
+    {
+        $candidates = [];
+
+        if (! empty($data['id'])) {
+            $byId = Computer::where('id', $data['id'])
+                ->where('id', '!=', $primary->id)
+                ->whereNull('machine_key')
+                ->first();
+            if ($byId && ! $byId->trashed()) {
+                $candidates[] = $byId;
+            }
+        }
+
+        if (! empty($data['mac_address'])) {
+            $byMac = Computer::where('mac_address', $data['mac_address'])
+                ->where('id', '!=', $primary->id)
+                ->whereNull('machine_key')
+                ->first();
+            if ($byMac && ! $byMac->trashed()) {
+                $candidates[] = $byMac;
+            }
+        }
+
+        foreach ($candidates as $duplicate) {
+            Log::info('Desactivando duplicado sin machine_key durante registro', [
+                'duplicate_id' => $duplicate->id,
+                'primary_id' => $primary->id,
+                'machine_key' => $data['machine_key'] ?? $primary->machine_key,
+                'computer_name' => $duplicate->computer_name,
+            ]);
+
+            $this->heredaMetadata($primary, $duplicate);
+
+            $duplicate->update([
+                'mac_address' => 'PENDING-DEL-'.$duplicate->id,
+                'short_key' => null,
+            ]);
+            $duplicate->delete();
+        }
+    }
+
+    protected function deactivateHeartbeatDuplicatesWithoutMachineKey(Computer $primary, Request $request): void
+    {
+        // Solo se considera duplicado de la MISMA máquina si comparte la MAC (hardware).
+        // Nunca por computer_name (no único) ni short_key (clave de tienda): eso causaba
+        // que el heartbeat de un equipo borrara a otro con el mismo nombre.
+        if (! $request->filled('mac_address')) {
+            return;
+        }
+
+        $duplicate = Computer::where('mac_address', $request->mac_address)
+            ->where('id', '!=', $primary->id)
+            ->whereNull('machine_key')
+            ->first();
+
+        if (! $duplicate) {
+            return;
+        }
+
+        Log::info('Desactivando duplicado sin machine_key durante heartbeat', [
+            'duplicate_id' => $duplicate->id,
+            'primary_id' => $primary->id,
+            'machine_key' => $request->machine_key,
+            'computer_name' => $duplicate->computer_name,
+        ]);
+
+        $this->heredaMetadata($primary, $duplicate);
+
+        $duplicate->update([
+            'mac_address' => 'PENDING-DEL-'.$duplicate->id,
+            'short_key' => null,
+        ]);
+        $duplicate->delete();
     }
 
     public function heartbeat(Request $request)
@@ -279,6 +376,7 @@ class AgentController extends Controller
             'agent_version' => 'required|string',
             'computer_name' => 'nullable|string|max:255',
             'mac_address' => 'nullable|string',
+            'machine_key' => 'nullable|string|max:64',
             'short_key' => 'nullable|string|max:50',
             'system_info' => 'nullable|array',
             'logs' => 'nullable|string',
@@ -326,68 +424,99 @@ class AgentController extends Controller
         //     'total_disk_space' => $request->input('total_disk_space'),
         // ]);
 
-        $computer = Computer::find($request->computer_id);
+        $machineKey = $request->filled('machine_key') ? strtolower($request->machine_key) : null;
+        $requestMac = $request->filled('mac_address') ? $request->mac_address : null;
 
-        if (! $computer) {
-            $trashed = Computer::withTrashed()->where('id', $request->computer_id)->first();
-            if ($trashed && $trashed->trashed()) {
-                $activeDuplicate = Computer::where('computer_name', $trashed->computer_name)
-                    ->where('id', '!=', $trashed->id)
-                    ->first();
+        $computer = null;
 
-                if ($activeDuplicate) {
-                    $activeDuplicate->update([
-                        'status' => 'online',
-                        'last_seen' => now(),
-                        'agent_version' => $request->agent_version,
-                        'ip_address' => $request->ip(),
-                        'system_info' => $request->system_info ?? $activeDuplicate->system_info,
-                    ]);
-                    $computer = $activeDuplicate;
-                } else {
-                    $trashed->restore();
-                    $computer = $trashed;
-                }
-            } else {
-                if ($request->filled('mac_address')) {
-                    $byMac = Computer::withTrashed()->where('mac_address', $request->mac_address)->first();
-                    if ($byMac) {
-                        $byMac->restore();
-                        $computer = $byMac;
+        // Identidad autoritativa: machine_key (huella de hardware, única por máquina).
+        if ($machineKey) {
+            $computer = Computer::withTrashed()->where('machine_key', $machineKey)->first();
+            if ($computer) {
+                $computer->restore();
+
+                // Si el computer_id que trae el agente apunta a OTRO registro vivo sin huella,
+                // es el registro obsoleto del mismo equipo: se desactiva (nunca por nombre).
+                if ($request->computer_id && (int) $request->computer_id !== (int) $computer->id) {
+                    $stale = Computer::find($request->computer_id);
+                    if ($stale && ! $stale->machine_key) {
+                        Log::info('Heartbeat: desactivando registro sin machine_key; el agente ahora usa el de la huella', [
+                            'stale_id' => $stale->id,
+                            'machine_key_id' => $computer->id,
+                            'machine_key' => $machineKey,
+                        ]);
+
+                        $this->heredaMetadata($computer, $stale);
+
+                        $stale->update([
+                            'mac_address' => 'PENDING-DEL-'.$stale->id,
+                            'short_key' => null,
+                        ]);
+                        $stale->delete();
                     }
-                }
-
-                if (! $computer) {
-                    $generatedMac = $request->mac_address;
-                    if (empty($generatedMac)) {
-                        $generatedMac = strtolower(sprintf(
-                            'AUTO-%08x-%04x',
-                            $request->computer_id,
-                            crc32($request->computer_name ?? $request->computer_id) & 0xFFFF
-                        ));
-                    }
-
-                    Log::info('Auto-creando computadora por heartbeat', [
-                        'computer_id' => $request->computer_id,
-                        'computer_name' => $request->computer_name,
-                        'mac_address' => $generatedMac,
-                    ]);
-
-                    $computer = new Computer;
-                    $computer->id = $request->computer_id;
-                    $computer->forceFill([
-                        'computer_name' => $request->computer_name ?? "Computer-{$request->computer_id}",
-                        'mac_address' => $generatedMac,
-                        'ip_address' => $request->ip(),
-                        'agent_version' => $request->agent_version,
-                        'status' => 'online',
-                        'last_seen' => now(),
-                        'system_info' => $request->system_info,
-                    ]);
-                    $computer->save();
-                    $computer = $computer->fresh();
                 }
             }
+        }
+
+        // Identidad por MAC (hardware): para agentes sin machine_key o para adoptarla.
+        if (! $computer && $requestMac) {
+            $byMac = Computer::withTrashed()->where('mac_address', $requestMac)->first();
+            if ($byMac) {
+                $byMac->restore();
+                $computer = $byMac;
+            }
+        }
+
+        // Fallback por computer_id, SOLO si el registro no pertenece a otra máquina
+        // (es decir, no tiene una machine_key distinta). Nunca se empareja por
+        // computer_name: no es único y causaba sustituciones entre equipos.
+        if (! $computer && $request->computer_id) {
+            $byId = Computer::withTrashed()->find($request->computer_id);
+            if ($byId) {
+                $conflicto = $machineKey && $byId->machine_key && strtolower($byId->machine_key) !== $machineKey;
+                if (! $conflicto) {
+                    $byId->restore();
+                    $computer = $byId;
+                }
+            }
+        }
+
+        // Crear un registro nuevo para esta máquina si no existe ninguno que le corresponda.
+        if (! $computer) {
+            $generatedMac = $requestMac;
+            if (empty($generatedMac)) {
+                $generatedMac = $machineKey
+                    ? 'auto-'.substr($machineKey, 0, 16)
+                    : strtolower(sprintf(
+                        'AUTO-%08x-%04x',
+                        $request->computer_id,
+                        crc32($request->computer_name ?? $request->computer_id) & 0xFFFF
+                    ));
+            }
+
+            Log::info('Auto-creando computadora por heartbeat', [
+                'computer_id' => $request->computer_id,
+                'computer_name' => $request->computer_name,
+                'mac_address' => $generatedMac,
+                'machine_key' => $machineKey,
+            ]);
+
+            $computer = new Computer;
+            if ($request->computer_id && ! Computer::withTrashed()->where('id', $request->computer_id)->exists()) {
+                $computer->id = $request->computer_id;
+            }
+            $computer->forceFill([
+                'computer_name' => $request->computer_name ?? "Computer-{$request->computer_id}",
+                'mac_address' => $generatedMac,
+                'machine_key' => $machineKey,
+                'ip_address' => $request->ip(),
+                'agent_version' => $request->agent_version,
+                'status' => 'online',
+                'last_seen' => now(),
+                'system_info' => $request->system_info,
+            ]);
+            $computer->save();
+            $computer = $computer->fresh();
         }
 
         $updateData = [
@@ -398,11 +527,15 @@ class AgentController extends Controller
             'system_info' => $request->system_info ?? $computer->system_info,
         ];
 
+        if ($request->filled('machine_key')) {
+            $this->deactivateHeartbeatDuplicatesWithoutMachineKey($computer, $request);
+        }
+
         if ($request->filled('computer_name')) {
             $updateData['computer_name'] = $request->computer_name;
         }
-        if ($request->filled('short_key')) {
-            $updateData['short_key'] = strtoupper($request->short_key);
+        if ($request->filled('machine_key')) {
+            $updateData['machine_key'] = strtolower($request->machine_key);
         }
 
         if ($request->filled('pvsi_version')) {
@@ -454,7 +587,7 @@ class AgentController extends Controller
         // download_path y short_key se configuran ÚNICAMENTE desde el panel de administración
         // El agente NUNCA debe poder modificar estos valores
         // Se establecen durante el registro inicial y el panel tiene prioridad absoluta
-        // $rawData = json_decode($request->getContent(), true) ?? [];
+        // machine_key es la huella de máquina del agente y sí se persiste vía heartbeat.
 
         if ($request->filled('agent_file')) {
             $updateData['agent_file'] = $request->agent_file;
@@ -557,22 +690,29 @@ class AgentController extends Controller
 
         return response()->json([
             'message' => 'Heartbeat received',
+            'computer_id' => $computer->id,
             'computer_name' => $computer->computer_name,
             'download_path' => $computer->download_path ?? 'C:\ProgramData\DistributionAgent\files',
             'download_paths' => $computer->getAllDownloadPaths(),
             'receive_paths' => $computer->receive_paths ?? [],
             'report_url' => config('app.url').'/api/report',
+            'machine_key' => $computer->machine_key,
         ]);
     }
 
     public function getCommands(Request $request, $id)
     {
-        $computer = Computer::findOrFail($id);
+        $computer = $this->resuelveComputadoraAgente($id);
+
+        if (! $computer) {
+            abort(404, 'Computer not found');
+        }
+
         $computer->update(['last_seen' => now(), 'status' => 'online']);
 
         // Get pending commands — limit to 10 at a time to avoid flooding the agent
         // Exclude 'update' commands — those are handled by checkUpdate + CheckForUpdate()
-        $commands = Command::where('computer_id', $id)
+        $commands = Command::where('computer_id', $computer->id)
             ->whereIn('status', ['pending', 'sent'])
             ->where('type', '!=', 'update')
             ->orderBy('created_at')
@@ -912,7 +1052,7 @@ class AgentController extends Controller
     public function checkUpdate(Request $request, $version)
     {
         // Intentar interpretar como computer_id
-        $computer = Computer::find((int) $version);
+        $computer = $this->resuelveComputadoraAgente((int) $version);
 
         if ($computer) {
             $computer->update(['last_seen' => now(), 'status' => 'online']);
@@ -925,7 +1065,7 @@ class AgentController extends Controller
 
     public function checkUpdateByComputerId(Request $request, $computer_id)
     {
-        $computer = Computer::find($computer_id);
+        $computer = $this->resuelveComputadoraAgente($computer_id);
 
         if (! $computer) {
             return response()->json(['error' => 'Computer not found'], 404);
@@ -973,7 +1113,7 @@ class AgentController extends Controller
     public function inventory(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'computer_id' => 'required|integer|exists:computers,id',
+            'computer_id' => 'required|integer',
             'inventory' => 'required|array',
         ]);
 
@@ -981,7 +1121,12 @@ class AgentController extends Controller
             return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
         }
 
-        $computer = Computer::find($request->computer_id);
+        $computer = $this->resuelveComputadoraAgente($request->computer_id);
+
+        if (! $computer) {
+            return response()->json(['error' => 'Computer not found'], 404);
+        }
+
         $computer->update([
             'agent_config' => array_merge($computer->agent_config ?? [], ['inventory' => $request->inventory]),
             'last_seen' => now(),
@@ -993,7 +1138,7 @@ class AgentController extends Controller
     public function logs(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'computer_id' => 'required|integer|exists:computers,id',
+            'computer_id' => 'required|integer',
             'logs' => 'required|array',
         ]);
 
@@ -1001,14 +1146,17 @@ class AgentController extends Controller
             return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
         }
 
-        $computer = Computer::find($request->computer_id);
-        if ($computer) {
-            $computer->update(['last_seen' => now(), 'status' => 'online']);
+        $computer = $this->resuelveComputadoraAgente($request->computer_id);
+
+        if (! $computer) {
+            return response()->json(['error' => 'Computer not found'], 404);
         }
+
+        $computer->update(['last_seen' => now(), 'status' => 'online']);
 
         foreach ($request->logs as $log) {
             ComputerLog::create([
-                'computer_id' => $request->computer_id,
+                'computer_id' => $computer->id,
                 'level' => $log['level'] ?? 'info',
                 'message' => $log['message'] ?? '',
             ]);
@@ -1030,7 +1178,7 @@ class AgentController extends Controller
             return response()->json(['error' => 'Validation failed', 'messages' => $validator->errors()], 422);
         }
 
-        $computer = Computer::find($request->computer_id);
+        $computer = $this->resuelveComputadoraAgente($request->computer_id);
 
         if (! $computer) {
             return response()->json(['error' => 'Computer not found'], 404);
@@ -1062,7 +1210,7 @@ class AgentController extends Controller
 
     public function getComputerConfig(Request $request, $computer_id)
     {
-        $computer = Computer::find($computer_id);
+        $computer = $this->resuelveComputadoraAgente($computer_id);
 
         if (! $computer) {
             return response()->json(['error' => 'Computer not found'], 404);
@@ -1178,7 +1326,7 @@ class AgentController extends Controller
             return response()->json(['error' => 'No file provided'], 422);
         }
 
-        $computer = Computer::find($computer_id);
+        $computer = $this->resuelveComputadoraAgente($computer_id);
         $receptionTarget = ReceptionTarget::find($reception_target_id);
 
         if (! $computer || ! $receptionTarget) {

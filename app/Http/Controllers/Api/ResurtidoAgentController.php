@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\ResuelveComputadoraAgente;
 use App\Http\Controllers\Controller;
 use App\Models\Command;
 use App\Models\Computer;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ResurtidoAgentController extends Controller
 {
+    use ResuelveComputadoraAgente;
+
     public function register(Request $request)
     {
         try {
@@ -78,7 +81,7 @@ class ResurtidoAgentController extends Controller
             return response()->json(['error' => 'Validation failed'], 422);
         }
 
-        $computer = Computer::find($request->computer_id);
+        $computer = $this->resuelveComputadoraAgente($request->computer_id);
 
         if (! $computer) {
             return response()->json(['error' => 'Computer not found'], 404);
@@ -105,7 +108,7 @@ class ResurtidoAgentController extends Controller
             return response()->json(['error' => 'computer_id requerido'], 422);
         }
 
-        $computer = Computer::find($computerId);
+        $computer = $this->resuelveComputadoraAgente($computerId);
 
         if (! $computer) {
             return response()->json(['error' => 'Computer no encontrado'], 404);
@@ -119,9 +122,13 @@ class ResurtidoAgentController extends Controller
 
     public function getCommands(Request $request, $computerId)
     {
-        $computer = Computer::findOrFail($computerId);
+        $computer = $this->resuelveComputadoraAgente($computerId);
 
-        $commands = Command::where('computer_id', $computerId)
+        if (! $computer) {
+            abort(404, 'Computer not found');
+        }
+
+        $commands = Command::where('computer_id', $computer->id)
             ->whereIn('status', ['pending', 'sent'])
             ->where('type', 'resurtido_update')
             ->orderBy('created_at')
@@ -160,7 +167,7 @@ class ResurtidoAgentController extends Controller
             return response()->json(['error' => 'Validation failed'], 422);
         }
 
-        $computer = Computer::find($request->computer_id);
+        $computer = $this->resuelveComputadoraAgente($request->computer_id);
         if ($computer) {
             $computer->update(['last_seen' => now()]);
         }

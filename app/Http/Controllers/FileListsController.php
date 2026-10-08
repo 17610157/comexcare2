@@ -199,34 +199,47 @@ class FileListsController extends Controller
 
     private function sendAuthorizationNotifications(FileList $fileList): void
     {
-        $emails = AuthorizableEmail::whereRaw('is_active = true')
-            ->where(function ($query) use ($fileList) {
-                if ($fileList->module_id) {
-                    $query->where('module_id', $fileList->module_id)
-                        ->orWhereNull('module_id');
-                } else {
-                    $query->whereRaw('true');
+        try {
+            $emails = AuthorizableEmail::where('is_active', true)
+                ->where(function ($query) use ($fileList) {
+                    if ($fileList->module_id) {
+                        $query->where('module_id', $fileList->module_id)
+                            ->orWhereNull('module_id');
+                    }
+                })
+                ->get();
+
+            foreach ($emails as $emailRecord) {
+                try {
+                    $token = AuthorizationToken::create([
+                        'file_list_id' => $fileList->id,
+                        'authorizable_email_id' => $emailRecord->id,
+                        'token' => AuthorizationToken::generate(),
+                        'expires_at' => now()->addHours(48),
+                    ]);
+
+                    $authorizationUrl = route('authorization.show', $token->token);
+
+                    $notifiable = new AnonymousNotifiable;
+                    $notifiable->route('mail', $emailRecord->email);
+
+                    Notification::send($notifiable, new FileListAuthorizationRequestNotification(
+                        $fileList,
+                        $authorizationUrl
+                    ));
+                } catch (\Exception $e) {
+                    \Log::error('Error sending file list authorization email', [
+                        'file_list_id' => $fileList->id,
+                        'email' => $emailRecord->email ?? null,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-            })
-            ->get();
-
-        foreach ($emails as $emailRecord) {
-            $token = AuthorizationToken::create([
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error processing file list authorization notifications', [
                 'file_list_id' => $fileList->id,
-                'authorizable_email_id' => $emailRecord->id,
-                'token' => AuthorizationToken::generate(),
-                'expires_at' => now()->addHours(48),
+                'error' => $e->getMessage(),
             ]);
-
-            $authorizationUrl = route('authorization.show', $token->token);
-
-            $notifiable = new AnonymousNotifiable;
-            $notifiable->route('mail', $emailRecord->email);
-
-            Notification::send($notifiable, new FileListAuthorizationRequestNotification(
-                $fileList,
-                $authorizationUrl
-            ));
         }
     }
 }

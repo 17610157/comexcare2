@@ -99,34 +99,35 @@ class AgentControllerTest extends TestCase
         $this->assertEquals('Validation failed', $responseData['error']);
     }
 
-    public function test_register_finds_by_short_key_when_mac_changes()
+    public function test_register_with_changed_mac_and_no_machine_key_creates_new_computer()
     {
-        $computer = Computer::factory()->create([
+        $original = Computer::factory()->create([
             'mac_address' => '00:11:22:33:44:55',
             'short_key' => 'TEST1',
             'computer_name' => 'Original Computer',
         ]);
 
-        $data = [
+        $response = $this->postJson('/api/register', [
             'computer_name' => 'Reinstalled Computer',
             'mac_address' => 'AA:BB:CC:DD:EE:FF',
             'short_key' => 'test1',
             'agent_version' => '2.0.0',
             'system_info' => ['os' => 'Windows 11'],
-        ];
-
-        $response = $this->postJson('/api/register', $data);
+        ]);
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'Registered successfully']);
 
-        $computer->refresh();
-        $this->assertEquals('Reinstalled Computer', $computer->computer_name);
-        $this->assertEquals('AA:BB:CC:DD:EE:FF', $computer->mac_address);
-        $this->assertEquals('TEST1', $computer->short_key);
-        $this->assertEquals('2.0.0', $computer->agent_version);
-        $this->assertEquals('online', $computer->status);
+        // Sin machine_key no se identifica por short_key (clave de tienda): se crea un
+        // equipo nuevo y el short_key se transfiere (es único).
+        $this->assertEquals(2, Computer::count());
 
+        $original->refresh();
+        $this->assertNull($original->short_key);
+
+        $nuevo = Computer::find($response->json('id'));
+        $this->assertEquals('AA:BB:CC:DD:EE:FF', $nuevo->mac_address);
+        $this->assertEquals('TEST1', $nuevo->short_key);
         $this->assertEquals(1, Computer::where('short_key', 'TEST1')->count());
     }
 
@@ -843,5 +844,362 @@ class AgentControllerTest extends TestCase
         $this->assertEquals('1.0.0', $computer->pvsi_bepartners_version);
         $this->assertEquals('2026-07-13', $computer->pvsi_bepartners_fecha);
         $this->assertEquals('09:00:00', $computer->pvsi_bepartners_hora);
+    }
+
+    public function test_register_stores_machine_key_when_creating_new_computer()
+    {
+        $machineKey = str_repeat('a', 64);
+
+        $response = $this->postJson('/api/register', [
+            'computer_name' => 'Machine Key New',
+            'mac_address' => '00:11:22:33:44:66',
+            'machine_key' => strtoupper($machineKey),
+            'agent_version' => '3.0.0',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['message' => 'Registered successfully'])
+            ->assertJsonPath('machine_key', $machineKey);
+
+        $this->assertDatabaseHas('computers', [
+            'computer_name' => 'Machine Key New',
+            'machine_key' => $machineKey,
+        ]);
+    }
+
+    public function test_register_finds_by_machine_key_when_mac_changes()
+    {
+        $machineKey = str_repeat('b', 64);
+
+        $computer = Computer::factory()->create([
+            'computer_name' => 'Original MK',
+            'mac_address' => '00:11:22:33:44:77',
+            'machine_key' => $machineKey,
+        ]);
+
+        $response = $this->postJson('/api/register', [
+            'computer_name' => 'Reinstalled MK',
+            'mac_address' => 'AA:BB:CC:DD:EE:77',
+            'machine_key' => strtoupper($machineKey),
+            'agent_version' => '4.0.0',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('machine_key', $machineKey);
+
+        $computer->refresh();
+        $this->assertEquals('Reinstalled MK', $computer->computer_name);
+        $this->assertEquals('AA:BB:CC:DD:EE:77', $computer->mac_address);
+        $this->assertEquals($machineKey, $computer->machine_key);
+        $this->assertEquals('4.0.0', $computer->agent_version);
+        $this->assertEquals(1, Computer::where('machine_key', $machineKey)->count());
+    }
+
+    public function test_register_machine_key_deactivates_duplicate_without_machine_key()
+    {
+        $machineKey = str_repeat('c', 64);
+        $realMac = '4C:23:38:6E:6B:67';
+
+        $orphan = Computer::factory()->create([
+            'computer_name' => 'SEGURO-SOCIAL',
+            'mac_address' => 'auto-00005152-faf2',
+            'machine_key' => null,
+        ]);
+
+        $duplicate = Computer::factory()->create([
+            'computer_name' => 'Seguro Social',
+            'mac_address' => $realMac,
+            'machine_key' => null,
+            'short_key' => 'TSEGU',
+        ]);
+
+        $response = $this->postJson('/api/register', [
+            'id' => $orphan->id,
+            'computer_name' => 'SEGURO-SOCIAL',
+            'mac_address' => $realMac,
+            'machine_key' => $machineKey,
+            'agent_version' => '5.0.0',
+        ]);
+
+        $response->assertStatus(200);
+
+        $orphan->refresh();
+        $this->assertEquals($machineKey, $orphan->machine_key);
+        $this->assertEquals($realMac, $orphan->mac_address);
+
+        $this->assertSoftDeleted('computers', ['id' => $duplicate->id]);
+        $this->assertEquals(1, Computer::where('machine_key', $machineKey)->count());
+        $this->assertEquals(1, Computer::where('mac_address', $realMac)->count());
+    }
+
+    public function test_register_rejects_machine_key_longer_than_64()
+    {
+        $response = $this->postJson('/api/register', [
+            'computer_name' => 'Too Long',
+            'mac_address' => '00:11:22:33:44:88',
+            'machine_key' => str_repeat('a', 65),
+            'agent_version' => '1.0.0',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_heartbeat_stores_machine_key()
+    {
+        $machineKey = str_repeat('d', 64);
+        $computer = Computer::factory()->create(['machine_key' => null]);
+
+        $response = $this->postJson('/api/heartbeat', [
+            'computer_id' => $computer->id,
+            'agent_version' => '1.0.0',
+            'machine_key' => strtoupper($machineKey),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('machine_key', $machineKey);
+
+        $computer->refresh();
+        $this->assertEquals($machineKey, $computer->machine_key);
+    }
+
+    public function test_heartbeat_finds_by_machine_key_when_computer_id_not_found()
+    {
+        $machineKey = str_repeat('e', 64);
+        $computer = Computer::factory()->create([
+            'machine_key' => $machineKey,
+            'status' => 'offline',
+            'agent_version' => '1.0.0',
+        ]);
+
+        $response = $this->postJson('/api/heartbeat', [
+            'computer_id' => 987654,
+            'machine_key' => $machineKey,
+            'agent_version' => '6.0.0',
+        ]);
+
+        $response->assertStatus(200);
+
+        $computer->refresh();
+        $this->assertEquals('online', $computer->status);
+        $this->assertEquals('6.0.0', $computer->agent_version);
+        $this->assertEquals(1, Computer::where('machine_key', $machineKey)->count());
+    }
+
+    public function test_heartbeat_does_not_overwrite_short_key()
+    {
+        $computer = Computer::factory()->create(['short_key' => 'ORIG1']);
+
+        $this->postJson('/api/heartbeat', [
+            'computer_id' => $computer->id,
+            'agent_version' => '1.0.0',
+            'short_key' => 'HACKED',
+        ])->assertStatus(200);
+
+        $computer->refresh();
+        $this->assertEquals('ORIG1', $computer->short_key);
+    }
+
+    public function test_get_computer_id_by_machine_key()
+    {
+        $machineKey = str_repeat('f', 64);
+        $computer = Computer::factory()->create(['machine_key' => $machineKey]);
+
+        $response = $this->postJson('/api/getComputerId', [
+            'machine_key' => strtoupper($machineKey),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['computer_id' => $computer->id]);
+    }
+
+    public function test_heartbeat_does_not_deactivate_same_name_different_machine()
+    {
+        $machineKey = str_repeat('9', 64);
+
+        // Máquina A: con huella.
+        $a = Computer::factory()->create([
+            'computer_name' => 'CAJA01',
+            'mac_address' => 'AA:AA:AA:AA:AA:01',
+            'machine_key' => $machineKey,
+        ]);
+
+        // Máquina B: MISMO nombre, distinta MAC y sin huella (otro equipo físico).
+        $b = Computer::factory()->create([
+            'computer_name' => 'CAJA01',
+            'mac_address' => 'BB:BB:BB:BB:BB:02',
+            'machine_key' => null,
+        ]);
+
+        $this->postJson('/api/heartbeat', [
+            'computer_id' => $a->id,
+            'computer_name' => 'CAJA01',
+            'mac_address' => 'AA:AA:AA:AA:AA:01',
+            'machine_key' => $machineKey,
+            'agent_version' => '3.84',
+        ])->assertStatus(200);
+
+        // B NO debe borrarse aunque comparta el computer_name.
+        $this->assertDatabaseHas('computers', ['id' => $b->id, 'deleted_at' => null]);
+    }
+
+    public function test_heartbeat_returns_computer_id()
+    {
+        $computer = Computer::factory()->create();
+
+        $this->postJson('/api/heartbeat', [
+            'computer_id' => $computer->id,
+            'agent_version' => '1.0.0',
+        ])
+            ->assertStatus(200)
+            ->assertJsonPath('computer_id', $computer->id);
+    }
+
+    public function test_heartbeat_prefers_machine_key_record_and_deactivates_stale()
+    {
+        $machineKey = str_repeat('a', 64);
+
+        $keyRecord = Computer::factory()->create([
+            'computer_name' => 'CAJA01',
+            'machine_key' => $machineKey,
+            'status' => 'offline',
+        ]);
+
+        $stale = Computer::factory()->create([
+            'computer_name' => 'CAJA01',
+            'machine_key' => null,
+            'status' => 'online',
+        ]);
+
+        $response = $this->postJson('/api/heartbeat', [
+            'computer_id' => $stale->id,
+            'agent_version' => '3.83',
+            'computer_name' => 'CAJA01',
+            'machine_key' => $machineKey,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('computer_id', $keyRecord->id);
+
+        $keyRecord->refresh();
+        $this->assertEquals('online', $keyRecord->status);
+
+        $this->assertSoftDeleted('computers', ['id' => $stale->id]);
+    }
+
+    public function test_register_does_not_match_by_name_without_machine_key()
+    {
+        $existing = Computer::factory()->create([
+            'computer_name' => 'COLLISION-01',
+            'mac_address' => 'AA:AA:AA:AA:AA:99',
+        ]);
+
+        $response = $this->postJson('/api/register', [
+            'computer_name' => 'COLLISION-01',
+            'mac_address' => 'BB:BB:BB:BB:BB:99',
+            'agent_version' => '1.0.0',
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->assertNotEquals($existing->id, $response->json('id'));
+        $this->assertEquals(2, Computer::where('computer_name', 'COLLISION-01')->count());
+    }
+
+    public function test_get_commands_restores_trashed_computer_id()
+    {
+        $trashed = Computer::factory()->create(['computer_name' => 'RESOLVE-01']);
+        $trashed->delete();
+
+        $this->getJson('/api/commands/'.$trashed->id)
+            ->assertStatus(200)
+            ->assertJson([]);
+
+        $trashed->refresh();
+        $this->assertFalse($trashed->trashed());
+        $this->assertEquals('online', $trashed->status);
+    }
+
+    public function test_check_update_restores_trashed_computer_id()
+    {
+        $trashed = Computer::factory()->create(['computer_name' => 'RESOLVE-02']);
+        $trashed->delete();
+
+        $this->getJson('/api/computer/'.$trashed->id.'/update')
+            ->assertStatus(200)
+            ->assertJsonPath('update_available', false);
+
+        $trashed->refresh();
+        $this->assertFalse($trashed->trashed());
+    }
+
+    public function test_logs_restore_trashed_computer_id()
+    {
+        $trashed = Computer::factory()->create(['computer_name' => 'RESOLVE-03']);
+        $trashed->delete();
+
+        $this->postJson('/api/logs', [
+            'computer_id' => $trashed->id,
+            'logs' => [['level' => 'info', 'message' => 'hola']],
+        ])
+            ->assertStatus(200)
+            ->assertJson(['count' => 1]);
+
+        $this->assertDatabaseHas('computer_logs', ['computer_id' => $trashed->id]);
+    }
+
+    public function test_heartbeat_restores_trashed_computer_id_keeping_metadata()
+    {
+        $group = Group::factory()->create();
+
+        $trashed = Computer::factory()->create([
+            'computer_name' => 'INHERIT-01',
+            'plaza' => 'BAJAC',
+            'group_id' => $group->id,
+        ]);
+        $trashed->delete();
+
+        $this->postJson('/api/heartbeat', [
+            'computer_id' => $trashed->id,
+            'agent_version' => '1.0.0',
+        ])->assertStatus(200);
+
+        $trashed->refresh();
+        $this->assertFalse($trashed->trashed());
+        $this->assertEquals('BAJAC', $trashed->plaza);
+        $this->assertEquals($group->id, $trashed->group_id);
+    }
+
+    public function test_register_convergence_inherits_metadata_from_duplicate()
+    {
+        $group = Group::factory()->create();
+        $machineKey = str_repeat('7', 64);
+
+        $primary = Computer::factory()->create([
+            'computer_name' => 'CONV-01',
+            'machine_key' => null,
+            'plaza' => null,
+            'group_id' => null,
+        ]);
+
+        $duplicate = Computer::factory()->create([
+            'computer_name' => 'CONV-02',
+            'mac_address' => 'AA:BB:CC:DD:EE:01',
+            'machine_key' => null,
+            'plaza' => 'BAJAC',
+            'group_id' => $group->id,
+        ]);
+
+        $this->postJson('/api/register', [
+            'id' => $primary->id,
+            'computer_name' => 'CONV-01',
+            'mac_address' => 'AA:BB:CC:DD:EE:01',
+            'machine_key' => $machineKey,
+            'agent_version' => '1.0.0',
+        ])->assertStatus(200);
+
+        $primary->refresh();
+        $this->assertEquals('BAJAC', $primary->plaza);
+        $this->assertEquals($group->id, $primary->group_id);
+        $this->assertSoftDeleted('computers', ['id' => $duplicate->id]);
     }
 }

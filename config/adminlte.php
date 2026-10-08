@@ -488,6 +488,12 @@ return [
                     'url' => 'reportes/vales',
                     'can' => 'reportes.vales.ver',
                 ],
+                [
+                    'text' => 'Cortes',
+                    'icon' => 'fas fa-money-bill-wave',
+                    'url' => 'reportes/cortes',
+                    'can' => 'cortes.ver',
+                ],
 
                 [
                     'text' => 'API Demo',

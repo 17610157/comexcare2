@@ -6,6 +6,8 @@ use App\Http\Middleware\HashArchivoApiKey;
 use App\Http\Middleware\HashArchivoRateLimit;
 use App\Http\Middleware\RedirectIfDashboardNotAllowed;
 use App\Http\Middleware\ReleaseDatabaseConnection;
+use App\Http\Middleware\XcorteApiKey;
+use App\Http\Middleware\XcorteRateLimit;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
@@ -45,6 +47,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'audit' => AuditMiddleware::class,
             'hash.key' => HashArchivoApiKey::class,
             'hash.rate_limit' => HashArchivoRateLimit::class,
+            'corte.key' => XcorteApiKey::class,
+            'corte.rate_limit' => XcorteRateLimit::class,
             'dashboard.access' => RedirectIfDashboardNotAllowed::class,
         ]);
     })

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DemoRequestController;
 use App\Http\Controllers\Api\HashArchivoController;
 use App\Http\Controllers\Api\ResurtidoAgentController;
 use App\Http\Controllers\Api\ValeController;
+use App\Http\Controllers\Api\XcorteApiController;
 use App\Http\Controllers\MetricsController;
 use App\Models\Computer;
 use Carbon\Carbon;
@@ -59,8 +60,20 @@ Route::middleware('api')->group(function () {
     Route::post('/resurtido/report', [ResurtidoAgentController::class, 'report']);
 
     Route::post('/getComputerId', function (Request $request) {
+        $machineKey = $request->input('machine_key');
         $mac = $request->input('mac_address');
-        $computer = Computer::where('mac_address', $mac)->first();
+
+        $query = Computer::query();
+
+        if ($machineKey) {
+            $query->where('machine_key', strtolower($machineKey));
+        } elseif ($mac) {
+            $query->where('mac_address', $mac);
+        } else {
+            return response()->json(['error' => 'machine_key or mac_address required'], 422);
+        }
+
+        $computer = $query->first();
         if ($computer) {
             return response()->json(['computer_id' => $computer->id]);
         }
@@ -141,5 +154,12 @@ Route::middleware('api')->group(function () {
         ->middleware(['hash.key', 'hash.rate_limit']);
     Route::post('/hash-archivos/registrar-lote', [HashArchivoController::class, 'registrarLote'])
         ->middleware(['hash.key', 'hash.rate_limit']);
+
+    // Cortes (xcorte_api) - Agente y aplicación externa
+    Route::middleware(['corte.key', 'corte.rate_limit'])->group(function () {
+        Route::post('/cortes', [XcorteApiController::class, 'store']);
+        Route::post('/cortes/lote', [XcorteApiController::class, 'storeBatch']);
+        Route::get('/cortes', [XcorteApiController::class, 'index']);
+    });
 
 });

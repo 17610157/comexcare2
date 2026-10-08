@@ -214,6 +214,10 @@ class PermissionSeeder extends Seeder
             'reportes.vales.editar',
             'reportes.vales.sincronizar',
 
+            // Reportes Cortes (xcorte_api)
+            'cortes.ver',
+            'cortes.exportar',
+
             // Reportes Vendedores B2B
             'reportes.vendedores_b2b.ver',
             'reportes.vendedores_b2b.editar',
@@ -301,6 +305,7 @@ class PermissionSeeder extends Seeder
 
             // Reporte Archivos de Stock
             'reportes.archivos-stock.ver',
+            'reportes.archivos-stock.ejecutar',
 
             // RBF Config Status
             'reportes.rbf-config-status.ver',

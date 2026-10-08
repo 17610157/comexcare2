@@ -92,7 +92,15 @@ class DatabaseBackupCommand extends Command
     {
         $timestamp = now()->format('Y-m-d_His');
         $dbName = config('database.connections.pgsql.database', 'database');
-        $extension = $this->option('compress') ? 'sql.gz' : 'sql';
+        $connection = config('database.default');
+        $driver = config("database.connections.{$connection}.driver");
+
+        // En PostgreSQL el respaldo full usa formato custom de pg_dump (ya
+        // comprimido internamente); un gzip externo romperia la lectura
+        // directa con pg_restore.
+        $extension = ($driver === 'pgsql' && $type === 'full')
+            ? 'dump'
+            : ($this->option('compress') ? 'sql.gz' : 'sql');
 
         return "{$dbName}_{$type}_{$timestamp}.{$extension}";
     }
@@ -183,13 +191,10 @@ class DatabaseBackupCommand extends Command
         $username = config('database.connections.pgsql.username');
         $password = config('database.connections.pgsql.password');
 
-        $command = "PGPASSWORD='{$password}' pg_dump -h {$host} -p {$port} -U {$username} -d {$database} -Fc";
-
-        if ($compress) {
-            $command .= " | gzip > {$path}";
-        } else {
-            $command .= " -f {$path}";
-        }
+        // Formato custom (-Fc): comprimido internamente y restaurable directo
+        // con pg_restore (sin pipes de gzip externo).
+        $escaped = str_replace("'", "'\\''", $password);
+        $command = "PGPASSWORD='{$escaped}' pg_dump -h {$host} -p {$port} -U {$username} -d {$database} -Fc -f {$path}";
 
         $this->info('Ejecutando pg_dump...');
 
@@ -310,7 +315,10 @@ class DatabaseBackupCommand extends Command
     {
         $this->info("Limpiando backups antiguos (mantener: {$keep})...");
 
-        $files = glob($this->backupPath.'/*.sql*');
+        $files = array_merge(
+            glob($this->backupPath.'/*.sql*') ?: [],
+            glob($this->backupPath.'/*.dump*') ?: []
+        );
 
         if (count($files) <= $keep) {
             return;
