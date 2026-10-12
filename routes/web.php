@@ -9,6 +9,7 @@ use App\Http\Controllers\AuthorizableEmailsController;
 use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\AuthorizationReportController;
 use App\Http\Controllers\ComputersController;
+use App\Http\Controllers\CorteNotificacionController;
 use App\Http\Controllers\DashboardAlertController;
 use App\Http\Controllers\DistributionsController;
 use App\Http\Controllers\FileListsController;
@@ -326,6 +327,8 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.archivos-stock.agentes')->middleware('can:reportes.archivos-stock.ver');
     Route::get('archivos-stock/export', [ReporteArchivosStockController::class, 'export'])
         ->name('reportes.archivos-stock.export')->middleware('can:reportes.archivos-stock.ver');
+    Route::post('archivos-stock/export-pdf', [ReporteArchivosStockController::class, 'exportPdf'])
+        ->name('reportes.archivos-stock.export.pdf')->middleware('can:reportes.archivos-stock.ver');
     Route::post('archivos-stock/ejecutar', [ReporteArchivosStockController::class, 'ejecutar'])
         ->name('reportes.archivos-stock.ejecutar')->middleware('can:reportes.archivos-stock.ejecutar');
     Route::get('archivos-stock/bitacora', [ReporteArchivosStockController::class, 'bitacora'])
@@ -344,6 +347,18 @@ Route::middleware(['auth'])->prefix('reportes')->group(function () {
         ->name('reportes.cortes')->middleware('can:cortes.ver');
     Route::get('cortes/data', [ReporteCortesController::class, 'data'])
         ->name('reportes.cortes.data')->middleware('can:cortes.ver');
+
+    // Notificaciones de cortes faltantes por plaza (envío manual)
+    Route::get('cortes/notificaciones/plazas', [CorteNotificacionController::class, 'plazas'])
+        ->name('reportes.cortes.notificaciones.plazas')->middleware('can:cortes.enviar');
+    Route::post('cortes/notificaciones/preview', [CorteNotificacionController::class, 'preview'])
+        ->name('reportes.cortes.notificaciones.preview')->middleware('can:cortes.enviar');
+    Route::post('cortes/notificaciones/enviar', [CorteNotificacionController::class, 'enviar'])
+        ->name('reportes.cortes.notificaciones.enviar')->middleware('can:cortes.enviar');
+    Route::post('cortes/notificaciones/enviar-todas', [CorteNotificacionController::class, 'enviarTodas'])
+        ->name('reportes.cortes.notificaciones.enviar-todas')->middleware('can:cortes.enviar');
+    Route::post('cortes/notificaciones/automatico', [CorteNotificacionController::class, 'guardarAutomatico'])
+        ->name('reportes.cortes.notificaciones.automatico')->middleware('can:cortes.enviar');
 
     // Redenciones Club Comex
     Route::get('redenciones-club', [ReporteRedencionesClubController::class, 'index'])
@@ -471,6 +486,13 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->middleware('can:ad
     Route::post('rbf-plaza-time-configs/sincronizar', [RbfPlazaTimeConfigController::class, 'sincronizar'])->name('rbf-plaza-time-configs.sincronizar')->middleware('can:rbf-plaza-time.sincronizar');
     Route::put('rbf-plaza-time-configs/{rbf_plaza_time_config}', [RbfPlazaTimeConfigController::class, 'update'])->name('rbf-plaza-time-configs.update')->middleware('can:rbf-plaza-time.editar');
     Route::delete('rbf-plaza-time-configs/{rbf_plaza_time_config}', [RbfPlazaTimeConfigController::class, 'destroy'])->name('rbf-plaza-time-configs.destroy')->middleware('can:rbf-plaza-time.eliminar');
+
+    // Cortes Notificaciones - Destinatarios y horario de envío por plaza
+    Route::get('cortes-notificaciones', [CorteNotificacionController::class, 'index'])->name('cortes-notificaciones.index')->middleware('can:cortes-notificaciones.ver');
+    Route::get('cortes-notificaciones/data', [CorteNotificacionController::class, 'data'])->name('cortes-notificaciones.data')->middleware('can:cortes-notificaciones.ver');
+    Route::post('cortes-notificaciones', [CorteNotificacionController::class, 'store'])->name('cortes-notificaciones.store')->middleware('can:cortes-notificaciones.crear');
+    Route::put('cortes-notificaciones/{corte_notificacion}', [CorteNotificacionController::class, 'update'])->name('cortes-notificaciones.update')->middleware('can:cortes-notificaciones.editar');
+    Route::delete('cortes-notificaciones/{corte_notificacion}', [CorteNotificacionController::class, 'destroy'])->name('cortes-notificaciones.destroy')->middleware('can:cortes-notificaciones.eliminar');
 
     // User Plaza Tienda - Solo super_admin
     Route::middleware('can:admin.usuarios.ver')->group(function () {

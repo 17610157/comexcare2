@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             ModuleSeeder::class,
             BiSysTiendasSeeder::class,
+            CortePlazaEmailConfigSeeder::class,
             AdminUserSeeder::class,
         ]);
     }

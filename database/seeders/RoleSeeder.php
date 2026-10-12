@@ -39,6 +39,7 @@ class RoleSeeder extends Seeder
             'reportes.desglose.ver', 'reportes.vales.ver', 'reportes.vales.editar',
             'reportes.distribuciones.ver',
             'reportes.api-demo.ver',
+            'cortes.ver', 'cortes.exportar', 'cortes.enviar',
         ];
 
         $metasPermissions = ['metas.ver', 'metas.crear', 'metas.editar', 'metas.eliminar', 'metas.importar'];
@@ -63,6 +64,7 @@ class RoleSeeder extends Seeder
             'monitored-files.ver', 'monitored-files.crear', 'monitored-files.editar', 'monitored-files.eliminar',
             'rbf-file-hashes.ver', 'rbf-file-hashes.crear', 'rbf-file-hashes.eliminar',
             'rbf-plaza-time.ver', 'rbf-plaza-time.crear', 'rbf-plaza-time.editar', 'rbf-plaza-time.eliminar', 'rbf-plaza-time.sincronizar',
+            'cortes-notificaciones.ver', 'cortes-notificaciones.crear', 'cortes-notificaciones.editar', 'cortes-notificaciones.eliminar',
             'reportes.rbf-config-status.ver',
             'modules.ver', 'modules.crear', 'modules.editar', 'modules.eliminar',
             'authorizable-emails.ver', 'authorizable-emails.crear', 'authorizable-emails.editar', 'authorizable-emails.eliminar',

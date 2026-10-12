@@ -217,6 +217,13 @@ class PermissionSeeder extends Seeder
             // Reportes Cortes (xcorte_api)
             'cortes.ver',
             'cortes.exportar',
+            'cortes.enviar',
+
+            // Notificaciones de Cortes por plaza
+            'cortes-notificaciones.ver',
+            'cortes-notificaciones.crear',
+            'cortes-notificaciones.editar',
+            'cortes-notificaciones.eliminar',
 
             // Reportes Vendedores B2B
             'reportes.vendedores_b2b.ver',

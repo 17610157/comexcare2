@@ -29,3 +29,6 @@ Schedule::command('rbf-config-status:sync')->hourly();
 
 // Envío automático de evidencias de bitácora al endpoint remoto
 Schedule::command('bitacora:enviar-nuevas')->everyFiveMinutes()->withoutOverlapping();
+
+// Notificación por plaza de tiendas sin corte (una vez al día según hora configurada)
+Schedule::command('cortes:enviar-faltantes')->hourly()->withoutOverlapping();

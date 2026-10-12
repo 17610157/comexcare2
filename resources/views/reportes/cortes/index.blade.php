@@ -70,6 +70,11 @@
             <button id="btn_reset_filters" class="btn btn-secondary btn-sm">
               <i class="fas fa-undo"></i> <span class="d-none d-sm-inline">Limpiar</span>
             </button>
+            @can('cortes.enviar')
+            <button id="btn_notificar" class="btn btn-warning btn-sm">
+              <i class="fas fa-paper-plane"></i> <span class="d-none d-sm-inline">Notificar faltantes</span>
+            </button>
+            @endcan
           </div>
         </div>
       </div>
@@ -105,6 +110,55 @@
       </div>
     </div>
   </div>
+
+  @can('cortes.enviar')
+  <div class="modal fade" id="modal_notificar" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-paper-plane"></i> Notificar tiendas sin corte por plaza</h5>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="row align-items-end mb-3">
+            <div class="col-md-3">
+              <label class="form-label small mb-1">Fecha a evaluar</label>
+              <input type="date" id="notif_fecha" class="form-control form-control-sm" value="{{ now()->subDay()->toDateString() }}">
+            </div>
+            <div class="col-md-9 text-right">
+              <button type="button" class="btn btn-default btn-sm" id="btn_notif_reload">
+                <i class="fas fa-sync-alt"></i> Actualizar
+              </button>
+              <button type="button" class="btn btn-success btn-sm" id="btn_notif_enviar_todas">
+                <i class="fas fa-paper-plane"></i> Enviar todas
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped table-sm mb-0">
+              <thead class="thead-light">
+                <tr>
+                  <th>Plaza</th>
+                  <th>Destinatarios</th>
+                  <th class="text-center">Sin corte</th>
+                  <th class="text-center">Regla</th>
+                  <th class="text-center" style="min-width:160px;">Programación</th>
+                  <th class="text-center">Enviar</th>
+                </tr>
+              </thead>
+              <tbody id="notif_tbody">
+                <tr><td colspan="6" class="text-center text-muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <small class="text-muted d-block mt-2">
+            Se incluyen siempre los destinatarios fijos: {{ implode(', ', config('cortes.destinatarios_fijos', [])) }}.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+  @endcan
 </div>
 @endsection
 
@@ -127,6 +181,7 @@
 @endsection
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap4.min.js"></script>
 <script>
@@ -225,6 +280,99 @@ $(function() {
 
   $('.plaza-checkbox, .tienda-checkbox').on('change', function() {
     dataTable.ajax.reload();
+  });
+
+  function loadNotifPlazas() {
+    const fecha = $('#notif_fecha').val();
+    $('#notif_tbody').html('<tr><td colspan="6" class="text-center text-muted">Cargando...</td></tr>');
+    $.get('{{ route('reportes.cortes.notificaciones.plazas') }}', { fecha: fecha }, function(res) {
+      const tbody = $('#notif_tbody').empty();
+      if (!res.data || res.data.length === 0) {
+        tbody.append('<tr><td colspan="6" class="text-center text-muted">Sin plazas.</td></tr>');
+        return;
+      }
+      res.data.forEach(function(p) {
+        const correos = (p.emails && p.emails.length) ? p.emails.join(', ') : '<span class="text-muted">Solo fijos</span>';
+        const horaValor = (p.hora_envio !== null && p.hora_envio !== undefined) ? String(p.hora_envio).padStart(2, '0') + ':00' : '07:00';
+        const programacion =
+          '<div class="d-flex align-items-center justify-content-center">' +
+            '<div class="custom-control custom-switch mr-2">' +
+              '<input type="checkbox" class="custom-control-input notif-auto" id="auto_' + p.plaza + '" data-plaza="' + p.plaza + '"' + (p.envio_activo ? ' checked' : '') + '>' +
+              '<label class="custom-control-label" for="auto_' + p.plaza + '"></label>' +
+            '</div>' +
+            '<input type="time" class="form-control form-control-sm notif-hora" style="width:110px" data-plaza="' + p.plaza + '" value="' + horaValor + '">' +
+          '</div>';
+        const btn = '<button class="btn btn-success btn-sm btn-notif-send" data-plaza="' + p.plaza + '"><i class="fas fa-paper-plane"></i> Enviar</button>';
+        tbody.append(
+          '<tr><td><strong>' + p.plaza + '</strong></td>' +
+          '<td class="text-truncate" style="max-width:280px;">' + correos + '</td>' +
+          '<td class="text-center">' + p.sin_corte + '</td>' +
+          '<td class="text-center">' + p.regla + '</td>' +
+          '<td class="text-center">' + programacion + '</td>' +
+          '<td class="text-center">' + btn + '</td></tr>'
+        );
+      });
+    }).fail(function() {
+      $('#notif_tbody').html('<tr><td colspan="6" class="text-center text-danger">Error al cargar plazas.</td></tr>');
+    });
+  }
+
+  $('#btn_notificar').on('click', function() {
+    $('#modal_notificar').modal('show');
+    loadNotifPlazas();
+  });
+
+  $('#btn_notif_reload').on('click', loadNotifPlazas);
+  $('#notif_fecha').on('change', loadNotifPlazas);
+
+  $('#notif_tbody').on('change', '.notif-auto, .notif-hora', function() {
+    const $row = $(this).closest('tr');
+    const plaza = $(this).data('plaza');
+    const activo = $row.find('.notif-auto').is(':checked');
+    const hora = $row.find('.notif-hora').val() || '07:00';
+    const horaInt = parseInt(hora.split(':')[0], 10) || 0;
+
+    $.post('{{ route('reportes.cortes.notificaciones.automatico') }}', {
+      plaza: plaza,
+      envio_activo: activo ? 1 : 0,
+      hora_envio: horaInt,
+      _token: '{{ csrf_token() }}'
+    })
+      .done(function(res) {
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+        Toast.fire({ icon: 'success', title: res.message });
+      })
+      .fail(function(xhr) {
+        Swal.fire({ icon: 'error', title: 'Error', text: (xhr.responseJSON && xhr.responseJSON.message) || 'No se pudo guardar la programación' });
+      });
+  });
+
+  $('#notif_tbody').on('click', '.btn-notif-send', function() {
+    const plaza = $(this).data('plaza');
+    const fecha = $('#notif_fecha').val();
+    const $btn = $(this).prop('disabled', true);
+    $.post('{{ route('reportes.cortes.notificaciones.enviar') }}', { plaza: plaza, fecha: fecha, _token: '{{ csrf_token() }}' })
+      .done(function(res) {
+        Swal.fire({ icon: res.success ? 'success' : 'info', title: res.success ? 'Enviado' : 'Sin envío', text: res.message });
+        loadNotifPlazas();
+      })
+      .fail(function(xhr) {
+        Swal.fire({ icon: 'error', title: 'Error', text: (xhr.responseJSON && xhr.responseJSON.message) || 'Error al enviar' });
+      })
+      .always(function() { $btn.prop('disabled', false); });
+  });
+
+  $('#btn_notif_enviar_todas').on('click', function() {
+    const fecha = $('#notif_fecha').val();
+    const $btn = $(this).prop('disabled', true);
+    $.post('{{ route('reportes.cortes.notificaciones.enviar-todas') }}', { fecha: fecha, _token: '{{ csrf_token() }}' })
+      .done(function(res) {
+        Swal.fire({ icon: 'success', title: 'Completado', text: res.message }).then(loadNotifPlazas);
+      })
+      .fail(function(xhr) {
+        Swal.fire({ icon: 'error', title: 'Error', text: (xhr.responseJSON && xhr.responseJSON.message) || 'Error al enviar' });
+      })
+      .always(function() { $btn.prop('disabled', false); });
   });
 });
 </script>

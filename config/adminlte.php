@@ -388,6 +388,12 @@ return [
             'can' => 'rbf-plaza-time.ver',
         ],
         [
+            'text' => 'Notificaciones de Cortes',
+            'url' => 'admin/cortes-notificaciones',
+            'icon' => 'fas fa-envelope',
+            'can' => 'cortes-notificaciones.ver',
+        ],
+        [
             'text' => 'Listas de Archivos',
             'url' => 'admin/file-lists',
             'icon' => 'fas fa-list',
