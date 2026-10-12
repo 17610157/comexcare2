@@ -52,7 +52,7 @@ class AgentDefaultsController extends Controller
             },
             'routes.assignments',
             'routes.files',
-        ])->where('is_active', true)->get();
+        ])->where('is_active', 1)->get();
 
         $result = $categories->map(function ($category) {
             $routes = $category->routes->map(function ($route) {

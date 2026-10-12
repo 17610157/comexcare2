@@ -1382,7 +1382,7 @@ class AgentController extends Controller
                     ->whereIn('assignable_id', $groupIds);
             });
         })->whereHas('route.category', function ($q) {
-            $q->where('is_active', true);
+            $q->where('is_active', 1);
         })->with('route.category')->get();
 
         $filesByCategory = $assignedFiles->groupBy(fn ($f) => $f->route->agent_default_category_id);

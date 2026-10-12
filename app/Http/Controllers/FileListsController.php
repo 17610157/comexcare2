@@ -200,7 +200,7 @@ class FileListsController extends Controller
     private function sendAuthorizationNotifications(FileList $fileList): void
     {
         try {
-            $emails = AuthorizableEmail::where('is_active', true)
+            $emails = AuthorizableEmail::whereRaw('"is_active" = true')
                 ->where(function ($query) use ($fileList) {
                     if ($fileList->module_id) {
                         $query->where('module_id', $fileList->module_id)

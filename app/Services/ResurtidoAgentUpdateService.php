@@ -32,7 +32,7 @@ class ResurtidoAgentUpdateService
 
         DB::table('resurtido_agent_versions')
             ->where('channel', $channel)
-            ->where('is_active', true)
+            ->whereRaw('"is_active" = true')
             ->update([
                 'is_active' => DB::raw('false'),
                 'updated_at' => now(),
