@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ExtraeErrorComando;
 use App\Models\Command;
 use App\Models\Computer;
 use App\Models\Group;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -144,6 +145,29 @@ class ReporteArchivosStockController extends Controller
 
     /** Solo estos tipos de grupo forman parte del denominador del porcentaje. */
     private const TIPOS_CONTEMPLADOS = ['tienda', 'almacen'];
+
+    /**
+     * Plazas fuera de México. Se reportan aparte y no entran en el porcentaje global,
+     * igual que en el concentrado que se comparte por correo.
+     */
+    private const PLAZAS_FUERA = ['GUATE', 'NICAR'];
+
+    /** Nombres legibles de plaza para el reporte. El código es el respaldo. */
+    private const PLAZA_NOMBRES = [
+        'BAJAC' => 'Baja California',
+        'CHETU' => 'Chetumal',
+        'GUADA' => 'Guadalajara',
+        'HERMO' => 'Hermosillo',
+        'MANZA' => 'Manzanillo',
+        'PENLA' => 'Península',
+        'TAPAC' => 'Tapachula',
+        'VALLA' => 'Vallarta',
+        'XALAP' => 'Xalapa',
+        'REYES' => 'Los Reyes',
+        'GCHAP' => 'Golfo Chapas',
+        'GUATE' => 'Guatemala',
+        'NICAR' => 'Nicaragua',
+    ];
 
     private const ARCHIVOS_STOCK = [
         'EYSIPAR.DBF', 'DD_CONTROL.DBF', 'CATPROD3.DBF', 'NOHAY.DBF', 'PEDIDO.DBF',
@@ -933,7 +957,7 @@ class ReporteArchivosStockController extends Controller
             return [
                 'tipo' => 'desaparecido',
                 'etiqueta' => 'desaparecido',
-                'detalle' => 'Existia en el respaldo del '.$anterior['dia'].' y no esta en el del '.$ultimoReporte.'.',
+                'detalle' => 'Existia en el respaldo del '.$ultimo['dia'].' y no esta en el del '.$ultimoReporte.'.',
                 'bloquea' => true,
             ];
         }
@@ -1413,13 +1437,7 @@ class ReporteArchivosStockController extends Controller
             $porEquipo[$fila['id']][] = $fila;
         }
 
-        $shortKeys = $computers
-            ->map(fn ($c) => strtolower(trim((string) $c->short_key)))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-        $conCarpeta = $this->sucursalesConCarpeta($shortKeys);
+        $conCarpeta = $this->sucursalesConCarpeta($this->shortKeysDe($computers));
 
         $totalAgentes = 0;
         $contempladas = 0;
@@ -1430,40 +1448,18 @@ class ReporteArchivosStockController extends Controller
         foreach ($computers as $computer) {
             $totalAgentes++;
 
-            if (! in_array($this->tipoGrupo($computer), self::TIPOS_CONTEMPLADOS, true)) {
-                continue;
-            }
-
-            $sucursal = strtolower(trim((string) $computer->short_key));
-            if ($sucursal === '' || empty($conCarpeta[$sucursal])) {
+            $evaluacion = $this->evaluarEquipo($computer, $porEquipo[$computer->id] ?? [], $conCarpeta);
+            if (! $evaluacion['contemplada']) {
                 continue;
             }
 
             $contempladas++;
-            $lista = true;
-            $motivos = [];
 
-            foreach ($porEquipo[$computer->id] ?? [] as $fila) {
-                if ($fila['tipo_archivo'] !== 'fecha') {
-                    continue;
-                }
-
-                if ($fila['estado'] !== 'verde') {
-                    $lista = false;
-                    $motivos[$fila['archivo']] = true;
-                }
-
-                if (! empty($fila['peso_senal']['bloquea'])) {
-                    $lista = false;
-                    $motivos['PESO'] = true;
-                }
-            }
-
-            if ($lista) {
+            if ($evaluacion['lista']) {
                 $listas++;
             }
 
-            foreach (array_keys($motivos) as $codigo) {
+            foreach (array_keys($evaluacion['motivos']) as $codigo) {
                 $causas[$codigo] = ($causas[$codigo] ?? 0) + 1;
             }
 
@@ -1472,7 +1468,7 @@ class ReporteArchivosStockController extends Controller
                 $porPlaza[$plaza] = ['plaza' => $plaza, 'total' => 0, 'listas' => 0];
             }
             $porPlaza[$plaza]['total']++;
-            if ($lista) {
+            if ($evaluacion['lista']) {
                 $porPlaza[$plaza]['listas']++;
             }
         }
@@ -1507,6 +1503,240 @@ class ReporteArchivosStockController extends Controller
             'per_plaza' => $perPlaza,
             'causas' => $etiquetasCausas,
         ];
+    }
+
+    private function shortKeysDe($computers): array
+    {
+        return $computers
+            ->map(fn ($c) => strtolower(trim((string) $c->short_key)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Evalua una instalacion: si entra en el denominador (contemplada), si esta lista y
+     * los motivos y el detalle que la dejan pendiente. Lo comparten el concentrado y el
+     * detalle de pendientes del PDF para que no midan con reglas distintas.
+     */
+    private function evaluarEquipo($computer, array $filasEquipo, array $conCarpeta): array
+    {
+        $vacio = ['contemplada' => false, 'lista' => false, 'motivos' => [], 'detalles' => []];
+
+        if (! in_array($this->tipoGrupo($computer), self::TIPOS_CONTEMPLADOS, true)) {
+            return $vacio;
+        }
+
+        $sucursal = strtolower(trim((string) $computer->short_key));
+        if ($sucursal === '' || empty($conCarpeta[$sucursal])) {
+            return $vacio;
+        }
+
+        $lista = true;
+        $motivos = [];
+        $detalles = [];
+
+        foreach ($filasEquipo as $fila) {
+            if ($fila['tipo_archivo'] !== 'fecha') {
+                continue;
+            }
+
+            if ($fila['estado'] !== 'verde') {
+                $lista = false;
+                $motivos[$fila['archivo']] = true;
+                $detalles[] = $this->describirMotivo($fila);
+            }
+
+            if (! empty($fila['peso_senal']['bloquea'])) {
+                $lista = false;
+                $motivos['PESO'] = true;
+                $detalles[] = 'Peso en '.$fila['archivo'].': '.($fila['peso_senal']['etiqueta'] ?? 'anomalía')
+                    .'. '.($fila['peso_senal']['detalle'] ?? '');
+            }
+        }
+
+        return [
+            'contemplada' => true,
+            'lista' => $lista,
+            'motivos' => $motivos,
+            'detalles' => array_values(array_unique($detalles)),
+        ];
+    }
+
+    private function describirMotivo(array $fila): string
+    {
+        if (! $fila['existe']) {
+            return $fila['archivo'].' no encontrado';
+        }
+
+        if ($fila['dias'] === null) {
+            return $fila['archivo'].' sin fecha';
+        }
+
+        return $fila['archivo'].' atrasado '.$fila['dias'].' día'.($fila['dias'] === 1 ? '' : 's');
+    }
+
+    /**
+     * Agrupa por plaza las instalaciones contempladas que no estan listas, con el detalle
+     * de motivos. Es la seccion "tiendas pendientes" del PDF.
+     */
+    private function detallarPendientes($computers, array $filas): array
+    {
+        $porEquipo = [];
+        foreach ($filas as $fila) {
+            $porEquipo[$fila['id']][] = $fila;
+        }
+
+        $conCarpeta = $this->sucursalesConCarpeta($this->shortKeysDe($computers));
+
+        $pendientes = [];
+        foreach ($computers as $computer) {
+            $evaluacion = $this->evaluarEquipo($computer, $porEquipo[$computer->id] ?? [], $conCarpeta);
+            if (! $evaluacion['contemplada'] || $evaluacion['lista']) {
+                continue;
+            }
+
+            $plaza = $computer->plaza ?? 'N/A';
+            $pendientes[$plaza][] = [
+                'short_key' => (string) $computer->short_key,
+                'nombre' => (string) $computer->nombre_instalacion,
+                'equipo_online' => (bool) ($computer->last_seen && $computer->last_seen->diffInMinutes(now()) <= 5),
+                'detalles' => $evaluacion['detalles'],
+            ];
+        }
+
+        return $pendientes;
+    }
+
+    /**
+     * Instalaciones contempladas con el mayo atraso en alguno de sus archivos con fecha,
+     * para el top del PDF.
+     */
+    private function topTiendasAtraso(array $filas): array
+    {
+        $peor = [];
+        foreach ($filas as $fila) {
+            if ($fila['tipo_archivo'] !== 'fecha' || $fila['dias'] === null) {
+                continue;
+            }
+
+            $id = $fila['id'];
+            if (! isset($peor[$id]) || $fila['dias'] > $peor[$id]['dias']) {
+                $peor[$id] = [
+                    'plaza' => $fila['plaza'],
+                    'nombre' => $fila['nombre_instalacion'],
+                    'short_key' => $fila['short_key'],
+                    'archivo' => $fila['archivo'],
+                    'dias' => $fila['dias'],
+                ];
+            }
+        }
+
+        $lista = array_values($peor);
+        usort($lista, fn ($a, $b) => $b['dias'] <=> $a['dias']);
+
+        return array_slice($lista, 0, 10);
+    }
+
+    private function resumirPlazas(array $perPlaza): array
+    {
+        $total = (int) array_sum(array_column($perPlaza, 'total'));
+        $listas = (int) array_sum(array_column($perPlaza, 'listas'));
+
+        return [
+            'total' => $total,
+            'listas' => $listas,
+            'pendientes' => $total - $listas,
+            'percent' => $total > 0 ? round(($listas / $total) * 100, 1) : 0,
+        ];
+    }
+
+    /**
+     * Solo acepta data URLs de imagen; cualquier otra cosa se ignora para no dejar pasar
+     * contenido arbitrario a la vista del PDF.
+     */
+    private function imagenAdjunta($valor): ?string
+    {
+        if (! is_string($valor)) {
+            return null;
+        }
+
+        return preg_match('#^data:image/(png|jpe?g);base64,[A-Za-z0-9+/=\s]+$#', $valor) ? $valor : null;
+    }
+
+    /**
+     * Concentrado completo en PDF: resumen, graficas, desglose por plaza, pendientes y
+     * seccion de top. No toma los filtros de la pantalla porque lo que se comparte es el
+     * concentrado general. Las graficas llegan ya renderizadas desde el navegador
+     * (dompdf no ejecuta JavaScript) como data URLs base64.
+     */
+    public function exportPdf(Request $request)
+    {
+        try {
+            $computers = Computer::with('group')->orderBy('nombre_instalacion')->get();
+
+            $filas = $this->construirFilas($computers);
+            $this->aplicarPesos($filas);
+            $this->aplicarAnomaliasDePeso($filas);
+
+            $stats = $this->evaluarInstalaciones($filas, $computers);
+            $pendientes = $this->detallarPendientes($computers, $filas);
+
+            $perPlazaMx = [];
+            $perPlazaFuera = [];
+            foreach ($stats['per_plaza'] as $plaza) {
+                if (in_array($plaza['plaza'], self::PLAZAS_FUERA, true)) {
+                    $perPlazaFuera[] = $plaza;
+                } else {
+                    $perPlazaMx[] = $plaza;
+                }
+            }
+
+            $pendientesMx = array_filter(
+                $pendientes,
+                fn ($plaza) => ! in_array($plaza, self::PLAZAS_FUERA, true),
+                ARRAY_FILTER_USE_KEY
+            );
+            $pendientesFuera = array_filter(
+                $pendientes,
+                fn ($plaza) => in_array($plaza, self::PLAZAS_FUERA, true),
+                ARRAY_FILTER_USE_KEY
+            );
+
+            $topPlazas = $perPlazaMx;
+            usort($topPlazas, fn ($a, $b) => $b['pendientes'] <=> $a['pendientes']);
+
+            $data = [
+                'generado' => now(),
+                'resumen_mx' => $this->resumirPlazas($perPlazaMx),
+                'resumen_fuera' => $this->resumirPlazas($perPlazaFuera),
+                'per_plaza_mx' => $perPlazaMx,
+                'per_plaza_fuera' => $perPlazaFuera,
+                'pendientes_mx' => $pendientesMx,
+                'pendientes_fuera' => $pendientesFuera,
+                'top_plazas' => array_slice($topPlazas, 0, 6),
+                'top_causas' => array_slice($stats['causas'], 0, 6),
+                'top_atrasadas' => $this->topTiendasAtraso($filas),
+                'plaza_nombres' => self::PLAZA_NOMBRES,
+                'chart_pie' => $this->imagenAdjunta($request->input('chart_pie')),
+                'chart_plaza' => $this->imagenAdjunta($request->input('chart_plaza')),
+                'chart_causas' => $this->imagenAdjunta($request->input('chart_causas')),
+            ];
+
+            // dompdf embebe la fuente completa (DejaVu) por defecto: sin subsetting el PDF
+            // pasa de 1 MB solo por el texto. El subsetting lo deja en unas decenas de KB.
+            $pdf = Pdf::loadView('reportes.archivos-stock.pdf', $data)
+                ->setPaper('a4', 'portrait')
+                ->setOption('enable_font_subsetting', true);
+
+            return $pdf->download('Concentrado_Archivos_Stock_'.date('Ymd_His').'.pdf');
+        } catch (\Exception $e) {
+            Log::error('ArchivosStock exportPdf error: '.$e->getMessage());
+
+            return redirect()->route('reportes.archivos-stock')
+                ->with('error', 'Error al generar el PDF: '.$e->getMessage());
+        }
     }
 
     public function export(Request $request)

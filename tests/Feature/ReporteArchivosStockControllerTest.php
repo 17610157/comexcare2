@@ -180,6 +180,7 @@ it('returns 403 for user without permission', function () {
     $this->actingAs($user)->get(route('reportes.archivos-stock.data'))->assertForbidden();
     $this->actingAs($user)->get(route('reportes.archivos-stock.bitacora'))->assertForbidden();
     $this->actingAs($user)->post(route('reportes.archivos-stock.ejecutar'))->assertForbidden();
+    $this->actingAs($user)->post(route('reportes.archivos-stock.export.pdf'))->assertForbidden();
 });
 
 it('builds one row per agent and file, with both rbf and rebsamen data', function () {
@@ -773,6 +774,42 @@ it('exports only the agents selected with checkboxes', function () {
 
     expect($csv)->toContain('PTULA')
         ->and($csv)->not->toContain('CHETU');
+});
+
+it('generates the pdf concentration with a store ready and another pending', function () {
+    crearComputadorStock('ptula', ['plaza' => 'BAJAC']);
+    instalarAlDia('ptula');
+    loteMinimo('ptula', 1);
+
+    crearComputadorStock('chetu', ['plaza' => 'CHETU']);
+    instalarAlDia('chetu');
+    crearFecha('chetu', 'DD_CONTROL.DBF', 'aabbccddeeff0099', 5);
+    loteMinimo('chetu', 2);
+
+    $response = $this->actingAs($this->user)->post(route('reportes.archivos-stock.export.pdf'));
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('application/pdf')
+        ->and($response->headers->get('content-disposition'))
+        ->toMatch('/^attachment; filename="?Concentrado_Archivos_Stock_\d{8}_\d{6}\.pdf"?$/');
+
+    $pdf = $response->getContent();
+    expect(substr($pdf, 0, 4))->toBe('%PDF')
+        ->and(strlen($pdf))->toBeGreaterThan(1000);
+});
+
+it('ignores chart values that are not data urls of an image', function () {
+    crearComputadorStock('ptula');
+    instalarAlDia('ptula');
+    loteMinimo('ptula', 1);
+
+    $response = $this->actingAs($this->user)->post(route('reportes.archivos-stock.export.pdf'), [
+        'chart_pie' => 'no-soy-una-imagen',
+        'chart_plaza' => 'javascript:alert(1)',
+    ]);
+
+    $response->assertOk();
+    expect(substr($response->getContent(), 0, 4))->toBe('%PDF');
 });
 
 it('returns 400 when no computer is selected for the stock command', function () {

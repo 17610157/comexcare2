@@ -147,6 +147,9 @@
             <button id="btn_export" class="btn btn-info btn-sm" title="Descargar CSV con los filtros actuales">
               <i class="fas fa-file-csv"></i> CSV
             </button>
+            <button id="btn_export_pdf" class="btn btn-danger btn-sm" title="Descargar PDF con el análisis completo, gráficas y top">
+              <i class="fas fa-file-pdf"></i> PDF
+            </button>
           </div>
         </div>
       </div>
@@ -426,6 +429,7 @@
 <script>
 var DATA_URL = "{{ url('/reportes/archivos-stock/data') }}";
 var EXPORT_URL = "{{ url('/reportes/archivos-stock/export') }}";
+var EXPORT_PDF_URL = "{{ url('/reportes/archivos-stock/export-pdf') }}";
 var AGENTES_URL = "{{ url('/reportes/archivos-stock/agentes') }}";
 var EJECUTAR_URL = "{{ url('/reportes/archivos-stock/ejecutar') }}";
 var BITACORA_URL = "{{ url('/reportes/archivos-stock/bitacora') }}";
@@ -767,6 +771,125 @@ function initAllCharts(s) {
       }
     });
   }
+}
+
+// Las graficas del PDF se dibujan aparte en canvas ocultos a resolucion fija, para que
+// correspondan al concentrado completo y no a los filtros de la pantalla. dompdf no
+// ejecuta JavaScript, asi que se capturan aqui y se envian como PNG en base64.
+function capturarGraficasPdf() {
+  return new Promise(function (resolve, reject) {
+    var holder = document.createElement('div');
+    holder.style.cssText = 'position:absolute;left:-99999px;top:0;';
+    holder.innerHTML =
+      '<canvas id="__pdf_pie" width="300" height="260"></canvas>' +
+      '<canvas id="__pdf_plaza" width="1000" height="420"></canvas>' +
+      '<canvas id="__pdf_causas" width="1000" height="420"></canvas>';
+    document.body.appendChild(holder);
+
+    $.ajax({
+      url: DATA_URL,
+      type: 'GET',
+      data: { length: 1 },
+      dataType: 'json',
+      success: function (json) {
+        var s = json.instalaciones_stats;
+        var causas = s.causas || [];
+        var charts = [];
+        try {
+          var green = '#28a745', red = '#dc3545', amber = '#ffc107';
+
+          charts.push(new Chart(document.getElementById('__pdf_pie'), {
+            type: 'doughnut',
+            data: { labels: ['Listas', 'Pendientes'], datasets: [{ data: [s.listas, s.pendientes], backgroundColor: [green, red], borderWidth: 0 }] },
+            options: {
+              responsive: false, animation: false, cutout: '60%',
+              plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 14 } } }
+            }
+          }));
+
+          charts.push(new Chart(document.getElementById('__pdf_plaza'), {
+            type: 'bar',
+            data: {
+              labels: (s.per_plaza || []).map(function (p) { return p.plaza; }),
+              datasets: [
+                { label: 'Listas', data: (s.per_plaza || []).map(function (p) { return p.listas; }), backgroundColor: green },
+                { label: 'Pendientes', data: (s.per_plaza || []).map(function (p) { return p.pendientes; }), backgroundColor: red }
+              ]
+            },
+            options: {
+              responsive: false, animation: false,
+              scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
+              plugins: { legend: { position: 'bottom' } }
+            }
+          }));
+
+          charts.push(new Chart(document.getElementById('__pdf_causas'), {
+            type: 'bar',
+            data: {
+              labels: causas.map(function (c) { return c.etiqueta; }),
+              datasets: [{
+                label: 'Instalaciones',
+                data: causas.map(function (c) { return c.cantidad; }),
+                backgroundColor: causas.map(function (c) { return c.codigo === 'PESO' ? amber : red; })
+              }]
+            },
+            options: {
+              indexAxis: 'y', responsive: false, animation: false,
+              scales: { x: { beginAtZero: true } },
+              plugins: { legend: { display: false } }
+            }
+          }));
+        } catch (err) {
+          charts.forEach(function (c) { c.destroy(); });
+          document.body.removeChild(holder);
+          reject(err);
+          return;
+        }
+
+        setTimeout(function () {
+          var imgs = {
+            chart_pie: document.getElementById('__pdf_pie').toDataURL('image/png'),
+            chart_plaza: document.getElementById('__pdf_plaza').toDataURL('image/png'),
+            chart_causas: causas.length ? document.getElementById('__pdf_causas').toDataURL('image/png') : ''
+          };
+          charts.forEach(function (c) { c.destroy(); });
+          document.body.removeChild(holder);
+          resolve(imgs);
+        }, 250);
+      },
+      error: function () {
+        document.body.removeChild(holder);
+        reject(new Error('No se pudieron cargar los datos para el PDF'));
+      }
+    });
+  });
+}
+
+// El PDF se descarga con fetch para poder nombrar el archivo y no dejar una pestana en
+// blanco; el navegador no ejecuta el Content-Disposition en una respuesta XHR.
+function descargarPdf(imgs) {
+  var data = new FormData();
+  data.append('_token', CSRF_TOKEN);
+  data.append('chart_pie', imgs.chart_pie || '');
+  data.append('chart_plaza', imgs.chart_plaza || '');
+  data.append('chart_causas', imgs.chart_causas || '');
+
+  return fetch(EXPORT_PDF_URL, {
+    method: 'POST',
+    headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
+    body: data
+  })
+    .then(function (r) { return r.blob(); })
+    .then(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'Concentrado_Archivos_Stock.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
 }
 
 function esc(valor) {
@@ -1241,6 +1364,19 @@ $(function() {
     if (f.dias_max) params.append('dias_max', f.dias_max);
     params.append('_t', Date.now());
     window.open(EXPORT_URL + '?' + params.toString(), '_blank');
+  });
+
+  // El PDF siempre es el concentrado completo (México + fuera de México), por eso no
+  // lleva los filtros de la pantalla. Solo se capturan las graficas del concentrado.
+  $('#btn_export_pdf').on('click', function() {
+    var $btn = $(this);
+    var original = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> PDF');
+
+    capturarGraficasPdf()
+      .then(function(imgs) { return descargarPdf(imgs); })
+      .catch(function() { alert('No se pudo generar el PDF. Intenta de nuevo.'); })
+      .then(function() { $btn.prop('disabled', false).html(original); });
   });
 
   $(document).on('click', '.btn-card-minimize', function() {
